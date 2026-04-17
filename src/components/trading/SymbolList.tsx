@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Search, Star, StarOff } from "lucide-react";
-import { ASSET_LABELS, AssetClass, isMarketOpen, mockPrice, SymbolDef, SYMBOLS } from "@/lib/symbols";
+import { ASSET_LABELS, AssetClass, isMarketOpen, formatPrice, fallbackPrice, SymbolDef, SYMBOLS } from "@/lib/symbols";
+import { useLivePrices } from "@/hooks/useLivePrices";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useApp } from "@/contexts/AppContext";
@@ -21,13 +22,8 @@ export default function SymbolList({ active, onSelect }: Props) {
   const tr = t(lang);
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<AssetClass | "all">("all");
-  const [tick, setTick] = useState(0);
   const [watch, setWatch] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 5000);
-    return () => clearInterval(id);
-  }, []);
+  const livePrices = useLivePrices(SYMBOLS.map((s) => s.symbol));
 
   useEffect(() => {
     if (!user) return;
@@ -74,7 +70,9 @@ export default function SymbolList({ active, onSelect }: Props) {
 
       <div className="flex-1 overflow-y-auto scrollbar-thin">
         {filtered.map((s) => {
-          const { price, change } = mockPrice(s.symbol);
+          const lp = livePrices[s.symbol];
+          const price = lp?.price ?? fallbackPrice(s.symbol);
+          const change = lp?.change_pct_24h ?? 0;
           const open = isMarketOpen(s);
           const isActive = active.symbol === s.symbol;
           const watched = watch.has(s.symbol);
@@ -90,12 +88,12 @@ export default function SymbolList({ active, onSelect }: Props) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-sm truncate">{s.symbol}</span>
-                  <span className={cn("size-1.5 rounded-full", open ? "bg-bull animate-pulse-glow" : "bg-muted-foreground/40")} />
+                  <span className={cn("size-1.5 rounded-full", open ? "bg-bull animate-pulse" : "bg-muted-foreground/40")} />
                 </div>
                 <div className="text-xs text-muted-foreground truncate">{s.name}</div>
               </div>
               <div className="text-right shrink-0">
-                <div className="font-mono text-sm font-semibold">{price.toLocaleString(undefined, { minimumFractionDigits: price < 5 ? 4 : 2, maximumFractionDigits: price < 5 ? 4 : 2 })}</div>
+                <div className="font-mono text-sm font-semibold">{formatPrice(price)}</div>
                 <div className={cn("text-xs font-mono", change >= 0 ? "text-bull" : "text-bear")}>
                   {change >= 0 ? "+" : ""}{change.toFixed(2)}%
                 </div>
