@@ -14,16 +14,248 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      ai_conversations: {
+        Row: {
+          created_at: string
+          id: string
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ai_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      positions: {
+        Row: {
+          asset_class: string
+          current_price: number | null
+          entry_price: number
+          id: string
+          opened_at: string
+          quantity: number
+          side: string
+          symbol: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          asset_class: string
+          current_price?: number | null
+          entry_price: number
+          id?: string
+          opened_at?: string
+          quantity: number
+          side: string
+          symbol: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          asset_class?: string
+          current_price?: number | null
+          entry_price?: number
+          id?: string
+          opened_at?: string
+          quantity?: number
+          side?: string
+          symbol?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          demo_balance: number
+          display_name: string | null
+          id: string
+          initial_balance: number
+          preferred_language: string | null
+          preferred_theme: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          demo_balance?: number
+          display_name?: string | null
+          id: string
+          initial_balance?: number
+          preferred_language?: string | null
+          preferred_theme?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          demo_balance?: number
+          display_name?: string | null
+          id?: string
+          initial_balance?: number
+          preferred_language?: string | null
+          preferred_theme?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      trades: {
+        Row: {
+          action: string
+          asset_class: string
+          executed_at: string
+          executor: string
+          id: string
+          pnl: number | null
+          price: number
+          quantity: number
+          side: string
+          symbol: string
+          total: number
+          user_id: string
+        }
+        Insert: {
+          action: string
+          asset_class: string
+          executed_at?: string
+          executor?: string
+          id?: string
+          pnl?: number | null
+          price: number
+          quantity: number
+          side: string
+          symbol: string
+          total: number
+          user_id: string
+        }
+        Update: {
+          action?: string
+          asset_class?: string
+          executed_at?: string
+          executor?: string
+          id?: string
+          pnl?: number | null
+          price?: number
+          quantity?: number
+          side?: string
+          symbol?: string
+          total?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      watchlist: {
+        Row: {
+          asset_class: string
+          created_at: string
+          display_name: string | null
+          id: string
+          symbol: string
+          user_id: string
+        }
+        Insert: {
+          asset_class: string
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          symbol: string
+          user_id: string
+        }
+        Update: {
+          asset_class?: string
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          symbol?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +382,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const
