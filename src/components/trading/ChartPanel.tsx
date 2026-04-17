@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import TradingViewChart from "@/components/TradingViewChart";
-import { SymbolDef, mockPrice, isMarketOpen } from "@/lib/symbols";
+import { SymbolDef, isMarketOpen, formatPrice, fallbackPrice } from "@/lib/symbols";
+import { useLivePrice } from "@/hooks/useLivePrices";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,9 @@ import { TrendingDown, TrendingUp, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import OrderTicket from "./OrderTicket";
+import AlertsPanel from "./AlertsPanel";
+import { celebrateAchievements } from "@/lib/achievements";
 
 interface Props { symbol: SymbolDef; onTradeDone: () => void; }
 
@@ -18,13 +22,8 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
   const tr = t(lang);
   const [qty, setQty] = useState("1");
   const [submitting, setSubmitting] = useState<"buy" | "sell" | null>(null);
-  const [price, setPrice] = useState(mockPrice(symbol.symbol).price);
-
-  useEffect(() => {
-    setPrice(mockPrice(symbol.symbol).price);
-    const id = setInterval(() => setPrice(mockPrice(symbol.symbol).price), 4000);
-    return () => clearInterval(id);
-  }, [symbol.symbol]);
+  const lp = useLivePrice(symbol.symbol);
+  const price = lp?.price ?? fallbackPrice(symbol.symbol);
 
   const trade = async (side: "buy" | "sell") => {
     if (!user) return toast({ title: tr.error, description: tr.signin });
@@ -37,7 +36,9 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
-      toast({ title: tr.trade_success, description: `${side.toUpperCase()} ${q} ${symbol.symbol} @ ${price}` });
+      toast({ title: tr.trade_success, description: `${side.toUpperCase()} ${q} ${symbol.symbol} @ ${formatPrice(price)}` });
+      const ach = (data as any)?.achievements as string[] | undefined;
+      if (ach?.length) celebrateAchievements(ach, lang);
       onTradeDone();
     } catch (e) {
       toast({ title: tr.error, description: e instanceof Error ? e.message : "Unknown", variant: "destructive" });
@@ -46,6 +47,7 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
 
   const open = isMarketOpen(symbol);
   const total = (parseFloat(qty || "0") * price);
+  const change = lp?.change_pct_24h ?? 0;
 
   return (
     <div className="flex flex-col h-full">
@@ -66,12 +68,17 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
             </div>
           </div>
           <div className="text-right shrink-0">
-            <div className="font-mono text-xl font-bold">{price.toLocaleString(undefined, { minimumFractionDigits: price < 5 ? 4 : 2, maximumFractionDigits: price < 5 ? 4 : 2 })}</div>
+            <div className="font-mono text-xl font-bold">{formatPrice(price)}</div>
+            <div className={cn("text-xs font-mono", change >= 0 ? "text-bull" : "text-bear")}>
+              {change >= 0 ? "+" : ""}{change.toFixed(2)}%
+            </div>
           </div>
         </div>
 
         <TabsList className="mx-3 mt-3 w-fit">
           <TabsTrigger value="chart">{tr.chart}</TabsTrigger>
+          <TabsTrigger value="orders">{tr.orders}</TabsTrigger>
+          <TabsTrigger value="alerts">{tr.alerts}</TabsTrigger>
           <TabsTrigger value="info">{tr.info}</TabsTrigger>
         </TabsList>
 
@@ -81,6 +88,14 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
           </div>
         </TabsContent>
 
+        <TabsContent value="orders" className="flex-1 m-0 mt-3 px-3 overflow-y-auto scrollbar-thin">
+          <OrderTicket symbol={symbol} />
+        </TabsContent>
+
+        <TabsContent value="alerts" className="flex-1 m-0 mt-3 px-3 overflow-y-auto scrollbar-thin">
+          <AlertsPanel symbol={symbol} />
+        </TabsContent>
+
         <TabsContent value="info" className="flex-1 m-0 mt-3 px-3 overflow-y-auto">
           <div className="grid grid-cols-2 gap-3">
             {[
@@ -88,7 +103,8 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
               ["Asset Class", symbol.asset_class],
               ["TradingView", symbol.tv],
               ["Status", open ? tr.market_open : tr.market_closed],
-              [tr.price, price.toString()],
+              [tr.price, formatPrice(price)],
+              ["24h Change", `${change.toFixed(2)}%`],
             ].map(([k, v]) => (
               <div key={k} className="p-4 rounded-xl bg-accent/30 border border-border/40">
                 <div className="text-xs text-muted-foreground uppercase">{k}</div>
@@ -99,7 +115,6 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
         </TabsContent>
       </Tabs>
 
-      {/* Trade bar */}
       <div className="p-3 border-t border-border/40 bg-card/50">
         <div className="flex flex-col sm:flex-row gap-2 items-stretch">
           <Button variant="outline" disabled={!!submitting} onClick={() => trade("sell")}

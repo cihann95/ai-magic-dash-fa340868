@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          code: string
+          created_at: string
+          description_en: string
+          description_tr: string
+          icon: string
+          name_en: string
+          name_tr: string
+          rarity: string
+          xp_reward: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description_en: string
+          description_tr: string
+          icon?: string
+          name_en: string
+          name_tr: string
+          rarity?: string
+          xp_reward?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description_en?: string
+          description_tr?: string
+          icon?: string
+          name_en?: string
+          name_tr?: string
+          rarity?: string
+          xp_reward?: number
+        }
+        Relationships: []
+      }
       ai_conversations: {
         Row: {
           created_at: string
@@ -73,6 +109,114 @@ export type Database = {
           },
         ]
       }
+      daily_briefs: {
+        Row: {
+          brief_date: string
+          content: string
+          created_at: string
+          id: string
+          read: boolean
+          sentiment: string | null
+          user_id: string
+        }
+        Insert: {
+          brief_date: string
+          content: string
+          created_at?: string
+          id?: string
+          read?: boolean
+          sentiment?: string | null
+          user_id: string
+        }
+        Update: {
+          brief_date?: string
+          content?: string
+          created_at?: string
+          id?: string
+          read?: boolean
+          sentiment?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      followers: {
+        Row: {
+          created_at: string
+          follower_id: string
+          following_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          following_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          following_id?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      orders: {
+        Row: {
+          asset_class: string
+          created_at: string
+          expires_at: string | null
+          fill_price: number | null
+          filled_at: string | null
+          id: string
+          limit_price: number | null
+          order_type: string
+          position_id: string | null
+          quantity: number
+          side: string
+          status: string
+          symbol: string
+          trigger_price: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          asset_class: string
+          created_at?: string
+          expires_at?: string | null
+          fill_price?: number | null
+          filled_at?: string | null
+          id?: string
+          limit_price?: number | null
+          order_type: string
+          position_id?: string | null
+          quantity: number
+          side: string
+          status?: string
+          symbol: string
+          trigger_price: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          asset_class?: string
+          created_at?: string
+          expires_at?: string | null
+          fill_price?: number | null
+          filled_at?: string | null
+          id?: string
+          limit_price?: number | null
+          order_type?: string
+          position_id?: string | null
+          quantity?: number
+          side?: string
+          status?: string
+          symbol?: string
+          trigger_price?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       positions: {
         Row: {
           asset_class: string
@@ -112,6 +256,75 @@ export type Database = {
         }
         Relationships: []
       }
+      price_alerts: {
+        Row: {
+          asset_class: string
+          created_at: string
+          direction: string
+          id: string
+          note: string | null
+          symbol: string
+          target_price: number
+          triggered: boolean
+          triggered_at: string | null
+          user_id: string
+        }
+        Insert: {
+          asset_class: string
+          created_at?: string
+          direction: string
+          id?: string
+          note?: string | null
+          symbol: string
+          target_price: number
+          triggered?: boolean
+          triggered_at?: string | null
+          user_id: string
+        }
+        Update: {
+          asset_class?: string
+          created_at?: string
+          direction?: string
+          id?: string
+          note?: string | null
+          symbol?: string
+          target_price?: number
+          triggered?: boolean
+          triggered_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      price_cache: {
+        Row: {
+          asset_class: string
+          change_24h: number | null
+          change_pct_24h: number | null
+          price: number
+          symbol: string
+          updated_at: string
+          volume_24h: number | null
+        }
+        Insert: {
+          asset_class: string
+          change_24h?: number | null
+          change_pct_24h?: number | null
+          price: number
+          symbol: string
+          updated_at?: string
+          volume_24h?: number | null
+        }
+        Update: {
+          asset_class?: string
+          change_24h?: number | null
+          change_pct_24h?: number | null
+          price?: number
+          symbol?: string
+          updated_at?: string
+          volume_24h?: number | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -145,6 +358,81 @@ export type Database = {
           preferred_language?: string | null
           preferred_theme?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      public_profiles: {
+        Row: {
+          bio: string | null
+          created_at: string
+          is_active: boolean
+          show_portfolio: boolean
+          show_trades: boolean
+          updated_at: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string
+          is_active?: boolean
+          show_portfolio?: boolean
+          show_trades?: boolean
+          updated_at?: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string
+          is_active?: boolean
+          show_portfolio?: boolean
+          show_trades?: boolean
+          updated_at?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      trade_journal: {
+        Row: {
+          created_at: string
+          emotion: string | null
+          id: string
+          lessons: string | null
+          position_id: string | null
+          rating: number | null
+          symbol: string
+          thesis: string | null
+          trade_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emotion?: string | null
+          id?: string
+          lessons?: string | null
+          position_id?: string | null
+          rating?: number | null
+          symbol: string
+          thesis?: string | null
+          trade_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emotion?: string | null
+          id?: string
+          lessons?: string | null
+          position_id?: string | null
+          rating?: number | null
+          symbol?: string
+          thesis?: string | null
+          trade_id?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -193,6 +481,35 @@ export type Database = {
         }
         Relationships: []
       }
+      user_achievements: {
+        Row: {
+          achievement_code: string
+          earned_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          achievement_code: string
+          earned_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          achievement_code?: string
+          earned_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_code_fkey"
+            columns: ["achievement_code"]
+            isOneToOne: false
+            referencedRelation: "achievements"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -211,6 +528,57 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      user_stats: {
+        Row: {
+          ai_uses: number
+          asset_classes_traded: string[]
+          best_trade_pnl: number
+          current_streak: number
+          last_active_date: string | null
+          level: number
+          longest_streak: number
+          onboarding_completed: boolean
+          profitable_trades: number
+          total_pnl: number
+          total_trades: number
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        Insert: {
+          ai_uses?: number
+          asset_classes_traded?: string[]
+          best_trade_pnl?: number
+          current_streak?: number
+          last_active_date?: string | null
+          level?: number
+          longest_streak?: number
+          onboarding_completed?: boolean
+          profitable_trades?: number
+          total_pnl?: number
+          total_trades?: number
+          updated_at?: string
+          user_id: string
+          xp?: number
+        }
+        Update: {
+          ai_uses?: number
+          asset_classes_traded?: string[]
+          best_trade_pnl?: number
+          current_streak?: number
+          last_active_date?: string | null
+          level?: number
+          longest_streak?: number
+          onboarding_completed?: boolean
+          profitable_trades?: number
+          total_pnl?: number
+          total_trades?: number
+          updated_at?: string
+          user_id?: string
+          xp?: number
         }
         Relationships: []
       }
@@ -246,6 +614,30 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      award_xp: {
+        Args: { _amount: number; _user_id: string }
+        Returns: {
+          leveled_up: boolean
+          new_level: number
+          new_xp: number
+        }[]
+      }
+      get_leaderboard: {
+        Args: { _limit?: number }
+        Returns: {
+          level: number
+          total_pnl: number
+          total_trades: number
+          user_id: string
+          username: string
+          win_rate: number
+          xp: number
+        }[]
+      }
+      grant_achievement: {
+        Args: { _code: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -253,6 +645,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      touch_streak: { Args: { _user_id: string }; Returns: number }
     }
     Enums: {
       app_role: "admin" | "user"

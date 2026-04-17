@@ -2,15 +2,18 @@ import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
 import { t } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, LineChart, Wallet, History, Eye, Settings, LogOut, Menu, X } from "lucide-react";
+import { Moon, Sun, LineChart, Wallet, History, Eye, Settings, LogOut, Menu, X, Trophy, Award } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
+import GameBadge from "./GameBadge";
 
 const navItems = (lang: "tr" | "en") => [
   { to: "/", label: t(lang).markets, icon: LineChart },
   { to: "/portfolio", label: t(lang).portfolio, icon: Wallet },
   { to: "/history", label: t(lang).history, icon: History },
   { to: "/watchlist", label: t(lang).watchlist, icon: Eye },
+  { to: "/leaderboard", label: t(lang).leaderboard, icon: Trophy },
+  { to: "/achievements", label: t(lang).achievements, icon: Award },
   { to: "/settings", label: t(lang).settings, icon: Settings },
 ];
 
@@ -48,6 +51,7 @@ export default function TopBar() {
         </div>
 
         <div className="flex items-center gap-2">
+          {user && <GameBadge />}
           <Button variant="ghost" size="sm" onClick={() => setLang(lang === "tr" ? "en" : "tr")} className="font-mono text-xs uppercase">
             {lang}
           </Button>

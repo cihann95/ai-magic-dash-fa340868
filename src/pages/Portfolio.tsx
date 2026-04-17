@@ -5,7 +5,8 @@ import { useApp } from "@/contexts/AppContext";
 import { supabase } from "@/integrations/supabase/client";
 import { t } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
-import { mockPrice } from "@/lib/symbols";
+import { fallbackPrice } from "@/lib/symbols";
+import { useLivePrices } from "@/hooks/useLivePrices";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAxis, YAxis } from "recharts";
 import { cn } from "@/lib/utils";
 
@@ -32,8 +33,9 @@ function PortfolioInner() {
     });
   }, [user]);
 
+  const livePrices = useLivePrices(positions.map((p) => p.symbol));
   const livePnl = positions.reduce((acc, p) => {
-    const cur = mockPrice(p.symbol).price;
+    const cur = livePrices[p.symbol]?.price ?? Number(p.current_price ?? p.entry_price) ?? fallbackPrice(p.symbol);
     const v = p.side === "long" ? (cur - Number(p.entry_price)) * Number(p.quantity)
                                 : (Number(p.entry_price) - cur) * Number(p.quantity);
     return acc + v;
