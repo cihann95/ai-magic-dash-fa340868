@@ -6,21 +6,22 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, RefreshCw, Send, Sparkles, TrendingDown, TrendingUp, X } from "lucide-react";
-import { SymbolDef, mockPrice } from "@/lib/symbols";
+import { Loader2, RefreshCw, Send, Sparkles, TrendingDown, TrendingUp, X, Brain } from "lucide-react";
+import { SymbolDef, formatPrice, fallbackPrice } from "@/lib/symbols";
+import { useLivePrices } from "@/hooks/useLivePrices";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { celebrateAchievements } from "@/lib/achievements";
 
 interface Props { symbol: SymbolDef; refreshKey: number; onTradeDone: () => void; }
 
 interface Position {
   id: string; symbol: string; asset_class: string; side: string;
-  quantity: number; entry_price: number;
+  quantity: number; entry_price: number; current_price?: number | null;
 }
 
 interface NewsItem { title: string; summary: string; sentiment: "bullish" | "bearish" | "neutral"; source?: string; }
-
 interface ChatMsg { role: "user" | "assistant"; content: string; }
 
 export default function AccountAIPanel({ symbol, refreshKey, onTradeDone }: Props) {
@@ -31,11 +32,17 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone }: Prop
   const [positions, setPositions] = useState<Position[]>([]);
   const [analysis, setAnalysis] = useState("");
   const [loadingA, setLoadingA] = useState(false);
+  const [strategy, setStrategy] = useState("");
+  const [loadingS, setLoadingS] = useState(false);
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loadingN, setLoadingN] = useState(false);
+  const [brief, setBrief] = useState<string>("");
+  const [loadingB, setLoadingB] = useState(false);
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
+
+  const livePrices = useLivePrices(positions.map((p) => p.symbol));
 
   const loadAcct = async () => {
     if (!user) return;
@@ -50,7 +57,7 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone }: Prop
   useEffect(() => { loadAcct(); }, [user, refreshKey]);
 
   const livePnl = positions.reduce((acc, p) => {
-    const cur = mockPrice(p.symbol).price;
+    const cur = livePrices[p.symbol]?.price ?? Number(p.current_price ?? p.entry_price);
     const v = p.side === "long" ? (cur - Number(p.entry_price)) * Number(p.quantity)
                                 : (Number(p.entry_price) - cur) * Number(p.quantity);
     return acc + v;
@@ -60,7 +67,7 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone }: Prop
   const totalChange = ((totalEquity - initial) / initial) * 100;
 
   const closePos = async (p: Position) => {
-    const cur = mockPrice(p.symbol).price;
+    const cur = livePrices[p.symbol]?.price ?? Number(p.current_price ?? p.entry_price);
     try {
       const { data, error } = await supabase.functions.invoke("execute-trade", {
         body: { symbol: p.symbol, asset_class: p.asset_class, side: p.side === "long" ? "sell" : "buy",
@@ -69,6 +76,8 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone }: Prop
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
       toast({ title: tr.success, description: `${tr.close} ${p.symbol}` });
+      const ach = (data as any)?.achievements as string[] | undefined;
+      if (ach?.length) celebrateAchievements(ach, lang);
       onTradeDone();
     } catch (e) {
       toast({ title: tr.error, description: e instanceof Error ? e.message : "Unknown", variant: "destructive" });
@@ -87,6 +96,30 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone }: Prop
     } catch (e) {
       toast({ title: tr.error, description: e instanceof Error ? e.message : "Unknown", variant: "destructive" });
     } finally { setLoadingA(false); }
+  };
+
+  const runStrategy = async () => {
+    setLoadingS(true); setStrategy("");
+    try {
+      const { data, error } = await supabase.functions.invoke("ai-strategy", { body: { language: lang } });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      setStrategy((data as any).suggestion);
+    } catch (e) {
+      toast({ title: tr.error, description: e instanceof Error ? e.message : "Unknown", variant: "destructive" });
+    } finally { setLoadingS(false); }
+  };
+
+  const runBrief = async () => {
+    setLoadingB(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("daily-brief", { body: { language: lang } });
+      if (error) throw error;
+      if ((data as any)?.error) throw new Error((data as any).error);
+      setBrief((data as any).content);
+    } catch (e) {
+      toast({ title: tr.error, description: e instanceof Error ? e.message : "Unknown", variant: "destructive" });
+    } finally { setLoadingB(false); }
   };
 
   const runNews = async () => {
@@ -156,7 +189,6 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone }: Prop
 
   return (
     <div className="flex flex-col h-full gap-3">
-      {/* Balance Card */}
       <Card className="p-4 glass border-border/40 shadow-card">
         <div className="text-xs text-muted-foreground uppercase tracking-wide">{tr.balance}</div>
         <div className="font-mono text-2xl font-bold mt-1">${totalEquity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
@@ -177,13 +209,14 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone }: Prop
         </div>
       </Card>
 
-      {/* AI Tabs */}
       <Card className="flex-1 min-h-0 flex flex-col glass border-border/40 shadow-card overflow-hidden">
         <Tabs defaultValue="analysis" className="flex flex-col flex-1 min-h-0">
-          <TabsList className="grid grid-cols-3 m-3 mb-0 shrink-0">
-            <TabsTrigger value="analysis" className="text-xs"><Sparkles className="size-3.5 mr-1" />{tr.analysis}</TabsTrigger>
-            <TabsTrigger value="news" className="text-xs">{tr.news}</TabsTrigger>
-            <TabsTrigger value="chat" className="text-xs">{tr.chat}</TabsTrigger>
+          <TabsList className="grid grid-cols-5 m-3 mb-0 shrink-0">
+            <TabsTrigger value="analysis" className="text-[10px]"><Sparkles className="size-3 mr-0.5" />{tr.analysis}</TabsTrigger>
+            <TabsTrigger value="brief" className="text-[10px]">📊</TabsTrigger>
+            <TabsTrigger value="strategy" className="text-[10px]"><Brain className="size-3" /></TabsTrigger>
+            <TabsTrigger value="news" className="text-[10px]">{tr.news}</TabsTrigger>
+            <TabsTrigger value="chat" className="text-[10px]">{tr.chat}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="analysis" className="flex-1 m-0 mt-3 p-3 pt-0 overflow-y-auto scrollbar-thin">
@@ -194,6 +227,28 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone }: Prop
             {analysis && (
               <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
                 <ReactMarkdown>{analysis}</ReactMarkdown>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="brief" className="flex-1 m-0 mt-3 p-3 pt-0 overflow-y-auto scrollbar-thin">
+            <Button variant="outline" size="sm" onClick={runBrief} disabled={loadingB} className="w-full mb-3">
+              {loadingB ? <Loader2 className="size-4 animate-spin" /> : "📊"} {tr.daily_brief}
+            </Button>
+            {brief && (
+              <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
+                <ReactMarkdown>{brief}</ReactMarkdown>
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="strategy" className="flex-1 m-0 mt-3 p-3 pt-0 overflow-y-auto scrollbar-thin">
+            <Button variant="outline" size="sm" onClick={runStrategy} disabled={loadingS} className="w-full mb-3">
+              {loadingS ? <Loader2 className="size-4 animate-spin" /> : <Brain className="size-4" />} {tr.get_strategy}
+            </Button>
+            {strategy && (
+              <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
+                <ReactMarkdown>{strategy}</ReactMarkdown>
               </div>
             )}
           </TabsContent>
@@ -251,7 +306,6 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone }: Prop
         </Tabs>
       </Card>
 
-      {/* Open positions */}
       <Card className="glass border-border/40 shadow-card max-h-64 overflow-hidden flex flex-col">
         <div className="px-3 py-2 border-b border-border/40 text-xs font-semibold uppercase text-muted-foreground tracking-wide">
           {tr.open_positions} ({positions.length})
@@ -260,7 +314,7 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone }: Prop
           {positions.length === 0 ? (
             <div className="p-4 text-xs text-muted-foreground text-center">{tr.no_positions}</div>
           ) : positions.map((p) => {
-            const cur = mockPrice(p.symbol).price;
+            const cur = livePrices[p.symbol]?.price ?? Number(p.current_price ?? p.entry_price);
             const v = p.side === "long" ? (cur - Number(p.entry_price)) * Number(p.quantity)
                                         : (Number(p.entry_price) - cur) * Number(p.quantity);
             return (
@@ -268,7 +322,7 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone }: Prop
                 {p.side === "long" ? <TrendingUp className="size-3.5 text-bull" /> : <TrendingDown className="size-3.5 text-bear" />}
                 <div className="flex-1">
                   <div className="font-semibold">{p.symbol}</div>
-                  <div className="text-[10px] text-muted-foreground font-mono">{Number(p.quantity)} @ {Number(p.entry_price).toFixed(2)}</div>
+                  <div className="text-[10px] text-muted-foreground font-mono">{Number(p.quantity)} @ {formatPrice(Number(p.entry_price))}</div>
                 </div>
                 <div className={cn("font-mono font-semibold text-right", v >= 0 ? "text-bull" : "text-bear")}>
                   {v >= 0 ? "+" : ""}${v.toFixed(2)}

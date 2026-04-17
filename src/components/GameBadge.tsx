@@ -71,7 +71,7 @@ export default function GameBadge() {
             </div>
           </div>
           <div className="text-[10px] text-muted-foreground text-center">
-            {tr.total_trades || "Total"}: {stats.total_trades} • {tr.pnl}: ${Number(stats.total_pnl).toFixed(2)}
+            Total: {stats.total_trades} • {tr.pnl}: ${Number(stats.total_pnl).toFixed(2)}
           </div>
         </div>
       </PopoverContent>
