@@ -1,7 +1,7 @@
 export type AssetClass = "crypto" | "stocks" | "forex" | "commodities" | "indices" | "etf";
 
 export interface SymbolDef {
-  symbol: string;          // internal
+  symbol: string;          // internal — must match price_cache.symbol & price-feed
   tv: string;              // TradingView prefix:symbol
   name: string;
   asset_class: AssetClass;
@@ -16,6 +16,8 @@ export const SYMBOLS: SymbolDef[] = [
   { symbol: "BNBUSD", tv: "BINANCE:BNBUSDT", name: "BNB", asset_class: "crypto", market_open: true },
   { symbol: "XRPUSD", tv: "BINANCE:XRPUSDT", name: "XRP", asset_class: "crypto", market_open: true },
   { symbol: "DOGEUSD", tv: "BINANCE:DOGEUSDT", name: "Dogecoin", asset_class: "crypto", market_open: true },
+  { symbol: "ADAUSD", tv: "BINANCE:ADAUSDT", name: "Cardano", asset_class: "crypto", market_open: true },
+  { symbol: "AVAXUSD", tv: "BINANCE:AVAXUSDT", name: "Avalanche", asset_class: "crypto", market_open: true },
   // stocks
   { symbol: "AAPL", tv: "NASDAQ:AAPL", name: "Apple Inc.", asset_class: "stocks" },
   { symbol: "MSFT", tv: "NASDAQ:MSFT", name: "Microsoft", asset_class: "stocks" },
@@ -30,15 +32,15 @@ export const SYMBOLS: SymbolDef[] = [
   { symbol: "USDJPY", tv: "FX:USDJPY", name: "USD / Japanese Yen", asset_class: "forex", market_open: true },
   { symbol: "USDTRY", tv: "FX_IDC:USDTRY", name: "USD / Turkish Lira", asset_class: "forex", market_open: true },
   // commodities
-  { symbol: "XAUUSD", tv: "OANDA:XAUUSD", name: "Gold Spot", asset_class: "commodities", market_open: true },
-  { symbol: "XAGUSD", tv: "OANDA:XAGUSD", name: "Silver Spot", asset_class: "commodities", market_open: true },
-  { symbol: "WTIUSD", tv: "TVC:USOIL", name: "WTI Crude Oil", asset_class: "commodities", market_open: true },
+  { symbol: "GOLD", tv: "OANDA:XAUUSD", name: "Gold Spot", asset_class: "commodities", market_open: true },
+  { symbol: "SILVER", tv: "OANDA:XAGUSD", name: "Silver Spot", asset_class: "commodities", market_open: true },
+  { symbol: "OIL", tv: "TVC:USOIL", name: "WTI Crude Oil", asset_class: "commodities", market_open: true },
   { symbol: "NATGAS", tv: "TVC:NATURALGAS", name: "Natural Gas", asset_class: "commodities", market_open: true },
   // indices
   { symbol: "SPX", tv: "TVC:SPX", name: "S&P 500", asset_class: "indices" },
   { symbol: "NDX", tv: "TVC:NDX", name: "Nasdaq 100", asset_class: "indices" },
   { symbol: "DJI", tv: "TVC:DJI", name: "Dow Jones 30", asset_class: "indices" },
-  { symbol: "XU100", tv: "BIST:XU100", name: "BIST 100", asset_class: "indices" },
+  { symbol: "VIX", tv: "TVC:VIX", name: "Volatility Index", asset_class: "indices" },
   // etf
   { symbol: "SPY", tv: "AMEX:SPY", name: "SPDR S&P 500 ETF", asset_class: "etf" },
   { symbol: "QQQ", tv: "NASDAQ:QQQ", name: "Invesco QQQ", asset_class: "etf" },
@@ -54,21 +56,15 @@ export const ASSET_LABELS: Record<AssetClass, { tr: string; en: string }> = {
   etf: { tr: "ETF", en: "ETF" },
 };
 
-// Mock price generator (deterministic per symbol)
-export function mockPrice(symbol: string): { price: number; change: number } {
-  const base: Record<string, number> = {
-    BTCUSD: 67500, ETHUSD: 3450, SOLUSD: 168, BNBUSD: 590, XRPUSD: 0.58, DOGEUSD: 0.16,
-    AAPL: 228, MSFT: 425, NVDA: 870, TSLA: 245, AMZN: 185, GOOGL: 175, META: 510,
-    EURUSD: 1.085, GBPUSD: 1.265, USDJPY: 152.3, USDTRY: 32.6,
-    XAUUSD: 2375, XAGUSD: 28.4, WTIUSD: 81.2, NATGAS: 2.15,
-    SPX: 5250, NDX: 18450, DJI: 39200, XU100: 9850,
-    SPY: 524, QQQ: 449, VTI: 261,
-  };
-  const seed = symbol.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
-  const noise = (Math.sin(seed + Date.now() / 60000) + 1) / 2;
-  const p = (base[symbol] || 100) * (1 + (noise - 0.5) * 0.005);
-  const change = (Math.sin(seed * 1.7) * 5);
-  return { price: Number(p.toFixed(p < 5 ? 4 : 2)), change: Number(change.toFixed(2)) };
+export function findSymbol(s: string): SymbolDef | undefined {
+  return SYMBOLS.find((x) => x.symbol === s);
+}
+
+export function formatPrice(p: number | null | undefined): string {
+  if (p == null || isNaN(p as number)) return "—";
+  const v = Number(p);
+  const dec = v < 5 ? 4 : 2;
+  return v.toLocaleString(undefined, { minimumFractionDigits: dec, maximumFractionDigits: dec });
 }
 
 export function isMarketOpen(s: SymbolDef): boolean {
@@ -77,6 +73,18 @@ export function isMarketOpen(s: SymbolDef): boolean {
   const utcHour = now.getUTCHours();
   const day = now.getUTCDay();
   if (day === 0 || day === 6) return false;
-  // US session ~13:30 - 20:00 UTC
   return utcHour >= 13 && utcHour < 21;
+}
+
+// Geriye dönük uyumluluk - eski mockPrice çağrıları için fallback
+const FALLBACK_PRICES: Record<string, number> = {
+  BTCUSD: 67500, ETHUSD: 3450, SOLUSD: 168, BNBUSD: 590, XRPUSD: 0.58, DOGEUSD: 0.16, ADAUSD: 0.45, AVAXUSD: 35,
+  AAPL: 195, MSFT: 432, NVDA: 880, TSLA: 178, AMZN: 185, GOOGL: 165, META: 510,
+  EURUSD: 1.085, GBPUSD: 1.265, USDJPY: 152.4, USDTRY: 32.5,
+  GOLD: 2380, SILVER: 28.5, OIL: 82.4, NATGAS: 2.1,
+  SPX: 5230, NDX: 18250, DJI: 39200, VIX: 14.5,
+  SPY: 521, QQQ: 445, VTI: 258,
+};
+export function fallbackPrice(symbol: string): number {
+  return FALLBACK_PRICES[symbol] ?? 100;
 }
