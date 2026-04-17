@@ -12,6 +12,8 @@ import History from "./pages/History.tsx";
 import Watchlist from "./pages/Watchlist.tsx";
 import Settings from "./pages/Settings.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import Leaderboard from "./pages/Leaderboard.tsx";
+import Achievements from "./pages/Achievements.tsx";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +32,8 @@ const App = () => (
             <Route path="/history" element={<History />} />
             <Route path="/watchlist" element={<Watchlist />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/leaderboard" element={<Leaderboard />} />
+            <Route path="/achievements" element={<Achievements />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AppProvider>
