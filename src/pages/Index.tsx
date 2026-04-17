@@ -1,16 +1,75 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import AppShell from "@/components/AppShell";
+import { useApp } from "@/contexts/AppContext";
+import { SYMBOLS } from "@/lib/symbols";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { t } from "@/lib/i18n";
+import SymbolList from "@/components/trading/SymbolList";
+import ChartPanel from "@/components/trading/ChartPanel";
+import AccountAIPanel from "@/components/trading/AccountAIPanel";
+import { ArrowRight, BarChart3, Brain, Globe, Shield } from "lucide-react";
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
+export default function Index() {
+  const { user, lang } = useApp();
+  const tr = t(lang);
+  const navigate = useNavigate();
+  const [active, setActive] = useState(SYMBOLS[0]);
+  const [refresh, setRefresh] = useState(0);
+
+  if (!user) {
+    return (
+      <AppShell>
+        <section className="px-6 py-20 md:py-32 max-w-5xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 text-xs font-medium px-3 py-1 rounded-full bg-primary/15 text-primary mb-6 animate-fade-in">
+            <Brain className="size-3" /> {lang === "tr" ? "AI destekli işlem" : "AI-powered trading"}
+          </div>
+          <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-4 animate-fade-in">
+            {tr.hero_title.split(" ").slice(0, -1).join(" ")} <span className="text-gradient">{tr.hero_title.split(" ").slice(-1)}</span>
+          </h1>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8 animate-fade-in">{tr.hero_sub}</p>
+          <div className="flex gap-3 justify-center animate-fade-in">
+            <Button size="lg" onClick={() => navigate("/auth?mode=signup")} className="gradient-primary text-primary-foreground shadow-glow h-12 px-8">
+              {tr.get_started} <ArrowRight className="size-4" />
+            </Button>
+            <Button size="lg" variant="outline" onClick={() => navigate("/auth")} className="h-12 px-8">
+              {tr.signin}
+            </Button>
+          </div>
+
+          <div className="grid sm:grid-cols-3 gap-4 mt-20">
+            {[
+              { icon: BarChart3, t: lang === "tr" ? "Gerçek Zamanlı Grafikler" : "Real-time Charts", d: lang === "tr" ? "TradingView ile profesyonel teknik analiz" : "Pro charting with TradingView" },
+              { icon: Brain, t: lang === "tr" ? "AI Analiz" : "AI Analysis", d: lang === "tr" ? "Sembol başına AL/SAT/BEKLE sinyalleri" : "BUY/SELL/HOLD signals per symbol" },
+              { icon: Globe, t: lang === "tr" ? "Tüm Piyasalar" : "All Markets", d: lang === "tr" ? "Kripto, hisse, forex, emtia, endeks, ETF" : "Crypto, stocks, FX, commodities, indices, ETFs" },
+            ].map((f, i) => (
+              <div key={i} className="p-6 rounded-2xl glass border border-border/40 text-left">
+                <div className="size-10 rounded-xl gradient-primary flex items-center justify-center mb-3">
+                  <f.icon className="size-5 text-primary-foreground" />
+                </div>
+                <div className="font-semibold mb-1">{f.t}</div>
+                <div className="text-sm text-muted-foreground">{f.d}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </AppShell>
+    );
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
-    </div>
+    <AppShell>
+      <div className="grid grid-cols-1 lg:grid-cols-[300px_minmax(0,1fr)_360px] gap-3 p-3 h-[calc(100vh-4rem)]">
+        <aside className="rounded-2xl glass border border-border/40 shadow-card overflow-hidden order-2 lg:order-1 min-h-[400px] lg:min-h-0">
+          <SymbolList active={active} onSelect={setActive} />
+        </aside>
+        <section className="rounded-2xl glass border border-border/40 shadow-card overflow-hidden order-1 lg:order-2 min-h-[600px] lg:min-h-0">
+          <ChartPanel symbol={active} onTradeDone={() => setRefresh((r) => r + 1)} />
+        </section>
+        <aside className="order-3 min-h-[600px] lg:min-h-0">
+          <AccountAIPanel symbol={active} refreshKey={refresh} onTradeDone={() => setRefresh((r) => r + 1)} />
+        </aside>
+      </div>
+    </AppShell>
   );
-};
-
-const Index = PlaceholderIndex;
-
-export default Index;
+}
