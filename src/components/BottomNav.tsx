@@ -1,6 +1,6 @@
 // Mobil için alt navigasyon - ana sayfalar arası hızlı geçiş
 import { NavLink } from "react-router-dom";
-import { LineChart, Wallet, Trophy, Settings, Eye } from "lucide-react";
+import { LineChart, Wallet, Trophy, Settings, Flame } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -11,8 +11,8 @@ export default function BottomNav() {
   const tr = t(lang);
   const items = [
     { to: "/", label: tr.markets, icon: LineChart },
+    { to: "/heatmap", label: tr.heatmap, icon: Flame },
     { to: "/portfolio", label: tr.portfolio, icon: Wallet },
-    { to: "/watchlist", label: tr.watchlist, icon: Eye },
     { to: "/leaderboard", label: tr.leaderboard, icon: Trophy },
     { to: "/settings", label: tr.settings, icon: Settings },
   ];

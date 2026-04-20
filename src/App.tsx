@@ -14,6 +14,7 @@ import Settings from "./pages/Settings.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import Leaderboard from "./pages/Leaderboard.tsx";
 import Achievements from "./pages/Achievements.tsx";
+import Heatmap from "./pages/Heatmap.tsx";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/settings" element={<Settings />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/achievements" element={<Achievements />} />
+            <Route path="/heatmap" element={<Heatmap />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AppProvider>
