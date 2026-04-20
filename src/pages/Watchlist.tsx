@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { t } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { findSymbol, formatPrice, fallbackPrice, SYMBOLS } from "@/lib/symbols";
+import { findSymbol, formatPrice, SYMBOLS } from "@/lib/symbols";
 import { useLivePrices } from "@/hooks/useLivePrices";
 import { Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -41,8 +41,8 @@ function WatchlistInner() {
             {items.map((it) => {
               const sym = findSymbol(it.symbol);
               const lp = livePrices[it.symbol];
-              const price = lp?.price ?? fallbackPrice(it.symbol);
-              const change = lp?.change_pct_24h ?? 0;
+              const price = lp?.price ?? null;
+              const change = lp?.change_pct_24h ?? null;
               return (
                 <Card key={it.id} className="p-4 glass border-border/40 flex items-center gap-3">
                   <div className="size-10 rounded-lg gradient-primary shadow-glow flex items-center justify-center font-bold text-primary-foreground text-xs shrink-0">
@@ -54,9 +54,11 @@ function WatchlistInner() {
                   </div>
                   <div className="text-right shrink-0">
                     <div className="font-mono font-semibold">{formatPrice(price)}</div>
-                    <div className={cn("text-xs font-mono", change >= 0 ? "text-bull" : "text-bear")}>
-                      {change >= 0 ? "+" : ""}{change.toFixed(2)}%
-                    </div>
+                    {change !== null ? (
+                      <div className={cn("text-xs font-mono", change >= 0 ? "text-bull" : "text-bear")}>
+                        {change >= 0 ? "+" : ""}{change.toFixed(2)}%
+                      </div>
+                    ) : <div className="text-xs font-mono text-muted-foreground">—</div>}
                   </div>
                   <Button size="icon" variant="ghost" onClick={() => remove(it.id)}><Trash2 className="size-4" /></Button>
                 </Card>
