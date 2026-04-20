@@ -1,3 +1,5 @@
+// Demo işlem yürütücü - Client'tan gelen fiyata GÜVENMEZ.
+// Her zaman price_cache'ten anlık fiyatı okur ve stale/eksik veriyi reddeder.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -10,10 +12,11 @@ interface TradeRequest {
   asset_class: string;
   side: "buy" | "sell";
   quantity: number;
-  price: number;
   position_id?: string;
   executor?: "demo" | "alpaca";
 }
+
+const STALE_MS = 5 * 60 * 1000; // 5 minutes
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -40,19 +43,47 @@ Deno.serve(async (req) => {
     }
 
     const body: TradeRequest = await req.json();
-    const { symbol, asset_class, side, quantity, price, position_id, executor = "demo" } = body;
+    const { symbol, asset_class, side, quantity, position_id, executor = "demo" } = body;
 
-    if (!symbol || !quantity || quantity <= 0 || !price || price <= 0) {
+    if (!symbol || !quantity || quantity <= 0) {
       return new Response(JSON.stringify({ error: "Geçersiz işlem parametreleri" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const total = Number((quantity * price).toFixed(2));
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    // ========== GERÇEK FİYAT - price_cache ==========
+    const { data: priceRow, error: priceErr } = await admin
+      .from("price_cache")
+      .select("price, updated_at")
+      .eq("symbol", symbol)
+      .single();
+
+    if (priceErr || !priceRow) {
+      return new Response(JSON.stringify({
+        error: "Fiyat verisi bulunamadı, lütfen birkaç saniye sonra tekrar deneyin.",
+      }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const priceAge = Date.now() - new Date(priceRow.updated_at).getTime();
+    if (priceAge > STALE_MS) {
+      return new Response(JSON.stringify({
+        error: `Fiyat verisi güncel değil (${Math.round(priceAge / 1000)}s eski). Lütfen tekrar deneyin.`,
+      }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const price = Number(priceRow.price);
+    if (!isFinite(price) || price <= 0) {
+      return new Response(JSON.stringify({ error: "Geçersiz fiyat verisi" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const total = Number((quantity * price).toFixed(2));
 
     const { data: profile, error: profileErr } = await admin
       .from("profiles").select("demo_balance").eq("id", user.id).single();
@@ -94,16 +125,24 @@ Deno.serve(async (req) => {
       user_id: user.id, symbol, asset_class, side, action, quantity, price, total, pnl, executor,
     });
 
+    // ===== Notification =====
+    await admin.from("notifications").insert({
+      user_id: user.id,
+      type: "trade_executed",
+      title: action === "open"
+        ? `${side === "buy" ? "🟢" : "🔴"} ${side.toUpperCase()} ${symbol}`
+        : `✖ ${symbol} kapatıldı${pnl !== null ? ` (${pnl >= 0 ? "+" : ""}$${pnl.toFixed(2)})` : ""}`,
+      body: `${quantity} @ $${price.toFixed(price < 5 ? 4 : 2)} • Toplam $${total.toFixed(2)}`,
+      link: `/portfolio`,
+      metadata: { symbol, side, action, qty: quantity, price, pnl },
+    });
+
     // ===== GAMIFICATION =====
     const grantedAchievements: string[] = [];
     try {
-      // streak güncelle
       await admin.rpc("touch_streak", { _user_id: user.id });
-
-      // her işlem için XP
       await admin.rpc("award_xp", { _user_id: user.id, _amount: 25 });
 
-      // user_stats güncelle
       const { data: stats } = await admin.from("user_stats").select("*").eq("user_id", user.id).single();
       if (stats) {
         const newTotalTrades = (stats.total_trades ?? 0) + 1;
@@ -120,7 +159,6 @@ Deno.serve(async (req) => {
           asset_classes_traded: Array.from(ac),
         }).eq("user_id", user.id);
 
-        // rozetler
         const tryGrant = async (code: string) => {
           const { data } = await admin.rpc("grant_achievement", { _user_id: user.id, _code: code });
           if (data === true) grantedAchievements.push(code);
@@ -136,14 +174,12 @@ Deno.serve(async (req) => {
         const hour = new Date().getUTCHours();
         if (hour >= 2 && hour < 5) await tryGrant("night_owl");
 
-        // Comeback kontrolü
         const { data: trades } = await admin.from("trades").select("pnl,executed_at")
           .eq("user_id", user.id).order("executed_at", { ascending: false }).limit(20);
         if (trades && trades.length >= 5) {
-          let minBalance = newBalance, peak = newBalance;
+          let peak = newBalance;
           for (const t of trades) { peak = Math.max(peak, peak + Number(t.pnl ?? 0)); }
           const drawdown = (peak - newBalance) / peak;
-          // basit comeback: son 10 işlemin son 5'i +%20 toparlama
           const recent5 = trades.slice(0, 5).reduce((a, t) => a + Number(t.pnl ?? 0), 0);
           if (drawdown > 0.1 && recent5 > 0 && (recent5 / Math.abs(peak - newBalance + 1)) >= 0.2) {
             await tryGrant("comeback");
@@ -153,12 +189,24 @@ Deno.serve(async (req) => {
         const newLevel = Math.floor(Math.sqrt((stats.xp + 25) / 100)) + 1;
         if (newLevel >= 50) await tryGrant("legend");
       }
+
+      // Achievement notifications
+      for (const code of grantedAchievements) {
+        await admin.from("notifications").insert({
+          user_id: user.id,
+          type: "achievement",
+          title: `🏆 Yeni rozet kazandın!`,
+          body: code,
+          link: `/achievements`,
+          metadata: { code },
+        });
+      }
     } catch (gErr) {
       console.error("gamification error (non-fatal)", gErr);
     }
 
     return new Response(JSON.stringify({
-      success: true, balance: newBalance, pnl,
+      success: true, balance: newBalance, pnl, price,
       achievements: grantedAchievements,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
