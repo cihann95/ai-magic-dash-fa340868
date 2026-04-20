@@ -63,6 +63,10 @@ const translations = {
     emotion_greedy: "Hırslı", emotion_calm: "Sakin", emotion_excited: "Heyecanlı",
     // strategy
     ai_strategy: "AI Strateji", get_strategy: "Strateji al",
+    // price status
+    price_unavailable: "Fiyat verisi bekleniyor", price_loading: "Fiyat verisi yükleniyor...", stale_data: "Veri eski",
+    // heatmap
+    heatmap: "Isı Haritası",
   },
   en: {
     markets: "Markets", portfolio: "Portfolio", history: "History", watchlist: "Watchlist", settings: "Settings",
@@ -110,5 +114,7 @@ const translations = {
     emotion_confident: "Confident", emotion_uncertain: "Uncertain", emotion_fearful: "Fearful",
     emotion_greedy: "Greedy", emotion_calm: "Calm", emotion_excited: "Excited",
     ai_strategy: "AI Strategy", get_strategy: "Get strategy",
+    price_unavailable: "Waiting for price data", price_loading: "Loading price data...", stale_data: "Stale data",
+    heatmap: "Heatmap",
   },
 };

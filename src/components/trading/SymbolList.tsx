@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Search, Star, StarOff } from "lucide-react";
-import { ASSET_LABELS, AssetClass, isMarketOpen, formatPrice, fallbackPrice, SymbolDef, SYMBOLS } from "@/lib/symbols";
+import { ASSET_LABELS, AssetClass, isMarketOpen, formatPrice, SymbolDef, SYMBOLS } from "@/lib/symbols";
 import { useLivePrices } from "@/hooks/useLivePrices";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -71,8 +71,8 @@ export default function SymbolList({ active, onSelect }: Props) {
       <div className="flex-1 overflow-y-auto scrollbar-thin">
         {filtered.map((s) => {
           const lp = livePrices[s.symbol];
-          const price = lp?.price ?? fallbackPrice(s.symbol);
-          const change = lp?.change_pct_24h ?? 0;
+          const price = lp?.price ?? null;
+          const change = lp?.change_pct_24h ?? null;
           const open = isMarketOpen(s);
           const isActive = active.symbol === s.symbol;
           const watched = watch.has(s.symbol);
@@ -94,9 +94,13 @@ export default function SymbolList({ active, onSelect }: Props) {
               </div>
               <div className="text-right shrink-0">
                 <div className="font-mono text-sm font-semibold">{formatPrice(price)}</div>
-                <div className={cn("text-xs font-mono", change >= 0 ? "text-bull" : "text-bear")}>
-                  {change >= 0 ? "+" : ""}{change.toFixed(2)}%
-                </div>
+                {change !== null ? (
+                  <div className={cn("text-xs font-mono", change >= 0 ? "text-bull" : "text-bear")}>
+                    {change >= 0 ? "+" : ""}{change.toFixed(2)}%
+                  </div>
+                ) : (
+                  <div className="text-xs font-mono text-muted-foreground">—</div>
+                )}
               </div>
               <button onClick={(e) => toggleWatch(s, e)} className="ml-1 text-muted-foreground hover:text-primary transition-colors p-1">
                 {watched ? <Star className="size-3.5 fill-primary text-primary" /> : <StarOff className="size-3.5" />}

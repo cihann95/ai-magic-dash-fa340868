@@ -7,7 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, RefreshCw, Send, Sparkles, TrendingDown, TrendingUp, X, Brain } from "lucide-react";
-import { SymbolDef, formatPrice, fallbackPrice } from "@/lib/symbols";
+import { SymbolDef, formatPrice } from "@/lib/symbols";
+import AIDisclaimer from "@/components/AIDisclaimer";
 import { useLivePrices } from "@/hooks/useLivePrices";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
@@ -67,11 +68,10 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone }: Prop
   const totalChange = ((totalEquity - initial) / initial) * 100;
 
   const closePos = async (p: Position) => {
-    const cur = livePrices[p.symbol]?.price ?? Number(p.current_price ?? p.entry_price);
     try {
       const { data, error } = await supabase.functions.invoke("execute-trade", {
         body: { symbol: p.symbol, asset_class: p.asset_class, side: p.side === "long" ? "sell" : "buy",
-                quantity: p.quantity, price: cur, position_id: p.id },
+                quantity: p.quantity, position_id: p.id },
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
@@ -225,9 +225,12 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone }: Prop
               {loadingA ? tr.ai_loading : (lang === "tr" ? `${symbol.symbol} için analiz` : `Analyze ${symbol.symbol}`)}
             </Button>
             {analysis && (
-              <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
-                <ReactMarkdown>{analysis}</ReactMarkdown>
-              </div>
+              <>
+                <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
+                  <ReactMarkdown>{analysis}</ReactMarkdown>
+                </div>
+                <AIDisclaimer className="mt-3" />
+              </>
             )}
           </TabsContent>
 
@@ -236,9 +239,12 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone }: Prop
               {loadingB ? <Loader2 className="size-4 animate-spin" /> : "📊"} {tr.daily_brief}
             </Button>
             {brief && (
-              <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
-                <ReactMarkdown>{brief}</ReactMarkdown>
-              </div>
+              <>
+                <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
+                  <ReactMarkdown>{brief}</ReactMarkdown>
+                </div>
+                <AIDisclaimer className="mt-3" />
+              </>
             )}
           </TabsContent>
 
@@ -247,9 +253,12 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone }: Prop
               {loadingS ? <Loader2 className="size-4 animate-spin" /> : <Brain className="size-4" />} {tr.get_strategy}
             </Button>
             {strategy && (
-              <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
-                <ReactMarkdown>{strategy}</ReactMarkdown>
-              </div>
+              <>
+                <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
+                  <ReactMarkdown>{strategy}</ReactMarkdown>
+                </div>
+                <AIDisclaimer className="mt-3" />
+              </>
             )}
           </TabsContent>
 

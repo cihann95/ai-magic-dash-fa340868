@@ -1,21 +1,31 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AppShell from "@/components/AppShell";
 import { useApp } from "@/contexts/AppContext";
-import { SYMBOLS } from "@/lib/symbols";
-import { useNavigate } from "react-router-dom";
+import { SYMBOLS, findSymbol } from "@/lib/symbols";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { t } from "@/lib/i18n";
 import SymbolList from "@/components/trading/SymbolList";
 import ChartPanel from "@/components/trading/ChartPanel";
 import AccountAIPanel from "@/components/trading/AccountAIPanel";
-import { ArrowRight, BarChart3, Brain, Globe, Shield } from "lucide-react";
+import { ArrowRight, BarChart3, Brain, Globe } from "lucide-react";
 
 export default function Index() {
   const { user, lang } = useApp();
   const tr = t(lang);
   const navigate = useNavigate();
-  const [active, setActive] = useState(SYMBOLS[0]);
+  const [params] = useSearchParams();
+  const initial = findSymbol(params.get("symbol") || "") || SYMBOLS[0];
+  const [active, setActive] = useState(initial);
   const [refresh, setRefresh] = useState(0);
+
+  useEffect(() => {
+    const s = params.get("symbol");
+    if (s) {
+      const found = findSymbol(s);
+      if (found) setActive(found);
+    }
+  }, [params]);
 
   if (!user) {
     return (

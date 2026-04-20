@@ -3,48 +3,50 @@ export type AssetClass = "crypto" | "stocks" | "forex" | "commodities" | "indice
 export interface SymbolDef {
   symbol: string;          // internal — must match price_cache.symbol & price-feed
   tv: string;              // TradingView prefix:symbol
+  yahoo?: string;          // Yahoo Finance ticker (for non-crypto live prices)
+  binance?: string;        // Binance ticker (crypto live prices)
   name: string;
   asset_class: AssetClass;
   market_open?: boolean;   // crypto/forex 24/7
 }
 
 export const SYMBOLS: SymbolDef[] = [
-  // crypto
-  { symbol: "BTCUSD", tv: "BINANCE:BTCUSDT", name: "Bitcoin", asset_class: "crypto", market_open: true },
-  { symbol: "ETHUSD", tv: "BINANCE:ETHUSDT", name: "Ethereum", asset_class: "crypto", market_open: true },
-  { symbol: "SOLUSD", tv: "BINANCE:SOLUSDT", name: "Solana", asset_class: "crypto", market_open: true },
-  { symbol: "BNBUSD", tv: "BINANCE:BNBUSDT", name: "BNB", asset_class: "crypto", market_open: true },
-  { symbol: "XRPUSD", tv: "BINANCE:XRPUSDT", name: "XRP", asset_class: "crypto", market_open: true },
-  { symbol: "DOGEUSD", tv: "BINANCE:DOGEUSDT", name: "Dogecoin", asset_class: "crypto", market_open: true },
-  { symbol: "ADAUSD", tv: "BINANCE:ADAUSDT", name: "Cardano", asset_class: "crypto", market_open: true },
-  { symbol: "AVAXUSD", tv: "BINANCE:AVAXUSDT", name: "Avalanche", asset_class: "crypto", market_open: true },
-  // stocks
-  { symbol: "AAPL", tv: "NASDAQ:AAPL", name: "Apple Inc.", asset_class: "stocks" },
-  { symbol: "MSFT", tv: "NASDAQ:MSFT", name: "Microsoft", asset_class: "stocks" },
-  { symbol: "NVDA", tv: "NASDAQ:NVDA", name: "NVIDIA", asset_class: "stocks" },
-  { symbol: "TSLA", tv: "NASDAQ:TSLA", name: "Tesla", asset_class: "stocks" },
-  { symbol: "AMZN", tv: "NASDAQ:AMZN", name: "Amazon", asset_class: "stocks" },
-  { symbol: "GOOGL", tv: "NASDAQ:GOOGL", name: "Alphabet", asset_class: "stocks" },
-  { symbol: "META", tv: "NASDAQ:META", name: "Meta Platforms", asset_class: "stocks" },
-  // forex
-  { symbol: "EURUSD", tv: "FX:EURUSD", name: "Euro / US Dollar", asset_class: "forex", market_open: true },
-  { symbol: "GBPUSD", tv: "FX:GBPUSD", name: "British Pound / USD", asset_class: "forex", market_open: true },
-  { symbol: "USDJPY", tv: "FX:USDJPY", name: "USD / Japanese Yen", asset_class: "forex", market_open: true },
-  { symbol: "USDTRY", tv: "FX_IDC:USDTRY", name: "USD / Turkish Lira", asset_class: "forex", market_open: true },
-  // commodities
-  { symbol: "GOLD", tv: "OANDA:XAUUSD", name: "Gold Spot", asset_class: "commodities", market_open: true },
-  { symbol: "SILVER", tv: "OANDA:XAGUSD", name: "Silver Spot", asset_class: "commodities", market_open: true },
-  { symbol: "OIL", tv: "TVC:USOIL", name: "WTI Crude Oil", asset_class: "commodities", market_open: true },
-  { symbol: "NATGAS", tv: "TVC:NATURALGAS", name: "Natural Gas", asset_class: "commodities", market_open: true },
-  // indices
-  { symbol: "SPX", tv: "TVC:SPX", name: "S&P 500", asset_class: "indices" },
-  { symbol: "NDX", tv: "TVC:NDX", name: "Nasdaq 100", asset_class: "indices" },
-  { symbol: "DJI", tv: "TVC:DJI", name: "Dow Jones 30", asset_class: "indices" },
-  { symbol: "VIX", tv: "TVC:VIX", name: "Volatility Index", asset_class: "indices" },
-  // etf
-  { symbol: "SPY", tv: "AMEX:SPY", name: "SPDR S&P 500 ETF", asset_class: "etf" },
-  { symbol: "QQQ", tv: "NASDAQ:QQQ", name: "Invesco QQQ", asset_class: "etf" },
-  { symbol: "VTI", tv: "AMEX:VTI", name: "Vanguard Total Stock", asset_class: "etf" },
+  // crypto - Binance
+  { symbol: "BTCUSD", tv: "BINANCE:BTCUSDT", binance: "BTCUSDT", name: "Bitcoin", asset_class: "crypto", market_open: true },
+  { symbol: "ETHUSD", tv: "BINANCE:ETHUSDT", binance: "ETHUSDT", name: "Ethereum", asset_class: "crypto", market_open: true },
+  { symbol: "SOLUSD", tv: "BINANCE:SOLUSDT", binance: "SOLUSDT", name: "Solana", asset_class: "crypto", market_open: true },
+  { symbol: "BNBUSD", tv: "BINANCE:BNBUSDT", binance: "BNBUSDT", name: "BNB", asset_class: "crypto", market_open: true },
+  { symbol: "XRPUSD", tv: "BINANCE:XRPUSDT", binance: "XRPUSDT", name: "XRP", asset_class: "crypto", market_open: true },
+  { symbol: "DOGEUSD", tv: "BINANCE:DOGEUSDT", binance: "DOGEUSDT", name: "Dogecoin", asset_class: "crypto", market_open: true },
+  { symbol: "ADAUSD", tv: "BINANCE:ADAUSDT", binance: "ADAUSDT", name: "Cardano", asset_class: "crypto", market_open: true },
+  { symbol: "AVAXUSD", tv: "BINANCE:AVAXUSDT", binance: "AVAXUSDT", name: "Avalanche", asset_class: "crypto", market_open: true },
+  // stocks - Yahoo
+  { symbol: "AAPL", tv: "NASDAQ:AAPL", yahoo: "AAPL", name: "Apple Inc.", asset_class: "stocks" },
+  { symbol: "MSFT", tv: "NASDAQ:MSFT", yahoo: "MSFT", name: "Microsoft", asset_class: "stocks" },
+  { symbol: "NVDA", tv: "NASDAQ:NVDA", yahoo: "NVDA", name: "NVIDIA", asset_class: "stocks" },
+  { symbol: "TSLA", tv: "NASDAQ:TSLA", yahoo: "TSLA", name: "Tesla", asset_class: "stocks" },
+  { symbol: "AMZN", tv: "NASDAQ:AMZN", yahoo: "AMZN", name: "Amazon", asset_class: "stocks" },
+  { symbol: "GOOGL", tv: "NASDAQ:GOOGL", yahoo: "GOOGL", name: "Alphabet", asset_class: "stocks" },
+  { symbol: "META", tv: "NASDAQ:META", yahoo: "META", name: "Meta Platforms", asset_class: "stocks" },
+  // forex - Yahoo
+  { symbol: "EURUSD", tv: "FX:EURUSD", yahoo: "EURUSD=X", name: "Euro / US Dollar", asset_class: "forex", market_open: true },
+  { symbol: "GBPUSD", tv: "FX:GBPUSD", yahoo: "GBPUSD=X", name: "British Pound / USD", asset_class: "forex", market_open: true },
+  { symbol: "USDJPY", tv: "FX:USDJPY", yahoo: "JPY=X", name: "USD / Japanese Yen", asset_class: "forex", market_open: true },
+  { symbol: "USDTRY", tv: "FX_IDC:USDTRY", yahoo: "TRY=X", name: "USD / Turkish Lira", asset_class: "forex", market_open: true },
+  // commodities - Yahoo futures
+  { symbol: "GOLD", tv: "OANDA:XAUUSD", yahoo: "GC=F", name: "Gold Futures", asset_class: "commodities", market_open: true },
+  { symbol: "SILVER", tv: "OANDA:XAGUSD", yahoo: "SI=F", name: "Silver Futures", asset_class: "commodities", market_open: true },
+  { symbol: "OIL", tv: "TVC:USOIL", yahoo: "CL=F", name: "WTI Crude Oil", asset_class: "commodities", market_open: true },
+  { symbol: "NATGAS", tv: "TVC:NATURALGAS", yahoo: "NG=F", name: "Natural Gas", asset_class: "commodities", market_open: true },
+  // indices - Yahoo
+  { symbol: "SPX", tv: "TVC:SPX", yahoo: "^GSPC", name: "S&P 500", asset_class: "indices" },
+  { symbol: "NDX", tv: "TVC:NDX", yahoo: "^NDX", name: "Nasdaq 100", asset_class: "indices" },
+  { symbol: "DJI", tv: "TVC:DJI", yahoo: "^DJI", name: "Dow Jones 30", asset_class: "indices" },
+  { symbol: "VIX", tv: "TVC:VIX", yahoo: "^VIX", name: "Volatility Index", asset_class: "indices" },
+  // etf - Yahoo
+  { symbol: "SPY", tv: "AMEX:SPY", yahoo: "SPY", name: "SPDR S&P 500 ETF", asset_class: "etf" },
+  { symbol: "QQQ", tv: "NASDAQ:QQQ", yahoo: "QQQ", name: "Invesco QQQ", asset_class: "etf" },
+  { symbol: "VTI", tv: "AMEX:VTI", yahoo: "VTI", name: "Vanguard Total Stock", asset_class: "etf" },
 ];
 
 export const ASSET_LABELS: Record<AssetClass, { tr: string; en: string }> = {
@@ -76,15 +78,10 @@ export function isMarketOpen(s: SymbolDef): boolean {
   return utcHour >= 13 && utcHour < 21;
 }
 
-// Geriye dönük uyumluluk - eski mockPrice çağrıları için fallback
-const FALLBACK_PRICES: Record<string, number> = {
-  BTCUSD: 67500, ETHUSD: 3450, SOLUSD: 168, BNBUSD: 590, XRPUSD: 0.58, DOGEUSD: 0.16, ADAUSD: 0.45, AVAXUSD: 35,
-  AAPL: 195, MSFT: 432, NVDA: 880, TSLA: 178, AMZN: 185, GOOGL: 165, META: 510,
-  EURUSD: 1.085, GBPUSD: 1.265, USDJPY: 152.4, USDTRY: 32.5,
-  GOLD: 2380, SILVER: 28.5, OIL: 82.4, NATGAS: 2.1,
-  SPX: 5230, NDX: 18250, DJI: 39200, VIX: 14.5,
-  SPY: 521, QQQ: 445, VTI: 258,
-};
-export function fallbackPrice(symbol: string): number {
-  return FALLBACK_PRICES[symbol] ?? 100;
+// Stale: 5 dakikadan eski fiyat verisi
+export const STALE_THRESHOLD_MS = 5 * 60 * 1000;
+
+export function isStale(updatedAt?: string | null): boolean {
+  if (!updatedAt) return true;
+  return Date.now() - new Date(updatedAt).getTime() > STALE_THRESHOLD_MS;
 }
