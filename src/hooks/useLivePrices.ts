@@ -11,7 +11,7 @@ export interface LivePrice {
   updated_at: string;
 }
 
-let cache: Record<string, LivePrice> = {};
+const cache: Record<string, LivePrice> = {};
 const listeners = new Set<() => void>();
 
 function notify() {
