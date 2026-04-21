@@ -98,6 +98,7 @@ async function fetchBinance(syms: SymRef[]): Promise<PriceUpdate[]> {
 async function fetchYahoo(syms: SymRef[]): Promise<PriceUpdate[]> {
   const out: PriceUpdate[] = [];
   if (syms.length === 0) return out;
+  const missing = new Set(syms.map((s) => s.symbol));
   // Batch up to 50 per request
   const batches: SymRef[][] = [];
   for (let i = 0; i < syms.length; i += 50) batches.push(syms.slice(i, i + 50));
@@ -133,12 +134,47 @@ async function fetchYahoo(syms: SymRef[]): Promise<PriceUpdate[]> {
           volume_24h: typeof q.regularMarketVolume === "number" ? q.regularMarketVolume : null,
           updated_at: now,
         });
+        missing.delete(s.symbol);
       }
     } catch (e) {
       console.error("Yahoo fetch error", e);
     }
   }
+
+  for (const s of syms.filter((x) => missing.has(x.symbol))) {
+    const chart = await fetchYahooChart(s);
+    if (chart) out.push(chart);
+  }
   return out;
+}
+
+async function fetchYahooChart(s: SymRef): Promise<PriceUpdate | null> {
+  try {
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(s.yahoo!)}?range=1d&interval=1m`;
+    const r = await fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" },
+    });
+    if (!r.ok) return null;
+    const json = await r.json();
+    const result = json?.chart?.result?.[0];
+    const meta = result?.meta;
+    const price = Number(meta?.regularMarketPrice ?? meta?.chartPreviousClose);
+    if (!isFinite(price) || price <= 0) return null;
+    const previous = Number(meta?.previousClose || meta?.chartPreviousClose || 0);
+    const change = previous > 0 ? price - previous : null;
+    return {
+      symbol: s.symbol,
+      asset_class: s.asset_class,
+      price,
+      change_24h: change,
+      change_pct_24h: change !== null ? (change / previous) * 100 : null,
+      volume_24h: typeof meta?.regularMarketVolume === "number" ? meta.regularMarketVolume : null,
+      updated_at: new Date().toISOString(),
+    };
+  } catch (e) {
+    console.error("Yahoo chart fetch error", s.symbol, e);
+    return null;
+  }
 }
 
 Deno.serve(async (req) => {
