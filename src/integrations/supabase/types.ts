@@ -109,6 +109,78 @@ export type Database = {
           },
         ]
       }
+      coach_insights: {
+        Row: {
+          acknowledged: boolean
+          body: string
+          category: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          severity: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          acknowledged?: boolean
+          body: string
+          category: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          severity?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          acknowledged?: boolean
+          body?: string
+          category?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          severity?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      copy_settings: {
+        Row: {
+          asset_classes: string[]
+          created_at: string
+          enabled: boolean
+          follower_id: string
+          id: string
+          leader_id: string
+          max_position_usd: number
+          ratio: number
+          updated_at: string
+        }
+        Insert: {
+          asset_classes?: string[]
+          created_at?: string
+          enabled?: boolean
+          follower_id: string
+          id?: string
+          leader_id: string
+          max_position_usd?: number
+          ratio?: number
+          updated_at?: string
+        }
+        Update: {
+          asset_classes?: string[]
+          created_at?: string
+          enabled?: boolean
+          follower_id?: string
+          id?: string
+          leader_id?: string
+          max_position_usd?: number
+          ratio?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       daily_briefs: {
         Row: {
           brief_date: string
@@ -400,6 +472,7 @@ export type Database = {
       public_profiles: {
         Row: {
           bio: string | null
+          copyable: boolean
           created_at: string
           is_active: boolean
           show_portfolio: boolean
@@ -410,6 +483,7 @@ export type Database = {
         }
         Insert: {
           bio?: string | null
+          copyable?: boolean
           created_at?: string
           is_active?: boolean
           show_portfolio?: boolean
@@ -420,6 +494,7 @@ export type Database = {
         }
         Update: {
           bio?: string | null
+          copyable?: boolean
           created_at?: string
           is_active?: boolean
           show_portfolio?: boolean
@@ -427,6 +502,36 @@ export type Database = {
           updated_at?: string
           user_id?: string
           username?: string
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
+          user_agent?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -476,9 +581,11 @@ export type Database = {
         Row: {
           action: string
           asset_class: string
+          copied_from: string | null
           executed_at: string
           executor: string
           id: string
+          leader_user_id: string | null
           pnl: number | null
           price: number
           quantity: number
@@ -490,9 +597,11 @@ export type Database = {
         Insert: {
           action: string
           asset_class: string
+          copied_from?: string | null
           executed_at?: string
           executor?: string
           id?: string
+          leader_user_id?: string | null
           pnl?: number | null
           price: number
           quantity: number
@@ -504,9 +613,11 @@ export type Database = {
         Update: {
           action?: string
           asset_class?: string
+          copied_from?: string | null
           executed_at?: string
           executor?: string
           id?: string
+          leader_user_id?: string | null
           pnl?: number | null
           price?: number
           quantity?: number
@@ -647,7 +758,23 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      activity_feed: {
+        Row: {
+          action: string | null
+          asset_class: string | null
+          event_at: string | null
+          event_id: string | null
+          event_type: string | null
+          pnl: number | null
+          price: number | null
+          quantity: number | null
+          side: string | null
+          symbol: string | null
+          user_id: string | null
+          username: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       award_xp: {

@@ -2,7 +2,7 @@ import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
 import { t } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, LineChart, Wallet, History, Eye, Settings, LogOut, Menu, X, Trophy, Award, Flame } from "lucide-react";
+import { Moon, Sun, LineChart, Wallet, History, Eye, Settings, LogOut, Menu, X, Trophy, Award, Flame, Users, Brain, BookOpen } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
 import GameBadge from "./GameBadge";
@@ -12,6 +12,9 @@ const navItems = (lang: "tr" | "en") => [
   { to: "/", label: t(lang).markets, icon: LineChart },
   { to: "/heatmap", label: t(lang).heatmap, icon: Flame },
   { to: "/portfolio", label: t(lang).portfolio, icon: Wallet },
+  { to: "/social", label: t(lang).social, icon: Users },
+  { to: "/coach", label: t(lang).coach, icon: Brain },
+  { to: "/journal", label: t(lang).journal, icon: BookOpen },
   { to: "/history", label: t(lang).history, icon: History },
   { to: "/watchlist", label: t(lang).watchlist, icon: Eye },
   { to: "/leaderboard", label: t(lang).leaderboard, icon: Trophy },
