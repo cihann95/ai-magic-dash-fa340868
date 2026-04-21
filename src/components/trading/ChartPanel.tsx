@@ -31,9 +31,23 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
   const trade = async (side: "buy" | "sell") => {
     if (!user) return toast({ title: tr.error, description: tr.signin });
     if (noPrice) return toast({ title: tr.error, description: tr.price_unavailable, variant: "destructive" });
+    if (stale) return toast({ title: tr.error, description: tr.stale_data, variant: "destructive" });
     const q = parseFloat(qty);
     if (!q || q <= 0) return toast({ title: tr.error, description: tr.quantity, variant: "destructive" });
     setSubmitting(side);
+    const optimisticId = `optimistic-${Date.now()}`;
+    window.dispatchEvent(new CustomEvent("optimistic-position", {
+      detail: {
+        id: optimisticId,
+        symbol: symbol.symbol,
+        asset_class: symbol.asset_class,
+        side: side === "buy" ? "long" : "short",
+        quantity: q,
+        entry_price: price,
+        current_price: price,
+        pending: true,
+      },
+    }));
     try {
       const { data, error } = await supabase.functions.invoke("execute-trade", {
         body: { symbol: symbol.symbol, asset_class: symbol.asset_class, side, quantity: q },
@@ -46,6 +60,7 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
       if (ach?.length) celebrateAchievements(ach, lang);
       onTradeDone();
     } catch (e) {
+      window.dispatchEvent(new CustomEvent("optimistic-position-rollback", { detail: { id: optimisticId } }));
       toast({ title: tr.error, description: e instanceof Error ? e.message : "Unknown", variant: "destructive" });
     } finally { setSubmitting(null); }
   };
@@ -53,7 +68,7 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
   const open = isMarketOpen(symbol);
   const total = (parseFloat(qty || "0") * (price ?? 0));
   const change = lp?.change_pct_24h ?? null;
-  const tradeDisabled = !!submitting || noPrice;
+  const tradeDisabled = !!submitting || noPrice || stale;
 
   return (
     <div className="flex flex-col h-full">

@@ -20,6 +20,7 @@ interface Props { symbol: SymbolDef; refreshKey: number; onTradeDone: () => void
 interface Position {
   id: string; symbol: string; asset_class: string; side: string;
   quantity: number; entry_price: number; current_price?: number | null;
+  pending?: boolean;
 }
 
 interface NewsItem { title: string; summary: string; sentiment: "bullish" | "bearish" | "neutral"; source?: string; }
@@ -56,6 +57,23 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone }: Prop
   };
 
   useEffect(() => { loadAcct(); }, [user, refreshKey]);
+
+  useEffect(() => {
+    const add = (event: Event) => {
+      const next = (event as CustomEvent<Position>).detail;
+      if (next) setPositions((current) => [next, ...current.filter((p) => p.id !== next.id)]);
+    };
+    const rollback = (event: Event) => {
+      const id = (event as CustomEvent<{ id: string }>).detail?.id;
+      if (id) setPositions((current) => current.filter((p) => p.id !== id));
+    };
+    window.addEventListener("optimistic-position", add);
+    window.addEventListener("optimistic-position-rollback", rollback);
+    return () => {
+      window.removeEventListener("optimistic-position", add);
+      window.removeEventListener("optimistic-position-rollback", rollback);
+    };
+  }, []);
 
   const livePnl = positions.reduce((acc, p) => {
     const cur = livePrices[p.symbol]?.price ?? Number(p.current_price ?? p.entry_price);
@@ -327,7 +345,7 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone }: Prop
             const v = p.side === "long" ? (cur - Number(p.entry_price)) * Number(p.quantity)
                                         : (Number(p.entry_price) - cur) * Number(p.quantity);
             return (
-              <div key={p.id} className="px-3 py-2 border-b border-border/30 flex items-center gap-2 text-xs">
+              <div key={p.id} className={cn("px-3 py-2 border-b border-border/30 flex items-center gap-2 text-xs", p.pending && "opacity-60 animate-pulse")}>
                 {p.side === "long" ? <TrendingUp className="size-3.5 text-bull" /> : <TrendingDown className="size-3.5 text-bear" />}
                 <div className="flex-1">
                   <div className="font-semibold">{p.symbol}</div>
@@ -336,8 +354,8 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone }: Prop
                 <div className={cn("font-mono font-semibold text-right", v >= 0 ? "text-bull" : "text-bear")}>
                   {v >= 0 ? "+" : ""}${v.toFixed(2)}
                 </div>
-                <Button size="icon" variant="ghost" onClick={() => closePos(p)} className="size-6">
-                  <X className="size-3" />
+                <Button size="icon" variant="ghost" onClick={() => closePos(p)} disabled={p.pending} className="size-6">
+                  {p.pending ? <Loader2 className="size-3 animate-spin" /> : <X className="size-3" />}
                 </Button>
               </div>
             );

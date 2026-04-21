@@ -3,13 +3,13 @@ import { useEffect, useState } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useLivePrice } from "@/hooks/useLivePrices";
-import { SymbolDef, formatPrice } from "@/lib/symbols";
+import { SymbolDef, formatPrice, isStale } from "@/lib/symbols";
 import { t } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { Bell, X, Check } from "lucide-react";
+import { Bell, X, Check, Loader2, Clock } from "lucide-react";
 
 export default function AlertsPanel({ symbol }: { symbol: SymbolDef }) {
   const { user, lang } = useApp();
@@ -19,6 +19,8 @@ export default function AlertsPanel({ symbol }: { symbol: SymbolDef }) {
   const [target, setTarget] = useState("");
   const [note, setNote] = useState("");
   const [alerts, setAlerts] = useState<any[]>([]);
+  const noPrice = !lp?.price;
+  const stale = isStale(lp?.updated_at);
 
   const load = async () => {
     if (!user) return;
@@ -38,6 +40,7 @@ export default function AlertsPanel({ symbol }: { symbol: SymbolDef }) {
 
   const create = async () => {
     if (!user) return;
+    if (noPrice || stale) return toast({ title: tr.error, description: stale ? tr.stale_data : tr.price_unavailable, variant: "destructive" });
     const tp = parseFloat(target);
     if (!tp || tp <= 0) return toast({ title: tr.error, variant: "destructive" });
     const { error } = await supabase.from("price_alerts").insert({
@@ -55,8 +58,12 @@ export default function AlertsPanel({ symbol }: { symbol: SymbolDef }) {
 
   return (
     <div className="space-y-3">
-      <div className="text-xs text-muted-foreground">
-        {symbol.symbol}: <span className="font-mono font-semibold text-foreground">{formatPrice(lp?.price)}</span>
+      <div className="flex items-center justify-between rounded-lg bg-accent/30 border border-border/30 px-3 py-2 text-xs">
+        <span className="text-muted-foreground">{symbol.symbol}</span>
+        <span className="font-mono font-semibold text-foreground">
+          {noPrice ? <span className="inline-flex items-center gap-1 text-muted-foreground"><Loader2 className="size-3 animate-spin" />—</span> : formatPrice(lp.price)}
+        </span>
+        {stale && !noPrice && <span className="inline-flex items-center gap-1 text-[10px] text-yellow-600 dark:text-yellow-400"><Clock className="size-3" />{tr.stale_data}</span>}
       </div>
       <div className="grid grid-cols-2 gap-2">
         <Select value={direction} onValueChange={(v) => setDirection(v as any)}>
@@ -70,9 +77,10 @@ export default function AlertsPanel({ symbol }: { symbol: SymbolDef }) {
           placeholder={tr.target} className="h-9 font-mono" />
       </div>
       <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder={tr.note_optional} className="h-9 text-xs" />
-      <Button onClick={create} className="w-full h-9 gradient-primary text-primary-foreground">
+      <Button onClick={create} disabled={noPrice || stale} title={noPrice ? tr.price_unavailable : stale ? tr.stale_data : undefined} className="w-full h-9 gradient-primary text-primary-foreground">
         <Bell className="size-3.5 mr-1.5" />{tr.create}
       </Button>
+      {(noPrice || stale) && <div className="text-[11px] text-muted-foreground text-center">{noPrice ? tr.price_loading : tr.stale_data}</div>}
 
       <div className="border-t border-border/40 pt-3 space-y-1.5 max-h-64 overflow-y-auto scrollbar-thin">
         {alerts.length === 0 ? (
