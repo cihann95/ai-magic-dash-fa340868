@@ -58,9 +58,9 @@ function SocialInner() {
     const ids = Array.from(followIds);
     let feedRows: Activity[] = [];
     if (ids.length > 0) {
-      const { data: f } = await supabase.from("activity_feed" as any)
+      const { data: f } = await (supabase as any).from("activity_feed")
         .select("*").in("user_id", ids).order("event_at", { ascending: false }).limit(50);
-      feedRows = (f as Activity[]) ?? [];
+      feedRows = (f as unknown as Activity[]) ?? [];
     }
     setFeed(feedRows);
 

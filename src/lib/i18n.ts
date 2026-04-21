@@ -65,8 +65,11 @@ const translations = {
     ai_strategy: "AI Strateji", get_strategy: "Strateji al",
     // price status
     price_unavailable: "Fiyat verisi bekleniyor", price_loading: "Fiyat verisi yükleniyor...", stale_data: "Veri eski",
-    // heatmap
-    heatmap: "Isı Haritası",
+    // heatmap & sosyal
+    heatmap: "Isı Haritası", social: "Sosyal", coach: "AI Coach",
+    follow: "Takip Et", following: "Takipte", copy_trade: "Copy Trade",
+    enable_push: "Push bildirimleri aç", disable_push: "Push bildirimlerini kapat",
+    install_app: "Uygulamayı Yükle",
   },
   en: {
     markets: "Markets", portfolio: "Portfolio", history: "History", watchlist: "Watchlist", settings: "Settings",
@@ -115,6 +118,9 @@ const translations = {
     emotion_greedy: "Greedy", emotion_calm: "Calm", emotion_excited: "Excited",
     ai_strategy: "AI Strategy", get_strategy: "Get strategy",
     price_unavailable: "Waiting for price data", price_loading: "Loading price data...", stale_data: "Stale data",
-    heatmap: "Heatmap",
+    heatmap: "Heatmap", social: "Social", coach: "AI Coach",
+    follow: "Follow", following: "Following", copy_trade: "Copy Trade",
+    enable_push: "Enable push notifications", disable_push: "Disable push notifications",
+    install_app: "Install App",
   },
 };
