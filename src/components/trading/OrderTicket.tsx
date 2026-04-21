@@ -3,13 +3,13 @@ import { useEffect, useState } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useLivePrice } from "@/hooks/useLivePrices";
-import { SymbolDef, formatPrice } from "@/lib/symbols";
+import { SymbolDef, formatPrice, isStale } from "@/lib/symbols";
 import { t } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, X } from "lucide-react";
+import { Clock, Loader2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type OrderType = "limit" | "stop" | "take_profit" | "stop_loss";
@@ -24,6 +24,8 @@ export default function OrderTicket({ symbol }: { symbol: SymbolDef }) {
   const [trigger, setTrigger] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [orders, setOrders] = useState<any[]>([]);
+  const noPrice = !lp?.price;
+  const stale = isStale(lp?.updated_at);
 
   useEffect(() => {
     if (lp?.price && !trigger) setTrigger(String(lp.price));
@@ -48,6 +50,7 @@ export default function OrderTicket({ symbol }: { symbol: SymbolDef }) {
 
   const place = async () => {
     if (!user) return toast({ title: tr.error, description: tr.signin });
+    if (noPrice || stale) return toast({ title: tr.error, description: stale ? tr.stale_data : tr.price_unavailable, variant: "destructive" });
     const q = parseFloat(qty); const tp = parseFloat(trigger);
     if (!q || q <= 0 || !tp || tp <= 0) return toast({ title: tr.error, variant: "destructive" });
     setSubmitting(true);
@@ -75,6 +78,13 @@ export default function OrderTicket({ symbol }: { symbol: SymbolDef }) {
 
   return (
     <div className="space-y-3">
+      <div className="flex items-center justify-between rounded-lg bg-accent/30 border border-border/30 px-3 py-2 text-xs">
+        <span className="text-muted-foreground">{symbol.symbol}</span>
+        <span className="font-mono font-semibold">
+          {noPrice ? <span className="inline-flex items-center gap-1 text-muted-foreground"><Loader2 className="size-3 animate-spin" />—</span> : formatPrice(lp.price)}
+        </span>
+        {stale && !noPrice && <span className="inline-flex items-center gap-1 text-[10px] text-yellow-600 dark:text-yellow-400"><Clock className="size-3" />{tr.stale_data}</span>}
+      </div>
       <div className="grid grid-cols-2 gap-2">
         <Select value={orderType} onValueChange={(v) => setOrderType(v as OrderType)}>
           <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
@@ -103,9 +113,10 @@ export default function OrderTicket({ symbol }: { symbol: SymbolDef }) {
           <Input type="number" value={trigger} onChange={(e) => setTrigger(e.target.value)} className="h-9 font-mono" />
         </div>
       </div>
-      <Button onClick={place} disabled={submitting} className="w-full h-9 gradient-primary text-primary-foreground">
+      <Button onClick={place} disabled={submitting || noPrice || stale} title={noPrice ? tr.price_unavailable : stale ? tr.stale_data : undefined} className="w-full h-9 gradient-primary text-primary-foreground">
         {submitting ? <Loader2 className="size-4 animate-spin" /> : tr.place_order}
       </Button>
+      {(noPrice || stale) && <div className="text-[11px] text-muted-foreground text-center">{noPrice ? tr.price_loading : tr.stale_data}</div>}
 
       <div className="border-t border-border/40 pt-3">
         <div className="text-[10px] uppercase text-muted-foreground font-semibold mb-2">{tr.open_orders} ({orders.length})</div>
