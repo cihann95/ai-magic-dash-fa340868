@@ -31,6 +31,7 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
   const trade = async (side: "buy" | "sell") => {
     if (!user) return toast({ title: tr.error, description: tr.signin });
     if (noPrice) return toast({ title: tr.error, description: tr.price_unavailable, variant: "destructive" });
+    if (stale) return toast({ title: tr.error, description: tr.stale_data, variant: "destructive" });
     const q = parseFloat(qty);
     if (!q || q <= 0) return toast({ title: tr.error, description: tr.quantity, variant: "destructive" });
     setSubmitting(side);
@@ -67,7 +68,7 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
   const open = isMarketOpen(symbol);
   const total = (parseFloat(qty || "0") * (price ?? 0));
   const change = lp?.change_pct_24h ?? null;
-  const tradeDisabled = !!submitting || noPrice;
+  const tradeDisabled = !!submitting || noPrice || stale;
 
   return (
     <div className="flex flex-col h-full">
