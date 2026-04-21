@@ -34,7 +34,7 @@ export default function OnboardingTour() {
     }
     // Bildirim izni iste
     if ("Notification" in window && Notification.permission === "default") {
-      try { await Notification.requestPermission(); } catch {}
+      try { await Notification.requestPermission(); } catch { return; }
     }
     setOpen(false);
   };
