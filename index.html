@@ -2,10 +2,19 @@
 <html lang="tr" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Lumen Trade — AI Destekli İşlem Paneli</title>
     <meta name="description" content="AI destekli analizler, gerçek zamanlı TradingView grafikleri ve sıfır kurulum demo işlem ortamı. Kripto, hisse, forex, emtia ve endeksler tek panelde." />
     <meta name="author" content="Lumen Trade" />
+    <link rel="canonical" href="/" />
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#0a0a0f" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Lumen Trade" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
 
     <meta property="og:title" content="Lumen Trade — AI Destekli İşlem Paneli" />
     <meta property="og:description" content="AI analizler, TradingView grafikleri ve demo işlem ortamı." />
@@ -14,10 +23,29 @@
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Lumen Trade",
+        "applicationCategory": "FinanceApplication",
+        "operatingSystem": "Web",
+        "description": "AI destekli işlem paneli, gerçek zamanlı çoklu varlık fiyatları ve demo trading.",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+      }
+    </script>
   </head>
 
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {});
+        });
+      }
+    </script>
   </body>
 </html>
