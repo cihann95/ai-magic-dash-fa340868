@@ -42,7 +42,7 @@ export async function enablePushNotifications(vapidPublicKey: string): Promise<{
   if (!sub) {
     sub = await reg.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+      applicationServerKey: urlBase64ToUint8Array(vapidPublicKey).buffer as ArrayBuffer,
     });
   }
   const json = sub.toJSON();
