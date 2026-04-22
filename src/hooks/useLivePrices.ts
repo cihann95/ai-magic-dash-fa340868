@@ -1,5 +1,5 @@
-// Canlı fiyatlar için merkezi hook.
-// - Kripto: Binance WebSocket (sub-saniye tick)
+// Canlı fiyatlar için merkezi hook (HMR-safe singleton).
+// - Kripto: Binance WebSocket bookTicker (her bid/ask değişiminde tick, sub-100ms)
 // - Diğer varlıklar: price_cache (Postgres realtime + 5sn polling yedek)
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,72 +13,97 @@ export interface LivePrice {
   updated_at: string;
 }
 
-const cache: Record<string, LivePrice> = {};
-const listeners = new Set<() => void>();
-
-function notify() {
-  for (const l of listeners) l();
+interface PriceState {
+  cache: Record<string, LivePrice>;
+  listeners: Set<() => void>;
+  initialized: boolean;
+  channel: any;
+  pollInterval: number | null;
+  cleanupBinance: (() => void) | null;
 }
 
-let initialized = false;
-let pollInterval: number | null = null;
+// HMR-safe singleton: window üzerinde tut, modül reload'unda yeniden init etme
+const w = typeof window !== "undefined" ? (window as any) : ({} as any);
+const state: PriceState = w.__price_state ?? {
+  cache: {},
+  listeners: new Set<() => void>(),
+  initialized: false,
+  channel: null,
+  pollInterval: null,
+  cleanupBinance: null,
+};
+if (typeof window !== "undefined") w.__price_state = state;
+
+function notify() {
+  for (const l of state.listeners) l();
+}
 
 async function fetchAll() {
   const { data } = await supabase.from("price_cache").select("*");
   if (data) {
     for (const row of data) {
-      cache[row.symbol] = {
+      // Binance WS'ten taze veri varsa onu ezme (kripto için)
+      const existing = state.cache[row.symbol];
+      const incoming: LivePrice = {
         symbol: row.symbol,
         price: Number(row.price),
         change_pct_24h: row.change_pct_24h !== null ? Number(row.change_pct_24h) : null,
         change_24h: row.change_24h !== null ? Number(row.change_24h) : null,
         updated_at: row.updated_at,
       };
+      if (existing && new Date(existing.updated_at).getTime() > new Date(incoming.updated_at).getTime()) continue;
+      state.cache[row.symbol] = incoming;
     }
     notify();
   }
 }
 
 function init() {
-  if (initialized) return;
-  initialized = true;
+  if (state.initialized) return;
+  state.initialized = true;
   fetchAll();
-  // Realtime
-  const channel = supabase
+
+  // Eski kanal varsa temizle (HMR güvenliği)
+  if (state.channel) {
+    try { supabase.removeChannel(state.channel); } catch { /* noop */ }
+    state.channel = null;
+  }
+
+  state.channel = supabase
     .channel("price_cache_live")
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "price_cache" },
       (payload: any) => {
         const row = payload.new;
-        if (row?.symbol) {
-          cache[row.symbol] = {
-            symbol: row.symbol,
-            price: Number(row.price),
-            change_pct_24h: row.change_pct_24h !== null ? Number(row.change_pct_24h) : null,
-            change_24h: row.change_24h !== null ? Number(row.change_24h) : null,
-            updated_at: row.updated_at,
-          };
-          notify();
-        }
+        if (!row?.symbol) return;
+        state.cache[row.symbol] = {
+          symbol: row.symbol,
+          price: Number(row.price),
+          change_pct_24h: row.change_pct_24h !== null ? Number(row.change_pct_24h) : null,
+          change_24h: row.change_24h !== null ? Number(row.change_24h) : null,
+          updated_at: row.updated_at,
+        };
+        notify();
       }
     )
     .subscribe();
-  // Daha agresif polling: 5 saniyede bir taze veri çek (realtime düşse de fiyatlar gecikmesin)
-  pollInterval = window.setInterval(fetchAll, 5000);
-  // Kripto için Binance WebSocket - sub-saniye tick
-  startBinanceStream((tick) => {
-    const existing = cache[tick.symbol];
-    cache[tick.symbol] = {
+
+  if (state.pollInterval) clearInterval(state.pollInterval);
+  state.pollInterval = window.setInterval(fetchAll, 5000);
+
+  if (state.cleanupBinance) state.cleanupBinance();
+  state.cleanupBinance = startBinanceStream((tick) => {
+    const existing = state.cache[tick.symbol];
+    state.cache[tick.symbol] = {
       symbol: tick.symbol,
       price: tick.price,
-      change_pct_24h: tick.change_pct_24h,
+      change_pct_24h: tick.change_pct_24h ?? existing?.change_pct_24h ?? null,
       change_24h: existing?.change_24h ?? null,
       updated_at: tick.updated_at,
     };
     notify();
   });
-  (window as any).__price_channel = channel;
 }
 
 export function useLivePrice(symbol?: string): LivePrice | null {
@@ -86,11 +111,11 @@ export function useLivePrice(symbol?: string): LivePrice | null {
   useEffect(() => {
     init();
     const cb = () => force((x) => x + 1);
-    listeners.add(cb);
-    return () => { listeners.delete(cb); };
+    state.listeners.add(cb);
+    return () => { state.listeners.delete(cb); };
   }, []);
   if (!symbol) return null;
-  return cache[symbol] ?? null;
+  return state.cache[symbol] ?? null;
 }
 
 export function useLivePrices(symbols: string[]): Record<string, LivePrice> {
@@ -98,12 +123,12 @@ export function useLivePrices(symbols: string[]): Record<string, LivePrice> {
   useEffect(() => {
     init();
     const cb = () => force((x) => x + 1);
-    listeners.add(cb);
-    return () => { listeners.delete(cb); };
+    state.listeners.add(cb);
+    return () => { state.listeners.delete(cb); };
   }, []);
   const out: Record<string, LivePrice> = {};
   for (const s of symbols) {
-    if (cache[s]) out[s] = cache[s];
+    if (state.cache[s]) out[s] = state.cache[s];
   }
   return out;
 }
