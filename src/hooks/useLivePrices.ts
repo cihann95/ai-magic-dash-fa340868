@@ -1,5 +1,5 @@
 // Canlı fiyatlar için merkezi hook (HMR-safe singleton).
-// - Kripto: Binance WebSocket bookTicker (her bid/ask değişiminde tick, sub-100ms)
+// - Kripto: Binance WebSocket trade stream (son gerçekleşen işlem fiyatı)
 // - Diğer varlıklar: price_cache (Postgres realtime + 5sn polling yedek)
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
