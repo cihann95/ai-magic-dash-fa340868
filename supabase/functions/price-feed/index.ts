@@ -104,7 +104,8 @@ async function fetchYahoo(syms: SymRef[]): Promise<PriceUpdate[]> {
 
 async function fetchYahooChart(s: SymRef): Promise<PriceUpdate | null> {
   try {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(s.yahoo!)}?range=1d&interval=1m`;
+    // 1d / 1m intraday — en taze tick
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(s.yahoo!)}?range=1d&interval=1m&includePrePost=true`;
     const r = await fetch(url, {
       headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" },
     });
@@ -112,16 +113,23 @@ async function fetchYahooChart(s: SymRef): Promise<PriceUpdate | null> {
     const json = await r.json();
     const result = json?.chart?.result?.[0];
     const meta = result?.meta;
-    const price = Number(meta?.regularMarketPrice ?? meta?.chartPreviousClose);
+    if (!meta) return null;
+    // En son non-null close intraday'den; yoksa meta.regularMarketPrice
+    const closes: (number | null)[] = result?.indicators?.quote?.[0]?.close ?? [];
+    let intraday: number | null = null;
+    for (let i = closes.length - 1; i >= 0; i--) {
+      if (typeof closes[i] === "number" && isFinite(closes[i] as number)) { intraday = closes[i]; break; }
+    }
+    const price = Number(intraday ?? meta?.regularMarketPrice ?? meta?.chartPreviousClose);
     if (!isFinite(price) || price <= 0) return null;
-    const previous = Number(meta?.previousClose || meta?.chartPreviousClose || 0);
+    const previous = Number(meta?.chartPreviousClose || meta?.previousClose || 0);
     const change = previous > 0 ? price - previous : null;
     return {
       symbol: s.symbol,
       asset_class: s.asset_class,
       price,
       change_24h: change,
-      change_pct_24h: change !== null ? (change / previous) * 100 : null,
+      change_pct_24h: change !== null && previous > 0 ? (change / previous) * 100 : null,
       volume_24h: typeof meta?.regularMarketVolume === "number" ? meta.regularMarketVolume : null,
       updated_at: new Date().toISOString(),
     };
