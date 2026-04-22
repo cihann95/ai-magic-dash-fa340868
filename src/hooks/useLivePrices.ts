@@ -1,7 +1,9 @@
-// Canlı fiyatlar için merkezi hook. price_cache tablosundan başlangıç verisi çeker
-// ve realtime subscription ile günceller. 60 saniyede bir de polling yapar (yedek).
-import { useEffect, useState, useCallback } from "react";
+// Canlı fiyatlar için merkezi hook.
+// - Kripto: Binance WebSocket (sub-saniye tick)
+// - Diğer varlıklar: price_cache (Postgres realtime + 5sn polling yedek)
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { startBinanceStream } from "@/lib/binanceStream";
 
 export interface LivePrice {
   symbol: string;
@@ -62,9 +64,20 @@ function init() {
       }
     )
     .subscribe();
-  // yedek polling (realtime kapalıysa)
-  pollInterval = window.setInterval(fetchAll, 30000);
-  // unmount durumlarında cleanup için referans saklama (basit hold)
+  // Daha agresif polling: 5 saniyede bir taze veri çek (realtime düşse de fiyatlar gecikmesin)
+  pollInterval = window.setInterval(fetchAll, 5000);
+  // Kripto için Binance WebSocket - sub-saniye tick
+  startBinanceStream((tick) => {
+    const existing = cache[tick.symbol];
+    cache[tick.symbol] = {
+      symbol: tick.symbol,
+      price: tick.price,
+      change_pct_24h: tick.change_pct_24h,
+      change_24h: existing?.change_24h ?? null,
+      updated_at: tick.updated_at,
+    };
+    notify();
+  });
   (window as any).__price_channel = channel;
 }
 
