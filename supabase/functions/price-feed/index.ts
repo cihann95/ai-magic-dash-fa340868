@@ -96,56 +96,10 @@ async function fetchBinance(syms: SymRef[]): Promise<PriceUpdate[]> {
 }
 
 async function fetchYahoo(syms: SymRef[]): Promise<PriceUpdate[]> {
-  const out: PriceUpdate[] = [];
-  if (syms.length === 0) return out;
-  const missing = new Set(syms.map((s) => s.symbol));
-  // Batch up to 50 per request
-  const batches: SymRef[][] = [];
-  for (let i = 0; i < syms.length; i += 50) batches.push(syms.slice(i, i + 50));
-
-  const now = new Date().toISOString();
-  for (const batch of batches) {
-    try {
-      const tickers = batch.map((s) => encodeURIComponent(s.yahoo!)).join(",");
-      const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${tickers}`;
-      const r = await fetch(url, {
-        headers: {
-          "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
-          "Accept": "application/json",
-        },
-      });
-      if (!r.ok) {
-        console.error("Yahoo HTTP", r.status, await r.text());
-        continue;
-      }
-      const json = await r.json();
-      const results = json?.quoteResponse?.result ?? [];
-      for (const s of batch) {
-        const q = results.find((x: any) => x.symbol === s.yahoo);
-        if (!q) continue;
-        const price = q.regularMarketPrice;
-        if (typeof price !== "number" || !isFinite(price) || price <= 0) continue;
-        out.push({
-          symbol: s.symbol,
-          asset_class: s.asset_class,
-          price,
-          change_24h: typeof q.regularMarketChange === "number" ? q.regularMarketChange : null,
-          change_pct_24h: typeof q.regularMarketChangePercent === "number" ? q.regularMarketChangePercent : null,
-          volume_24h: typeof q.regularMarketVolume === "number" ? q.regularMarketVolume : null,
-          updated_at: now,
-        });
-        missing.delete(s.symbol);
-      }
-    } catch (e) {
-      console.error("Yahoo fetch error", e);
-    }
-  }
-
-  for (const s of syms.filter((x) => missing.has(x.symbol))) {
-    const chart = await fetchYahooChart(s);
-    if (chart) out.push(chart);
-  }
-  return out;
+  if (syms.length === 0) return [];
+  // Yahoo v7 quote endpoint sürekli 401 dönüyor; doğrudan chart endpoint'i paralel kullan.
+  const results = await Promise.all(syms.map((s) => fetchYahooChart(s)));
+  return results.filter((x): x is PriceUpdate => x !== null);
 }
 
 async function fetchYahooChart(s: SymRef): Promise<PriceUpdate | null> {
