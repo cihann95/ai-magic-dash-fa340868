@@ -70,6 +70,9 @@ const translations = {
     follow: "Takip Et", following: "Takipte", copy_trade: "Copy Trade",
     enable_push: "Push bildirimleri aç", disable_push: "Push bildirimlerini kapat",
     install_app: "Uygulamayı Yükle",
+    // insights
+    insights: "İçgörüler", intent_mirror: "Niyet Aynası", emotion_mirror: "Duygu Aynası",
+    health_view: "Pozisyon Sağlığı", pnl_view: "Kâr/Zarar",
   },
   en: {
     markets: "Markets", portfolio: "Portfolio", history: "History", watchlist: "Watchlist", settings: "Settings",
@@ -122,5 +125,7 @@ const translations = {
     follow: "Follow", following: "Following", copy_trade: "Copy Trade",
     enable_push: "Enable push notifications", disable_push: "Disable push notifications",
     install_app: "Install App",
+    insights: "Insights", intent_mirror: "Intent Mirror", emotion_mirror: "Emotion Mirror",
+    health_view: "Position Health", pnl_view: "P&L",
   },
 };
