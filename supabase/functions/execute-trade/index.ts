@@ -15,14 +15,16 @@ interface TradeRequest {
   quantity: number;
   position_id?: string;
   executor?: "demo" | "alpaca";
-  copied_from?: string;        // copy-trade orijin trade id
-  leader_user_id?: string;     // copy edilen liderin user_id'si
+  copied_from?: string;
+  leader_user_id?: string;
+  intent_tag?: string | null;
+  intent_note?: string | null;
 }
 
 const STALE_MS = 5 * 60 * 1000;
 
 async function executeOne(admin: any, userId: string, body: TradeRequest, opts: { fanOut: boolean }) {
-  const { symbol, asset_class, side, quantity, position_id, executor = "demo", copied_from, leader_user_id } = body;
+  const { symbol, asset_class, side, quantity, position_id, executor = "demo", copied_from, leader_user_id, intent_tag, intent_note } = body;
 
   // ========== GERÇEK FİYAT - price_cache ==========
   const { data: priceRow, error: priceErr } = await admin
@@ -77,6 +79,8 @@ async function executeOne(admin: any, userId: string, body: TradeRequest, opts: 
     user_id: userId, symbol, asset_class, side, action, quantity, price, total, pnl, executor,
     copied_from: copied_from ?? null,
     leader_user_id: leader_user_id ?? null,
+    intent_tag: intent_tag ?? null,
+    intent_note: intent_note ?? null,
   }).select("id").single();
 
   // Notification
