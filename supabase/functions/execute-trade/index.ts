@@ -143,6 +143,20 @@ async function executeOne(admin: any, userId: string, body: TradeRequest, opts: 
     console.error("gamification error", gErr);
   }
 
+  // ===== AI MIRROR - kapanan trade'ler için davranış aynası =====
+  // Sadece kullanıcının kendi trade'i (copy değil) ve close action için
+  if (action === "close" && !copied_from && tradeRow?.id) {
+    // fire-and-forget - response beklemiyoruz, kullanıcı akışını bloklamasın
+    fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/trade-mirror`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+      },
+      body: JSON.stringify({ user_id: userId, trade_id: tradeRow.id }),
+    }).catch((e) => console.warn("mirror invoke failed", e));
+  }
+
   // ===== COPY-TRADE FAN-OUT =====
   // Sadece üst seviye trade'ler (kendi trade'i, copy değil) için fan-out
   if (opts.fanOut && !copied_from && tradeRow?.id) {
