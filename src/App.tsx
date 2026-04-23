@@ -20,6 +20,7 @@ const Heatmap = lazy(() => import("./pages/Heatmap.tsx"));
 const Social = lazy(() => import("./pages/Social.tsx"));
 const Coach = lazy(() => import("./pages/Coach.tsx"));
 const Journal = lazy(() => import("./pages/Journal.tsx"));
+const Insights = lazy(() => import("./pages/Insights.tsx"));
 
 const queryClient = new QueryClient();
 
@@ -51,6 +52,7 @@ const App = () => (
               <Route path="/social" element={<Social />} />
               <Route path="/coach" element={<Coach />} />
               <Route path="/journal" element={<Journal />} />
+              <Route path="/insights" element={<Insights />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>

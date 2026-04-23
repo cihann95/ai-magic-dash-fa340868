@@ -211,6 +211,36 @@ export type Database = {
         }
         Relationships: []
       }
+      emotional_logs: {
+        Row: {
+          created_at: string
+          id: string
+          mood: string | null
+          signal_type: string
+          symbol: string | null
+          trade_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mood?: string | null
+          signal_type: string
+          symbol?: string | null
+          trade_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mood?: string | null
+          signal_type?: string
+          symbol?: string | null
+          trade_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       followers: {
         Row: {
           created_at: string
@@ -443,6 +473,7 @@ export type Database = {
           initial_balance: number
           preferred_language: string | null
           preferred_theme: string | null
+          preferred_view: string
           updated_at: string
         }
         Insert: {
@@ -454,6 +485,7 @@ export type Database = {
           initial_balance?: number
           preferred_language?: string | null
           preferred_theme?: string | null
+          preferred_view?: string
           updated_at?: string
         }
         Update: {
@@ -465,6 +497,7 @@ export type Database = {
           initial_balance?: number
           preferred_language?: string | null
           preferred_theme?: string | null
+          preferred_view?: string
           updated_at?: string
         }
         Relationships: []
@@ -585,6 +618,8 @@ export type Database = {
           executed_at: string
           executor: string
           id: string
+          intent_note: string | null
+          intent_tag: string | null
           leader_user_id: string | null
           pnl: number | null
           price: number
@@ -601,6 +636,8 @@ export type Database = {
           executed_at?: string
           executor?: string
           id?: string
+          intent_note?: string | null
+          intent_tag?: string | null
           leader_user_id?: string | null
           pnl?: number | null
           price: number
@@ -617,6 +654,8 @@ export type Database = {
           executed_at?: string
           executor?: string
           id?: string
+          intent_note?: string | null
+          intent_tag?: string | null
           leader_user_id?: string | null
           pnl?: number | null
           price?: number
