@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import AppShell from "@/components/AppShell";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useApp } from "@/contexts/AppContext";
@@ -16,12 +16,12 @@ function WatchlistInner() {
   const tr = t(lang);
   const [items, setItems] = useState<any[]>([]);
   const livePrices = useLivePrices(SYMBOLS.map((s) => s.symbol));
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!user) return;
     const { data } = await supabase.from("watchlist").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
     setItems(data || []);
-  };
-  useEffect(() => { load(); }, [user]);
+  }, [user]);
+  useEffect(() => { load(); }, [load]);
 
   const remove = async (id: string) => {
     await supabase.from("watchlist").delete().eq("id", id);

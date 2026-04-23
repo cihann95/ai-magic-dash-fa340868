@@ -1,5 +1,5 @@
 // Trade Journal sayfası: işlemlere not, tez, ders, duygu ekleme
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import AppShell from "@/components/AppShell";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,7 +44,7 @@ function JournalInner() {
   const [emotion, setEmotion] = useState("calm");
   const [rating, setRating] = useState("3");
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     const [e, tr] = await Promise.all([
@@ -56,9 +56,9 @@ function JournalInner() {
     setEntries((e.data ?? []) as JournalEntry[]);
     setTrades((tr.data ?? []) as Trade[]);
     setLoading(false);
-  };
+  }, [user]);
 
-  useEffect(() => { load(); }, [user]);
+  useEffect(() => { load(); }, [load]);
 
   const reset = () => {
     setEditing(null); setTradeId(""); setSymbol(""); setThesis("");
