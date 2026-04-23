@@ -174,7 +174,7 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
           </div>
         )}
         <div className="flex flex-col sm:flex-row gap-2 items-stretch">
-          <Button variant="outline" disabled={tradeDisabled} onClick={() => trade("sell")}
+          <Button variant="outline" disabled={tradeDisabled} onClick={() => requestTrade("sell")}
             className="flex-1 h-12 border-bear/40 text-bear hover:bg-bear hover:text-bear-foreground font-semibold">
             {submitting === "sell" ? <Loader2 className="size-4 animate-spin" /> : <TrendingDown className="size-4" />}
             {tr.sell}
@@ -184,13 +184,25 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
               className="h-12 text-center font-mono font-bold text-base bg-background" />
             <div className="text-[10px] text-muted-foreground text-center mt-1 font-mono">≈ ${total.toFixed(2)}</div>
           </div>
-          <Button disabled={tradeDisabled} onClick={() => trade("buy")}
+          <Button disabled={tradeDisabled} onClick={() => requestTrade("buy")}
             className="flex-1 h-12 gradient-bull text-bull-foreground font-semibold hover:opacity-90">
             {submitting === "buy" ? <Loader2 className="size-4 animate-spin" /> : <TrendingUp className="size-4" />}
             {tr.buy}
           </Button>
         </div>
       </div>
+
+      <IntentDialog
+        open={!!intentOpen}
+        side={intentOpen?.side ?? "buy"}
+        symbol={symbol.symbol}
+        qty={parseFloat(qty) || 0}
+        price={price}
+        signal={intentOpen?.signal ?? null}
+        submitting={!!submitting}
+        onCancel={() => setIntentOpen(null)}
+        onConfirm={executeTrade}
+      />
     </div>
   );
 }
