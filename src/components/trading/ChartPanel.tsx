@@ -15,6 +15,8 @@ import OrderTicket from "./OrderTicket";
 import AlertsPanel from "./AlertsPanel";
 import { celebrateAchievements } from "@/lib/achievements";
 import AnimatedNumber from "@/components/AnimatedNumber";
+import IntentDialog from "./IntentDialog";
+import { detectSignal, recordTrade, type EmotionalSignal } from "@/hooks/useEmotionalSignal";
 
 interface Props { symbol: SymbolDef; onTradeDone: () => void; }
 
@@ -23,17 +25,26 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
   const tr = t(lang);
   const [qty, setQty] = useState("1");
   const [submitting, setSubmitting] = useState<"buy" | "sell" | null>(null);
+  const [intentOpen, setIntentOpen] = useState<null | { side: "buy" | "sell"; signal: EmotionalSignal }>(null);
   const lp = useLivePrice(symbol.symbol);
   const price = lp?.price ?? null;
   const stale = isStale(lp?.updated_at);
   const noPrice = price == null;
 
-  const trade = async (side: "buy" | "sell") => {
+  const requestTrade = (side: "buy" | "sell") => {
     if (!user) return toast({ title: tr.error, description: tr.signin });
     if (noPrice) return toast({ title: tr.error, description: tr.price_unavailable, variant: "destructive" });
     if (stale) return toast({ title: tr.error, description: tr.stale_data, variant: "destructive" });
     const q = parseFloat(qty);
     if (!q || q <= 0) return toast({ title: tr.error, description: tr.quantity, variant: "destructive" });
+    const signal = detectSignal(q * (price ?? 0));
+    setIntentOpen({ side, signal });
+  };
+
+  const executeTrade = async (intent: { tag: string; note: string; mood: string | null; signal: EmotionalSignal }) => {
+    if (!intentOpen || !user) return;
+    const side = intentOpen.side;
+    const q = parseFloat(qty);
     setSubmitting(side);
     const optimisticId = `optimistic-${Date.now()}`;
     window.dispatchEvent(new CustomEvent("optimistic-position", {
@@ -50,14 +61,19 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
     }));
     try {
       const { data, error } = await supabase.functions.invoke("execute-trade", {
-        body: { symbol: symbol.symbol, asset_class: symbol.asset_class, side, quantity: q },
+        body: {
+          symbol: symbol.symbol, asset_class: symbol.asset_class, side, quantity: q,
+          intent_tag: intent.tag, intent_note: intent.note || null,
+        },
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
       const fillPrice = (data as any)?.price ?? price;
+      recordTrade(q * (fillPrice ?? 0), false);
       toast({ title: tr.trade_success, description: `${side.toUpperCase()} ${q} ${symbol.symbol} @ ${formatPrice(fillPrice)}` });
       const ach = (data as any)?.achievements as string[] | undefined;
       if (ach?.length) celebrateAchievements(ach, lang);
+      setIntentOpen(null);
       onTradeDone();
     } catch (e) {
       window.dispatchEvent(new CustomEvent("optimistic-position-rollback", { detail: { id: optimisticId } }));
