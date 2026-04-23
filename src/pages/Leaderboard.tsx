@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Trophy, Medal, Award } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
@@ -19,15 +19,15 @@ function LeaderboardInner() {
   const [pp, setPp] = useState<any>(null);
   const [username, setUsername] = useState("");
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const { data } = await supabase.rpc("get_leaderboard", { _limit: 100 });
     setRows(data ?? []);
     if (user) {
       const { data: my } = await supabase.from("public_profiles").select("*").eq("user_id", user.id).maybeSingle();
       setPp(my); if (my?.username) setUsername(my.username);
     }
-  };
-  useEffect(() => { load(); }, [user]);
+  }, [user]);
+  useEffect(() => { load(); }, [load]);
 
   const join = async () => {
     if (!user || !username.trim()) return;

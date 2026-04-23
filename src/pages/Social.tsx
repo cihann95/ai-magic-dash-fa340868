@@ -1,5 +1,5 @@
 // Sosyal trading sayfası: aktivite akışı + öne çıkan trader'lar + copy ayarları
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import AppShell from "@/components/AppShell";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,7 +46,7 @@ function SocialInner() {
   const [ratio, setRatio] = useState("1.0");
   const [maxPos, setMaxPos] = useState("5000");
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!user) return;
     setLoading(true);
 
@@ -81,9 +81,9 @@ function SocialInner() {
     setCopySettings(csMap);
 
     setLoading(false);
-  };
+  }, [user]);
 
-  useEffect(() => { load(); }, [user]);
+  useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
     if (!user) return;
@@ -92,7 +92,7 @@ function SocialInner() {
         load();
       }).subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [user, following.size]);
+  }, [user, load]);
 
   const toggleFollow = async (leaderId: string) => {
     if (!user) return;

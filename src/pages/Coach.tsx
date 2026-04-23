@@ -1,5 +1,5 @@
 // AI Trade Coach sayfası: davranışsal analiz içgörüleri, manuel tetikleme
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import AppShell from "@/components/AppShell";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,7 +30,7 @@ function CoachInner() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     const { data } = await supabase.from("coach_insights")
@@ -38,9 +38,9 @@ function CoachInner() {
       .order("created_at", { ascending: false }).limit(30);
     setItems((data ?? []) as Insight[]);
     setLoading(false);
-  };
+  }, [user]);
 
-  useEffect(() => { load(); }, [user]);
+  useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
     if (!user) return;
