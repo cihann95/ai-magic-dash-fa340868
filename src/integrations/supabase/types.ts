@@ -471,9 +471,11 @@ export type Database = {
           display_name: string | null
           id: string
           initial_balance: number
+          last_weekly_digest_at: string | null
           preferred_language: string | null
           preferred_theme: string | null
           preferred_view: string
+          trader_persona: Json | null
           updated_at: string
         }
         Insert: {
@@ -483,9 +485,11 @@ export type Database = {
           display_name?: string | null
           id: string
           initial_balance?: number
+          last_weekly_digest_at?: string | null
           preferred_language?: string | null
           preferred_theme?: string | null
           preferred_view?: string
+          trader_persona?: Json | null
           updated_at?: string
         }
         Update: {
@@ -495,9 +499,11 @@ export type Database = {
           display_name?: string | null
           id?: string
           initial_balance?: number
+          last_weekly_digest_at?: string | null
           preferred_language?: string | null
           preferred_theme?: string | null
           preferred_view?: string
+          trader_persona?: Json | null
           updated_at?: string
         }
         Relationships: []
@@ -621,6 +627,9 @@ export type Database = {
           intent_note: string | null
           intent_tag: string | null
           leader_user_id: string | null
+          plan_adherence: number | null
+          planned_sl: number | null
+          planned_tp: number | null
           pnl: number | null
           price: number
           quantity: number
@@ -639,6 +648,9 @@ export type Database = {
           intent_note?: string | null
           intent_tag?: string | null
           leader_user_id?: string | null
+          plan_adherence?: number | null
+          planned_sl?: number | null
+          planned_tp?: number | null
           pnl?: number | null
           price: number
           quantity: number
@@ -657,6 +669,9 @@ export type Database = {
           intent_note?: string | null
           intent_tag?: string | null
           leader_user_id?: string | null
+          plan_adherence?: number | null
+          planned_sl?: number | null
+          planned_tp?: number | null
           pnl?: number | null
           price?: number
           quantity?: number
