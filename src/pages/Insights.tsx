@@ -18,6 +18,7 @@ interface Trade {
   action: string;
   symbol: string;
   executed_at: string;
+  plan_adherence: number | null;
 }
 
 interface Emo {
@@ -50,7 +51,7 @@ function InsightsInner() {
     if (!user) return;
     setLoading(true);
     const [t, e] = await Promise.all([
-      supabase.from("trades").select("id, intent_tag, intent_note, pnl, action, symbol, executed_at")
+      supabase.from("trades").select("id, intent_tag, intent_note, pnl, action, symbol, executed_at, plan_adherence")
         .eq("user_id", user.id).eq("action", "close").order("executed_at", { ascending: false }).limit(500),
       supabase.from("emotional_logs").select("signal_type, mood, trade_id, created_at")
         .eq("user_id", user.id).order("created_at", { ascending: false }).limit(500),
