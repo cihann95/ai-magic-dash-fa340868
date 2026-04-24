@@ -336,35 +336,6 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone }: Prop
         </Tabs>
       </Card>
 
-      <Card className="glass border-border/40 shadow-card max-h-64 overflow-hidden flex flex-col">
-        <div className="px-3 py-2 border-b border-border/40 text-xs font-semibold uppercase text-muted-foreground tracking-wide">
-          {tr.open_positions} ({positions.length})
-        </div>
-        <div className="overflow-y-auto scrollbar-thin">
-          {positions.length === 0 ? (
-            <div className="p-4 text-xs text-muted-foreground text-center">{tr.no_positions}</div>
-          ) : positions.map((p) => {
-            const cur = livePrices[p.symbol]?.price ?? Number(p.current_price ?? p.entry_price);
-            const v = p.side === "long" ? (cur - Number(p.entry_price)) * Number(p.quantity)
-                                        : (Number(p.entry_price) - cur) * Number(p.quantity);
-            return (
-              <div key={p.id} className={cn("px-3 py-2 border-b border-border/30 flex items-center gap-2 text-xs", p.pending && "opacity-60 animate-pulse")}>
-                {p.side === "long" ? <TrendingUp className="size-3.5 text-bull" /> : <TrendingDown className="size-3.5 text-bear" />}
-                <div className="flex-1">
-                  <div className="font-semibold">{p.symbol}</div>
-                  <div className="text-[10px] text-muted-foreground font-mono">{Number(p.quantity)} @ {formatPrice(Number(p.entry_price))}</div>
-                </div>
-                <div className={cn("font-mono font-semibold text-right", v >= 0 ? "text-bull" : "text-bear")}>
-                  {v >= 0 ? "+" : ""}${v.toFixed(2)}
-                </div>
-                <Button size="icon" variant="ghost" onClick={() => closePos(p)} disabled={p.pending} className="size-6">
-                  {p.pending ? <Loader2 className="size-3 animate-spin" /> : <X className="size-3" />}
-                </Button>
-              </div>
-            );
-          })}
-        </div>
-      </Card>
     </div>
   );
 }

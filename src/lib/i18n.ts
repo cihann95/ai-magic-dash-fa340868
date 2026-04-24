@@ -74,6 +74,9 @@ const translations = {
     insights: "İçgörüler", intent_mirror: "Niyet Aynası", emotion_mirror: "Duygu Aynası",
     health_view: "Pozisyon Sağlığı", pnl_view: "Kâr/Zarar",
     weekly_mirror: "Haftalık Ayna", plan_adherence: "Plan Uyumu",
+    total_pnl: "Toplam K/Z", exposure: "Maruziyet", win_loss: "Kazan/Kayıp",
+    held: "Tutulma", focus_chart: "Grafiğe Git", partial_close: "Kısmi Kapat",
+    intent: "Niyet", sort_by: "Sırala",
   },
   en: {
     markets: "Markets", portfolio: "Portfolio", history: "History", watchlist: "Watchlist", settings: "Settings",
@@ -129,5 +132,8 @@ const translations = {
     insights: "Insights", intent_mirror: "Intent Mirror", emotion_mirror: "Emotion Mirror",
     health_view: "Position Health", pnl_view: "P&L",
     weekly_mirror: "Weekly Mirror", plan_adherence: "Plan Adherence",
+    total_pnl: "Total P&L", exposure: "Exposure", win_loss: "Win/Loss",
+    held: "Held", focus_chart: "Focus Chart", partial_close: "Partial Close",
+    intent: "Intent", sort_by: "Sort by",
   },
 };
