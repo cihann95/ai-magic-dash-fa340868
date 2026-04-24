@@ -18,6 +18,7 @@ interface Trade {
   action: string;
   symbol: string;
   executed_at: string;
+  plan_adherence: number | null;
 }
 
 interface Emo {
@@ -50,7 +51,7 @@ function InsightsInner() {
     if (!user) return;
     setLoading(true);
     const [t, e] = await Promise.all([
-      supabase.from("trades").select("id, intent_tag, intent_note, pnl, action, symbol, executed_at")
+      supabase.from("trades").select("id, intent_tag, intent_note, pnl, action, symbol, executed_at, plan_adherence")
         .eq("user_id", user.id).eq("action", "close").order("executed_at", { ascending: false }).limit(500),
       supabase.from("emotional_logs").select("signal_type, mood, trade_id, created_at")
         .eq("user_id", user.id).order("created_at", { ascending: false }).limit(500),
@@ -81,6 +82,13 @@ function InsightsInner() {
 
   const totalTagged = Object.values(intentStats).reduce((a, g) => a + g.count, 0);
   const untagged = trades.length - totalTagged;
+
+  // Plan adherence ortalaması
+  const planScores = trades.map((t) => Number(t.plan_adherence)).filter((n) => isFinite(n) && n >= 0);
+  const avgAdherence = planScores.length
+    ? Math.round(planScores.reduce((a, b) => a + b, 0) / planScores.length)
+    : null;
+  const planFollowed = planScores.filter((s) => s >= 70).length;
 
   // Mood stats: trade pnl per mood (mood logged before trade, use closest later trade)
   const moodStats = useMemo(() => {
@@ -186,6 +194,51 @@ function InsightsInner() {
                 </div>
               )}
             </section>
+
+            {/* Plan Adherence */}
+            {planScores.length > 0 && (
+              <section>
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3 flex items-center gap-2">
+                  <Activity className="size-4" />
+                  {lang === "tr" ? "Plan Disiplini" : "Plan Discipline"}
+                </h2>
+                <Card className="p-5 glass border-border/40">
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                      <div className={cn("text-3xl font-mono font-bold",
+                        avgAdherence! >= 70 ? "text-bull" : avgAdherence! >= 40 ? "text-yellow-500" : "text-bear")}>
+                        {avgAdherence}%
+                      </div>
+                      <div className="text-[11px] text-muted-foreground mt-1">
+                        {lang === "tr" ? "Ortalama uyum" : "Avg adherence"}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-3xl font-mono font-bold text-bull">{planFollowed}</div>
+                      <div className="text-[11px] text-muted-foreground mt-1">
+                        {lang === "tr" ? "Plana sadık kapanış" : "Disciplined closes"}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-3xl font-mono font-bold">{planScores.length}</div>
+                      <div className="text-[11px] text-muted-foreground mt-1">
+                        {lang === "tr" ? "Planlı işlem" : "Planned trades"}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-4 h-2 rounded-full bg-muted overflow-hidden">
+                    <div className={cn("h-full transition-all",
+                      avgAdherence! >= 70 ? "bg-bull" : avgAdherence! >= 40 ? "bg-yellow-500" : "bg-bear")}
+                      style={{ width: `${avgAdherence}%` }} />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-3 text-center">
+                    {lang === "tr"
+                      ? "İşlem açarken hedef/stop koyarsan, kapanışta planına ne kadar uyduğunu burada görürsün."
+                      : "Set a target/stop when opening — see how closely you stuck to it on close."}
+                  </p>
+                </Card>
+              </section>
+            )}
 
             {/* Mood summary */}
             <section>
