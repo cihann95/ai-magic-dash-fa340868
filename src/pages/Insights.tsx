@@ -83,6 +83,13 @@ function InsightsInner() {
   const totalTagged = Object.values(intentStats).reduce((a, g) => a + g.count, 0);
   const untagged = trades.length - totalTagged;
 
+  // Plan adherence ortalaması
+  const planScores = trades.map((t) => Number(t.plan_adherence)).filter((n) => isFinite(n) && n >= 0);
+  const avgAdherence = planScores.length
+    ? Math.round(planScores.reduce((a, b) => a + b, 0) / planScores.length)
+    : null;
+  const planFollowed = planScores.filter((s) => s >= 70).length;
+
   // Mood stats: trade pnl per mood (mood logged before trade, use closest later trade)
   const moodStats = useMemo(() => {
     const groups: Record<string, { count: number; pnl: number }> = {};
