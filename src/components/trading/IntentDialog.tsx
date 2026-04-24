@@ -1,15 +1,24 @@
-// Trade öncesi niyet kaydı + (opsiyonel) duygu sorgusu
-// Strateji 06 (zorunlu niyet) + Strateji 01 (yumuşak soğuma)
+// Trade öncesi niyet kaydı + opsiyonel hedef/stop planı + (opsiyonel) duygu sorgusu
+// Strateji 06 (zorunlu niyet) + Strateji 01 (yumuşak soğuma) + Sprint2 Pre-Commit Plan
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useApp } from "@/contexts/AppContext";
 import { cn } from "@/lib/utils";
-import { Brain, Newspaper, Sparkle, Loader2 } from "lucide-react";
+import { Brain, Newspaper, Sparkle, Loader2, Target, ShieldAlert, ChevronDown } from "lucide-react";
 import { EmotionalSignal, logEmotion } from "@/hooks/useEmotionalSignal";
 
 export type IntentTag = "technical" | "news" | "intuition";
+
+export interface IntentResult {
+  tag: IntentTag;
+  note: string;
+  mood: string | null;
+  signal: EmotionalSignal;
+  planned_tp: number | null;
+  planned_sl: number | null;
+}
 
 interface Props {
   open: boolean;
@@ -20,7 +29,7 @@ interface Props {
   signal: EmotionalSignal;
   submitting: boolean;
   onCancel: () => void;
-  onConfirm: (intent: { tag: IntentTag; note: string; mood: string | null; signal: EmotionalSignal }) => void;
+  onConfirm: (intent: IntentResult) => void;
 }
 
 const SIGNAL_COPY: Record<NonNullable<EmotionalSignal>, { tr: string; en: string }> = {
@@ -34,10 +43,16 @@ export default function IntentDialog({ open, side, symbol, qty, price, signal, s
   const [tag, setTag] = useState<IntentTag | null>(null);
   const [note, setNote] = useState("");
   const [mood, setMood] = useState<string | null>(null);
+  const [tp, setTp] = useState("");
+  const [sl, setSl] = useState("");
+  const [planOpen, setPlanOpen] = useState(false);
 
   // Reset on open
   useEffect(() => {
-    if (open) { setTag(null); setNote(""); setMood(null); }
+    if (open) {
+      setTag(null); setNote(""); setMood(null);
+      setTp(""); setSl(""); setPlanOpen(false);
+    }
   }, [open]);
 
   const total = qty * (price ?? 0);
@@ -47,19 +62,37 @@ export default function IntentDialog({ open, side, symbol, qty, price, signal, s
 
   const handleMood = (m: string) => {
     setMood(m);
-    if (user && signal) {
-      logEmotion({ userId: user.id, signalType: signal, mood: m, symbol });
-    }
+    if (user && signal) logEmotion({ userId: user.id, signalType: signal, mood: m, symbol });
   };
 
   const handleSkipMood = () => {
     setMood("skip");
-    if (user && signal) {
-      logEmotion({ userId: user.id, signalType: signal, mood: null, symbol });
-    }
+    if (user && signal) logEmotion({ userId: user.id, signalType: signal, mood: null, symbol });
   };
 
-  const canConfirm = !!tag && !submitting;
+  // Plan değerlerinin yönle uyumlu olduğunu doğrula
+  const tpNum = tp ? Number(tp) : null;
+  const slNum = sl ? Number(sl) : null;
+  const planValid = (() => {
+    if (price == null || side === "close") return true;
+    if (tpNum != null) {
+      if (!isFinite(tpNum) || tpNum <= 0) return false;
+      if (side === "buy" && tpNum <= price) return false;
+      if (side === "sell" && tpNum >= price) return false;
+    }
+    if (slNum != null) {
+      if (!isFinite(slNum) || slNum <= 0) return false;
+      if (side === "buy" && slNum >= price) return false;
+      if (side === "sell" && slNum <= price) return false;
+    }
+    return true;
+  })();
+
+  const canConfirm = !!tag && !submitting && planValid;
+
+  const fmt = (n: number) => n.toFixed(n < 5 ? 4 : 2);
+  const tpHint = price != null && side === "buy" ? `> $${fmt(price)}` : price != null && side === "sell" ? `< $${fmt(price)}` : "";
+  const slHint = price != null && side === "buy" ? `< $${fmt(price)}` : price != null && side === "sell" ? `> $${fmt(price)}` : "";
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o && !submitting) onCancel(); }}>
@@ -75,12 +108,12 @@ export default function IntentDialog({ open, side, symbol, qty, price, signal, s
             )}>{sideLabel}</span>
           </DialogTitle>
           <DialogDescription className="font-mono text-xs">
-            {symbol} • {qty} @ {price !== null ? `$${price.toFixed(price < 5 ? 4 : 2)}` : "—"}
+            {symbol} • {qty} @ {price !== null ? `$${fmt(price)}` : "—"}
             {price !== null && <span className="text-muted-foreground"> • ≈ ${total.toFixed(2)}</span>}
           </DialogDescription>
         </DialogHeader>
 
-        {/* Soft cooling layer (Strateji 01) */}
+        {/* Soft cooling layer */}
         {signal && mood === null && (
           <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3 space-y-2">
             <div className="text-[11px] text-yellow-700 dark:text-yellow-400">
@@ -106,7 +139,7 @@ export default function IntentDialog({ open, side, symbol, qty, price, signal, s
           </div>
         )}
 
-        {/* Intent capture (Strateji 06) - only after mood handled or no signal */}
+        {/* Intent capture */}
         {(!signal || mood !== null) && (
           <>
             <div className="space-y-2">
@@ -120,9 +153,7 @@ export default function IntentDialog({ open, side, symbol, qty, price, signal, s
                   { v: "intuition" as const, icon: Sparkle, tr: "Sezgi", en: "Intuition" },
                 ].map(({ v, icon: Icon, tr, en }) => (
                   <button
-                    key={v}
-                    type="button"
-                    onClick={() => setTag(v)}
+                    key={v} type="button" onClick={() => setTag(v)}
                     className={cn(
                       "flex flex-col items-center gap-1.5 py-3 rounded-lg border-2 transition-all text-xs",
                       tag === v
@@ -139,11 +170,71 @@ export default function IntentDialog({ open, side, symbol, qty, price, signal, s
 
             <Input
               placeholder={lang === "tr" ? "Kısa not (opsiyonel)" : "Short note (optional)"}
-              value={note}
-              onChange={(e) => setNote(e.target.value.slice(0, 140))}
-              maxLength={140}
-              className="h-9 text-sm"
+              value={note} onChange={(e) => setNote(e.target.value.slice(0, 140))}
+              maxLength={140} className="h-9 text-sm"
             />
+
+            {/* Pre-commit Plan — opsiyonel TP/SL */}
+            {side !== "close" && price != null && (
+              <div className="rounded-lg border border-border/40 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setPlanOpen((v) => !v)}
+                  className="w-full flex items-center justify-between gap-2 px-3 py-2 text-xs hover:bg-accent/40 transition-colors"
+                >
+                  <span className="flex items-center gap-2 text-muted-foreground">
+                    <Target className="size-3.5" />
+                    {lang === "tr" ? "Plan ekle (opsiyonel)" : "Add plan (optional)"}
+                    {(tpNum || slNum) && (
+                      <span className="text-[10px] text-primary font-semibold">
+                        {tpNum ? `TP $${fmt(tpNum)}` : ""}{tpNum && slNum ? " · " : ""}{slNum ? `SL $${fmt(slNum)}` : ""}
+                      </span>
+                    )}
+                  </span>
+                  <ChevronDown className={cn("size-3.5 transition-transform", planOpen && "rotate-180")} />
+                </button>
+                {planOpen && (
+                  <div className="p-3 pt-1 space-y-2 bg-card/50">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1 mb-1">
+                          <Target className="size-2.5 text-bull" /> {lang === "tr" ? "Hedef" : "Target"}
+                          <span className="text-[9px] opacity-60 ml-auto">{tpHint}</span>
+                        </label>
+                        <Input
+                          type="number" step="any" inputMode="decimal"
+                          value={tp} onChange={(e) => setTp(e.target.value)}
+                          placeholder="—" className="h-8 text-xs font-mono"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1 mb-1">
+                          <ShieldAlert className="size-2.5 text-bear" /> {lang === "tr" ? "Stop" : "Stop"}
+                          <span className="text-[9px] opacity-60 ml-auto">{slHint}</span>
+                        </label>
+                        <Input
+                          type="number" step="any" inputMode="decimal"
+                          value={sl} onChange={(e) => setSl(e.target.value)}
+                          placeholder="—" className="h-8 text-xs font-mono"
+                        />
+                      </div>
+                    </div>
+                    {!planValid && (
+                      <div className="text-[10px] text-bear">
+                        {lang === "tr"
+                          ? "Hedef/Stop seviyeleri yönle uyumsuz."
+                          : "Target/Stop levels don't match the side."}
+                      </div>
+                    )}
+                    <p className="text-[10px] text-muted-foreground leading-snug">
+                      {lang === "tr"
+                        ? "Pozisyonu kapatınca planına ne kadar uyduğun ölçülecek."
+                        : "We'll measure how closely you stuck to your plan when you close."}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </>
         )}
 
@@ -152,7 +243,11 @@ export default function IntentDialog({ open, side, symbol, qty, price, signal, s
             {lang === "tr" ? "Vazgeç" : "Cancel"}
           </Button>
           <Button
-            onClick={() => tag && onConfirm({ tag, note, mood, signal })}
+            onClick={() => tag && onConfirm({
+              tag, note, mood, signal,
+              planned_tp: tpNum && planValid ? tpNum : null,
+              planned_sl: slNum && planValid ? slNum : null,
+            })}
             disabled={!canConfirm}
             className={cn(
               "flex-1 font-semibold",

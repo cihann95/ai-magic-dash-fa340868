@@ -41,7 +41,7 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
     setIntentOpen({ side, signal });
   };
 
-  const executeTrade = async (intent: { tag: string; note: string; mood: string | null; signal: EmotionalSignal }) => {
+  const executeTrade = async (intent: import("./IntentDialog").IntentResult) => {
     if (!intentOpen || !user) return;
     const side = intentOpen.side;
     const q = parseFloat(qty);
@@ -64,6 +64,7 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
         body: {
           symbol: symbol.symbol, asset_class: symbol.asset_class, side, quantity: q,
           intent_tag: intent.tag, intent_note: intent.note || null,
+          planned_tp: intent.planned_tp, planned_sl: intent.planned_sl,
         },
       });
       if (error) throw error;
