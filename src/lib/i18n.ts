@@ -73,6 +73,7 @@ const translations = {
     // insights
     insights: "İçgörüler", intent_mirror: "Niyet Aynası", emotion_mirror: "Duygu Aynası",
     health_view: "Pozisyon Sağlığı", pnl_view: "Kâr/Zarar",
+    weekly_mirror: "Haftalık Ayna", plan_adherence: "Plan Uyumu",
   },
   en: {
     markets: "Markets", portfolio: "Portfolio", history: "History", watchlist: "Watchlist", settings: "Settings",
@@ -127,5 +128,6 @@ const translations = {
     install_app: "Install App",
     insights: "Insights", intent_mirror: "Intent Mirror", emotion_mirror: "Emotion Mirror",
     health_view: "Position Health", pnl_view: "P&L",
+    weekly_mirror: "Weekly Mirror", plan_adherence: "Plan Adherence",
   },
 };

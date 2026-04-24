@@ -19,12 +19,14 @@ interface TradeRequest {
   leader_user_id?: string;
   intent_tag?: string | null;
   intent_note?: string | null;
+  planned_tp?: number | null;
+  planned_sl?: number | null;
 }
 
 const STALE_MS = 5 * 60 * 1000;
 
 async function executeOne(admin: any, userId: string, body: TradeRequest, opts: { fanOut: boolean }) {
-  const { symbol, asset_class, side, quantity, position_id, executor = "demo", copied_from, leader_user_id, intent_tag, intent_note } = body;
+  const { symbol, asset_class, side, quantity, position_id, executor = "demo", copied_from, leader_user_id, intent_tag, intent_note, planned_tp, planned_sl } = body;
 
   // ========== GERÇEK FİYAT - price_cache ==========
   const { data: priceRow, error: priceErr } = await admin
@@ -52,6 +54,8 @@ async function executeOne(admin: any, userId: string, body: TradeRequest, opts: 
   let pnl: number | null = null;
   let action: "open" | "close" = "open";
   let newBalance = Number(profile.demo_balance);
+  let planAdherence: number | null = null;
+  let openTrade: any = null; // entry trade for close: read planned_tp/sl
 
   if (position_id) {
     const { data: pos } = await admin.from("positions").select("*").eq("id", position_id).eq("user_id", userId).single();
@@ -62,6 +66,39 @@ async function executeOne(admin: any, userId: string, body: TradeRequest, opts: 
     pnl = pos.side === "long" ? (price - entry) * qty : (entry - price) * qty;
     pnl = Number(pnl.toFixed(2));
     newBalance = Number((newBalance + Number((entry * qty).toFixed(2)) + pnl).toFixed(2));
+
+    // Plan uyumu: bu pozisyonun OPEN trade'inde planned_tp/sl varsa skor üret
+    const { data: opens } = await admin.from("trades")
+      .select("planned_tp, planned_sl, intent_tag, executed_at")
+      .eq("user_id", userId).eq("symbol", symbol).eq("action", "open")
+      .order("executed_at", { ascending: false }).limit(1);
+    openTrade = opens?.[0] ?? null;
+    if (openTrade && (openTrade.planned_tp || openTrade.planned_sl)) {
+      const tp = openTrade.planned_tp ? Number(openTrade.planned_tp) : null;
+      const sl = openTrade.planned_sl ? Number(openTrade.planned_sl) : null;
+      const isLong = pos.side === "long";
+      // Hedef vurulmuş mu?
+      let scoreParts: number[] = [];
+      if (tp != null) {
+        const reachedTP = isLong ? price >= tp : price <= tp;
+        if (reachedTP) {
+          scoreParts.push(100);
+        } else {
+          // Hedefe yakınlık: 0 -> entry, 100 -> tp
+          const moved = Math.abs(price - entry);
+          const distance = Math.abs(tp - entry);
+          scoreParts.push(distance > 0 ? Math.max(0, Math.min(100, Math.round((moved / distance) * 100))) : 0);
+        }
+      }
+      if (sl != null) {
+        const breachedSL = isLong ? price <= sl : price >= sl;
+        // SL'e gelmeden çıkmak iyi (100), SL'i geçmek kötü
+        scoreParts.push(breachedSL ? 0 : 100);
+      }
+      planAdherence = scoreParts.length
+        ? Math.round(scoreParts.reduce((a, b) => a + b, 0) / scoreParts.length)
+        : null;
+    }
     await admin.from("positions").delete().eq("id", position_id);
   } else {
     if (newBalance < total) return { ok: false as const, error: "Yetersiz bakiye" };
@@ -79,20 +116,27 @@ async function executeOne(admin: any, userId: string, body: TradeRequest, opts: 
     user_id: userId, symbol, asset_class, side, action, quantity, price, total, pnl, executor,
     copied_from: copied_from ?? null,
     leader_user_id: leader_user_id ?? null,
-    intent_tag: intent_tag ?? null,
+    intent_tag: intent_tag ?? (action === "close" ? openTrade?.intent_tag ?? null : null),
     intent_note: intent_note ?? null,
+    planned_tp: action === "open" ? (planned_tp ?? null) : null,
+    planned_sl: action === "open" ? (planned_sl ?? null) : null,
+    plan_adherence: action === "close" ? planAdherence : null,
   }).select("id").single();
 
-  // Notification
+  // Notification (close için plan uyum mesajı eklenir)
+  let closeBody = `${quantity} @ $${price.toFixed(price < 5 ? 4 : 2)} • Toplam $${total.toFixed(2)}${copied_from ? " (Copy-Trade)" : ""}`;
+  if (action === "close" && planAdherence !== null) {
+    closeBody += ` • 📐 Plana uyum: %${planAdherence}`;
+  }
   await admin.from("notifications").insert({
     user_id: userId,
     type: "trade_executed",
     title: action === "open"
       ? `${side === "buy" ? "🟢" : "🔴"} ${side.toUpperCase()} ${symbol}${copied_from ? " 🔁" : ""}`
       : `✖ ${symbol} kapatıldı${pnl !== null ? ` (${pnl >= 0 ? "+" : ""}$${pnl.toFixed(2)})` : ""}`,
-    body: `${quantity} @ $${price.toFixed(price < 5 ? 4 : 2)} • Toplam $${total.toFixed(2)}${copied_from ? " (Copy-Trade)" : ""}`,
+    body: closeBody,
     link: `/portfolio`,
-    metadata: { symbol, side, action, qty: quantity, price, pnl, copied_from },
+    metadata: { symbol, side, action, qty: quantity, price, pnl, copied_from, plan_adherence: planAdherence },
   });
 
   // Gamification (sadece kullanıcının kendi trade'i için, copy-trade'ler de sayılır)
