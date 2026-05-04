@@ -78,16 +78,16 @@ export default function Index() {
           <ChartPanel symbol={active} onTradeDone={() => setRefresh((r) => r + 1)} />
         </section>
         <aside className="order-3 min-h-[600px] lg:min-h-0 flex flex-col gap-3">
-          <div className="flex-1 min-h-0">
-            <AccountAIPanel symbol={active} refreshKey={refresh} onTradeDone={() => setRefresh((r) => r + 1)} />
-          </div>
-          <div className="h-[42%] min-h-[280px] shrink-0">
+          <div className="h-[58%] min-h-[340px] shrink-0">
             <OpenPositionsPanel
               refreshKey={refresh}
               onTradeDone={() => setRefresh((r) => r + 1)}
               onSelectSymbol={setActive}
               activeSymbol={active.symbol}
             />
+          </div>
+          <div className="flex-1 min-h-0">
+            <AccountAIPanel symbol={active} refreshKey={refresh} onTradeDone={() => setRefresh((r) => r + 1)} />
           </div>
         </aside>
       </div>
