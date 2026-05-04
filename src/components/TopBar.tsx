@@ -2,25 +2,32 @@ import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useApp } from "@/contexts/AppContext";
 import { t } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
-import { Moon, Sun, LineChart, Wallet, History, Eye, Settings, LogOut, Menu, X, Trophy, Award, Flame, Users, Brain, BookOpen, Activity } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  Moon, Sun, LineChart, Wallet, History, Eye, Settings, LogOut, Menu, X,
+  Trophy, Award, Flame, Users, Brain, BookOpen, Activity, Search, MoreHorizontal, Keyboard,
+} from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
 import { useState } from "react";
 import GameBadge from "./GameBadge";
 import NotificationBell from "./NotificationBell";
 
-const navItems = (lang: "tr" | "en") => [
+const primaryItems = (lang: "tr" | "en") => [
   { to: "/", label: t(lang).markets, icon: LineChart },
-  { to: "/heatmap", label: t(lang).heatmap, icon: Flame },
   { to: "/portfolio", label: t(lang).portfolio, icon: Wallet },
-  { to: "/social", label: t(lang).social, icon: Users },
-  { to: "/coach", label: t(lang).coach, icon: Brain },
   { to: "/insights", label: t(lang).insights, icon: Activity },
+  { to: "/coach", label: t(lang).coach, icon: Brain },
   { to: "/journal", label: t(lang).journal, icon: BookOpen },
-  { to: "/history", label: t(lang).history, icon: History },
+];
+
+const moreItems = (lang: "tr" | "en") => [
+  { to: "/heatmap", label: t(lang).heatmap, icon: Flame },
+  { to: "/social", label: t(lang).social, icon: Users },
   { to: "/watchlist", label: t(lang).watchlist, icon: Eye },
+  { to: "/history", label: t(lang).history, icon: History },
   { to: "/leaderboard", label: t(lang).leaderboard, icon: Trophy },
   { to: "/achievements", label: t(lang).achievements, icon: Award },
-  { to: "/settings", label: t(lang).settings, icon: Settings },
 ];
 
 export default function TopBar() {
@@ -30,13 +37,18 @@ export default function TopBar() {
   const tr = t(lang);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const items = navItems(lang);
+  const items = primaryItems(lang);
+  const more = moreItems(lang);
+  const allItems = [...items, ...more];
+  const isMoreActive = more.some((m) => loc.pathname === m.to);
+
+  const openPalette = () => window.dispatchEvent(new CustomEvent("open-command-palette"));
 
   return (
     <header className="sticky top-0 z-50 glass border-b border-border/40">
-      <div className="flex items-center justify-between px-4 md:px-6 h-16 max-w-[1800px] mx-auto">
-        <div className="flex items-center gap-8">
-          <Link to="/" className="flex items-center gap-2 font-bold text-lg tracking-tight">
+      <div className="flex items-center justify-between gap-3 px-4 md:px-6 h-16 max-w-[1800px] mx-auto">
+        <div className="flex items-center gap-6 min-w-0">
+          <Link to="/" className="flex items-center gap-2 font-bold text-lg tracking-tight shrink-0">
             <div className="size-8 rounded-lg gradient-primary shadow-glow flex items-center justify-center">
               <LineChart className="size-4 text-primary-foreground" />
             </div>
@@ -53,10 +65,52 @@ export default function TopBar() {
                 <Icon className="size-4" />{label}
               </NavLink>
             ))}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`gap-1.5 h-9 px-3 ${isMoreActive ? "bg-accent text-foreground" : "text-muted-foreground"}`}
+                >
+                  <MoreHorizontal className="size-4" />
+                  {lang === "tr" ? "Daha fazla" : "More"}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56 bg-popover">
+                {more.map(({ to, label, icon: Icon }) => (
+                  <DropdownMenuItem key={to} onClick={() => navigate(to)} className="gap-2">
+                    <Icon className="size-4 text-muted-foreground" />
+                    <span>{label}</span>
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => window.dispatchEvent(new CustomEvent("show-shortcuts-help"))} className="gap-2">
+                  <Keyboard className="size-4 text-muted-foreground" />
+                  <span>{lang === "tr" ? "Kısayollar" : "Shortcuts"}</span>
+                  <kbd className="ml-auto text-[10px] font-mono px-1 py-0.5 rounded bg-muted">?</kbd>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </nav>
         </div>
 
         <div className="flex items-center gap-2">
+          {user && (
+            <button
+              onClick={openPalette}
+              className="hidden md:flex items-center gap-2 px-3 h-9 rounded-lg border border-border/60 bg-muted/30 hover:bg-muted/60 text-muted-foreground text-xs transition-colors w-56"
+              aria-label={lang === "tr" ? "Ara" : "Search"}
+            >
+              <Search className="size-3.5" />
+              <span className="flex-1 text-left">{lang === "tr" ? "Sembol ara..." : "Search symbols..."}</span>
+              <kbd className="text-[10px] font-mono px-1 py-0.5 rounded bg-background/60 border border-border/40">⌘K</kbd>
+            </button>
+          )}
+          {user && (
+            <Button variant="ghost" size="icon" className="md:hidden" onClick={openPalette} aria-label="Search">
+              <Search className="size-4" />
+            </Button>
+          )}
           {user && <NotificationBell />}
           {user && <GameBadge />}
           <Button variant="ghost" size="sm" onClick={() => setLang(lang === "tr" ? "en" : "tr")} className="font-mono text-xs uppercase">
@@ -97,7 +151,7 @@ export default function TopBar() {
 
       {mobileOpen && (
         <nav className="lg:hidden border-t border-border/40 px-4 py-3 flex flex-col gap-1 bg-background/95">
-          {items.map(({ to, label, icon: Icon }) => (
+          {allItems.map(({ to, label, icon: Icon }) => (
             <NavLink key={to} to={to} end={to === "/"} onClick={() => setMobileOpen(false)}
               className={({ isActive }) =>
                 `flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium ${

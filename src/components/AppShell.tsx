@@ -3,12 +3,16 @@ import TopBar from "./TopBar";
 import BottomNav from "./BottomNav";
 import OnboardingTour from "./OnboardingTour";
 import PersonaOnboarding from "./PersonaOnboarding";
+import CommandPalette from "./CommandPalette";
+import ShortcutsHelp from "./ShortcutsHelp";
 import { useAlertNotifications } from "@/hooks/useAlertNotifications";
 import { useWeeklyDigest } from "@/hooks/useWeeklyDigest";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 
 export default function AppShell({ children }: { children: ReactNode }) {
   useAlertNotifications();
   useWeeklyDigest();
+  useKeyboardShortcuts();
   return (
     <div className="min-h-screen bg-background mesh-bg pb-16 lg:pb-0">
       <TopBar />
@@ -16,6 +20,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
       <BottomNav />
       <OnboardingTour />
       <PersonaOnboarding />
+      <CommandPalette />
+      <ShortcutsHelp />
     </div>
   );
 }

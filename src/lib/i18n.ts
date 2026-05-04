@@ -77,6 +77,9 @@ const translations = {
     total_pnl: "Toplam K/Z", exposure: "Maruziyet", win_loss: "Kazan/Kayıp",
     held: "Tutulma", focus_chart: "Grafiğe Git", partial_close: "Kısmi Kapat",
     intent: "Niyet", sort_by: "Sırala",
+    // command palette / shortcuts
+    search_placeholder: "Sembol, sayfa veya komut ara...", more: "Daha fazla", shortcuts: "Kısayollar",
+    no_results: "Sonuç bulunamadı.", pages: "Sayfalar", commands: "Komutlar", symbols: "Semboller",
   },
   en: {
     markets: "Markets", portfolio: "Portfolio", history: "History", watchlist: "Watchlist", settings: "Settings",
@@ -135,5 +138,7 @@ const translations = {
     total_pnl: "Total P&L", exposure: "Exposure", win_loss: "Win/Loss",
     held: "Held", focus_chart: "Focus Chart", partial_close: "Partial Close",
     intent: "Intent", sort_by: "Sort by",
+    search_placeholder: "Search symbols, pages or commands...", more: "More", shortcuts: "Shortcuts",
+    no_results: "No results found.", pages: "Pages", commands: "Commands", symbols: "Symbols",
   },
 };
