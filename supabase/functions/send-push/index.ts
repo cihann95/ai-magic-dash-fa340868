@@ -74,6 +74,11 @@ async function sendPush(sub: { endpoint: string; p256dh: string; auth: string },
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  const authHdr = req.headers.get("Authorization") ?? "";
+  if (authHdr !== `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
     return new Response(JSON.stringify({ skipped: true, reason: "VAPID not configured" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
