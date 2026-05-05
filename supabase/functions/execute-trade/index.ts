@@ -344,7 +344,7 @@ Deno.serve(async (req) => {
 
     const parsedBody = parsePublicTradeRequest(await req.json().catch(() => null));
     if (!parsedBody.ok) {
-      return new Response(JSON.stringify({ error: "Geçersiz işlem parametreleri" }), {
+      return new Response(JSON.stringify({ error: parsedBody.error }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
