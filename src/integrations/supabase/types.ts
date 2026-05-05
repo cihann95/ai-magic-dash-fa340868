@@ -862,6 +862,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      mark_onboarding_complete: { Args: never; Returns: undefined }
       touch_streak: { Args: { _user_id: string }; Returns: number }
     }
     Enums: {
