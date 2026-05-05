@@ -17,6 +17,13 @@ interface MirrorRequest {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  // Internal only — must be invoked with the service-role key
+  const auth = req.headers.get("Authorization") ?? "";
+  const expected = `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`;
+  if (auth !== expected) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+
   try {
     const { user_id, trade_id } = (await req.json()) as MirrorRequest;
     if (!user_id || !trade_id) {
