@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
         model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: sys },
-          { role: "user", content: `Symbol: ${symbol || "piyasa geneli"}` },
+          { role: "user", content: `Symbol: ${safeSymbol || "piyasa geneli"}` },
         ],
         tools: [{
           type: "function",
@@ -74,7 +74,10 @@ Deno.serve(async (req) => {
 
     if (resp.status === 429) return new Response(JSON.stringify({ error: "Çok fazla istek." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     if (resp.status === 402) return new Response(JSON.stringify({ error: "AI kredisi yetersiz." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    if (!resp.ok) throw new Error("AI servisi hatası");
+    if (!resp.ok) {
+      console.error("news-feed AI gateway:", resp.status);
+      return new Response(JSON.stringify({ error: "AI servisi hatası" }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     const data = await resp.json();
     const args = data.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
@@ -85,7 +88,7 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error("news-feed error", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown" }), {
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
