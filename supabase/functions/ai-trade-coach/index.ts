@@ -193,7 +193,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Toplu mod (cron) — son 30 günde işlem yapan tüm kullanıcılar
+    // Toplu mod (cron) — service-role bearer zorunlu
+    const cronAuth = req.headers.get("Authorization") ?? "";
+    if (cronAuth !== `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    // son 30 günde işlem yapan tüm kullanıcılar
     const since = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
     const { data: activeUsers } = await admin.from("trades")
       .select("user_id").gte("executed_at", since);
