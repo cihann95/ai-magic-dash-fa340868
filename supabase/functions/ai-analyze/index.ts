@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY yapılandırılmamış");
 
-    const sys = language === "tr"
+    const sys = lang === "tr"
       ? "Sen profesyonel bir piyasa analistisin. Sembol için kısa, eyleme dönük teknik+temel analiz yap. Markdown kullan. Bölümler: **Genel Görünüm**, **Teknik (trend, destek/direnç)**, **Temel Etkenler**, **Sinyal: AL / SAT / BEKLE** (kalın). 200 kelimeyi geçme. Yatırım tavsiyesi olmadığını sonda kısaca belirt."
       : "You are a professional market analyst. Provide a concise, actionable technical+fundamental analysis. Use markdown sections: **Overview**, **Technical (trend, S/R)**, **Fundamentals**, **Signal: BUY / SELL / HOLD** (bold). Under 200 words. Add brief disclaimer.";
 
@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
         model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: sys },
-          { role: "user", content: `Sembol: ${symbol} (${asset_class || "—"}). Güncel piyasa koşullarına göre analiz et.` },
+          { role: "user", content: `Sembol: ${symbol} (${safeAsset || "—"}). Güncel piyasa koşullarına göre analiz et.` },
         ],
       }),
     });
@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
     if (resp.status === 402) return new Response(JSON.stringify({ error: "AI kredisi yetersiz. Lütfen workspace'inize kredi ekleyin." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     if (!resp.ok) {
       const t = await resp.text(); console.error("AI gateway:", resp.status, t);
-      throw new Error("AI servisi hatası");
+      return new Response(JSON.stringify({ error: "AI servisi hatası" }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const data = await resp.json();
@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error("ai-analyze error", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown" }), {
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
