@@ -17,8 +17,6 @@ interface TradeRequest {
   executor?: "demo" | "alpaca";
   copied_from?: string;
   leader_user_id?: string;
-  copied_from?: string;
-  leader_user_id?: string;
   intent_tag?: string | null;
   intent_note?: string | null;
   planned_tp?: number | null;
@@ -344,12 +342,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    const body: TradeRequest = await req.json();
-    if (!body.symbol || !body.quantity || body.quantity <= 0) {
+    const parsedBody = parsePublicTradeRequest(await req.json().catch(() => null));
+    if (!parsedBody.ok) {
       return new Response(JSON.stringify({ error: "Geçersiz işlem parametreleri" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    const body: TradeRequest = parsedBody.data;
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
