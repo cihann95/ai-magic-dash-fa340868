@@ -30,7 +30,7 @@ export default function OnboardingTour() {
 
   const finish = async () => {
     if (user) {
-      await supabase.from("user_stats").update({ onboarding_completed: true }).eq("user_id", user.id);
+      await supabase.rpc("mark_onboarding_complete");
     }
     // Bildirim izni iste
     if ("Notification" in window && Notification.permission === "default") {
