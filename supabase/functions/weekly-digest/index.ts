@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
     return json({ success: true, closes: closes.length, total_pnl: +totalPnl.toFixed(2) });
   } catch (e) {
     console.error("weekly-digest error", e);
-    return json({ error: e instanceof Error ? e.message : "Unknown" }, 500);
+    return json({ error: "Internal server error" }, 500);
   }
 });
 
