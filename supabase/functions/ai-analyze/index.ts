@@ -21,12 +21,14 @@ Deno.serve(async (req) => {
   try {
     const unauthorized = await requireUser(req);
     if (unauthorized) return unauthorized;
-    const { symbol, asset_class, language = "tr" } = await req.json();
-    if (!symbol) {
-      return new Response(JSON.stringify({ error: "Symbol gerekli" }), {
+    const { symbol, asset_class, language = "tr" } = await req.json().catch(() => ({}));
+    if (typeof symbol !== "string" || !/^[A-Z0-9.\-]{1,16}$/.test(symbol)) {
+      return new Response(JSON.stringify({ error: "Geçersiz sembol" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    const safeAsset = typeof asset_class === "string" && /^[a-z]{1,16}$/.test(asset_class) ? asset_class : null;
+    const lang = language === "en" ? "en" : "tr";
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY yapılandırılmamış");
