@@ -90,10 +90,13 @@ function SettingsInner() {
   const resetDemo = async () => {
     if (!user) return;
     setResetting(true);
-    await supabase.from("positions").delete().eq("user_id", user.id);
-    await supabase.from("profiles").update({ demo_balance: 100000, initial_balance: 100000 }).eq("id", user.id);
+    const { error } = await supabase.functions.invoke("reset-demo-account");
     setResetting(false);
-    toast({ title: tr.success, description: lang === "tr" ? "Demo bakiyesi sıfırlandı." : "Demo balance reset." });
+    toast({
+      title: error ? tr.error : tr.success,
+      description: error?.message || (lang === "tr" ? "Demo bakiyesi sıfırlandı." : "Demo balance reset."),
+      variant: error ? "destructive" : "default",
+    });
   };
 
   const togglePush = async () => {

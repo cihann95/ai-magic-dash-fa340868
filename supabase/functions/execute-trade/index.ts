@@ -23,7 +23,81 @@ interface TradeRequest {
   planned_sl?: number | null;
 }
 
+interface PublicTradeRequest {
+  symbol: string;
+  asset_class: string;
+  side: "buy" | "sell";
+  quantity: number;
+  position_id?: string;
+  intent_tag?: string | null;
+  intent_note?: string | null;
+  planned_tp?: number | null;
+  planned_sl?: number | null;
+}
+
 const STALE_MS = 5 * 60 * 1000;
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const ALLOWED_ASSET_CLASSES = new Set(["crypto", "stocks", "forex", "commodities", "indices", "etf"]);
+
+function sanitizeNullableText(value: unknown, maxLen: number) {
+  if (value == null) return null;
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed ? trimmed.slice(0, maxLen) : null;
+}
+
+function sanitizeNullableNumber(value: unknown) {
+  if (value == null || value === "") return null;
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
+}
+
+function parsePublicTradeRequest(payload: unknown): { ok: true; data: PublicTradeRequest } | { ok: false; error: string } {
+  if (!payload || typeof payload !== "object") {
+    return { ok: false, error: "Geçersiz işlem parametreleri" };
+  }
+
+  const raw = payload as Record<string, unknown>;
+  if (raw.copied_from != null || raw.leader_user_id != null) {
+    return { ok: false, error: "Kopya işlem alanları istemciden gönderilemez" };
+  }
+
+  const symbol = typeof raw.symbol === "string" ? raw.symbol.trim().toUpperCase() : "";
+  const asset_class = typeof raw.asset_class === "string" ? raw.asset_class.trim().toLowerCase() : "";
+  const side = raw.side;
+  const quantity = Number(raw.quantity);
+  const position_id = typeof raw.position_id === "string" ? raw.position_id.trim() : undefined;
+
+  if (!symbol || symbol.length > 24) return { ok: false, error: "Geçersiz sembol" };
+  if (!ALLOWED_ASSET_CLASSES.has(asset_class)) return { ok: false, error: "Geçersiz varlık sınıfı" };
+  if (side !== "buy" && side !== "sell") return { ok: false, error: "Geçersiz işlem yönü" };
+  if (!Number.isFinite(quantity) || quantity <= 0 || quantity > 100000000) {
+    return { ok: false, error: "Geçersiz miktar" };
+  }
+  if (position_id && !UUID_RE.test(position_id)) return { ok: false, error: "Geçersiz pozisyon kimliği" };
+
+  const planned_tp = sanitizeNullableNumber(raw.planned_tp);
+  const planned_sl = sanitizeNullableNumber(raw.planned_sl);
+  if ((raw.planned_tp != null && planned_tp == null) || (raw.planned_sl != null && planned_sl == null)) {
+    return { ok: false, error: "Geçersiz TP/SL değeri" };
+  }
+
+  return {
+    ok: true,
+    data: {
+      symbol,
+      asset_class,
+      side,
+      quantity,
+      position_id,
+      intent_tag: sanitizeNullableText(raw.intent_tag, 50),
+      intent_note: sanitizeNullableText(raw.intent_note, 500),
+      planned_tp,
+      planned_sl,
+    },
+  };
+}
 
 async function executeOne(admin: any, userId: string, body: TradeRequest, opts: { fanOut: boolean }) {
   const { symbol, asset_class, side, quantity, position_id, executor = "demo", copied_from, leader_user_id, intent_tag, intent_note, planned_tp, planned_sl } = body;
@@ -268,12 +342,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    const body: TradeRequest = await req.json();
-    if (!body.symbol || !body.quantity || body.quantity <= 0) {
-      return new Response(JSON.stringify({ error: "Geçersiz işlem parametreleri" }), {
+    const parsedBody = parsePublicTradeRequest(await req.json().catch(() => null));
+    if (!parsedBody.ok) {
+      return new Response(JSON.stringify({ error: parsedBody.error }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    const body: TradeRequest = parsedBody.data;
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
