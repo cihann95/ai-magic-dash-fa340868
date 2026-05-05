@@ -14,11 +14,22 @@ Deno.serve(async (req) => {
     const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!);
     const { data: u, error: ue } = await sb.auth.getUser(authHeader.replace("Bearer ", ""));
     if (ue || !u.user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    const { symbol, language = "tr" } = await req.json();
+    const { symbol, language = "tr" } = await req.json().catch(() => ({}));
+    let safeSymbol = "";
+    if (symbol != null) {
+      if (typeof symbol !== "string" || !/^[A-Z0-9.\-]{1,16}$/.test(symbol)) {
+        return new Response(JSON.stringify({ error: "Geçersiz sembol" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+      safeSymbol = symbol;
+    }
+    const lang = language === "en" ? "en" : "tr";
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY yapılandırılmamış");
+    if (!LOVABLE_API_KEY) {
+      console.error("news-feed: LOVABLE_API_KEY missing");
+      return new Response(JSON.stringify({ error: "Servis geçici olarak kullanılamıyor" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
-    const sys = language === "tr"
+    const sys = lang === "tr"
       ? "Sen finans haber editörüsün. Verilen sembol için 5 GERÇEK, GÜNCEL haber başlığı üret (kısa, 1 cümle özet ile). Her biri için duyarlılık skoru ver: bullish | bearish | neutral. Yalnızca JSON dön."
       : "You are a finance news editor. Produce 5 REAL, RECENT news headlines for the symbol with a 1-sentence summary and sentiment: bullish | bearish | neutral. Return JSON only.";
 
@@ -29,7 +40,7 @@ Deno.serve(async (req) => {
         model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: sys },
-          { role: "user", content: `Symbol: ${symbol || "piyasa geneli"}` },
+          { role: "user", content: `Symbol: ${safeSymbol || "piyasa geneli"}` },
         ],
         tools: [{
           type: "function",
@@ -63,7 +74,10 @@ Deno.serve(async (req) => {
 
     if (resp.status === 429) return new Response(JSON.stringify({ error: "Çok fazla istek." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     if (resp.status === 402) return new Response(JSON.stringify({ error: "AI kredisi yetersiz." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    if (!resp.ok) throw new Error("AI servisi hatası");
+    if (!resp.ok) {
+      console.error("news-feed AI gateway:", resp.status);
+      return new Response(JSON.stringify({ error: "AI servisi hatası" }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     const data = await resp.json();
     const args = data.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
@@ -74,7 +88,7 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error("news-feed error", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown" }), {
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
