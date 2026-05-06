@@ -814,18 +814,16 @@ export type Database = {
     Views: {
       activity_feed: {
         Row: {
+          achievement_code: string | null
           action: string | null
           asset_class: string | null
           event_at: string | null
           event_id: string | null
           event_type: string | null
           pnl: number | null
-          price: number | null
-          quantity: number | null
           side: string | null
           symbol: string | null
           user_id: string | null
-          username: string | null
         }
         Relationships: []
       }
