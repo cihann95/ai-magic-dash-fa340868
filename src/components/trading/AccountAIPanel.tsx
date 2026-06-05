@@ -95,7 +95,7 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone }: Prop
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
       // Record close timestamp for emotional signal motor
-      try { recordTrade(Number(p.entry_price) * Number(p.quantity), true); } catch {}
+      try { recordTrade(Number(p.entry_price) * Number(p.quantity), true); } catch { /* noop */ }
       toast({ title: tr.success, description: `${tr.close} ${p.symbol}` });
       const ach = (data as any)?.achievements as string[] | undefined;
       if (ach?.length) celebrateAchievements(ach, lang);
