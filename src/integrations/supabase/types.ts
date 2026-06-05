@@ -862,6 +862,7 @@ export type Database = {
       }
       mark_onboarding_complete: { Args: never; Returns: undefined }
       touch_streak: { Args: { _user_id: string }; Returns: number }
+      verify_cron_secret: { Args: { _token: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user"
