@@ -152,7 +152,7 @@ async function executeOne(admin: any, userId: string, body: TradeRequest, opts: 
       const sl = openTrade.planned_sl ? Number(openTrade.planned_sl) : null;
       const isLong = pos.side === "long";
       // Hedef vurulmuş mu?
-      let scoreParts: number[] = [];
+      const scoreParts: number[] = [];
       if (tp != null) {
         const reachedTP = isLong ? price >= tp : price <= tp;
         if (reachedTP) {
