@@ -142,17 +142,25 @@ async function fetchYahooChart(s: SymRef): Promise<PriceUpdate | null> {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  // Cron / internal only
+  const admin = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+
+  // Auth: accept service_role bearer OR a valid x-cron-secret (issued from pg_cron via Vault)
   const authHdr = req.headers.get("Authorization") ?? "";
-  if (authHdr !== `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`) {
+  const cronToken = req.headers.get("x-cron-secret") ?? "";
+  const isServiceRole = authHdr === `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`;
+  let isCron = false;
+  if (!isServiceRole && cronToken) {
+    const { data: ok } = await admin.rpc("verify_cron_secret", { _token: cronToken });
+    isCron = ok === true;
+  }
+  if (!isServiceRole && !isCron) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
   try {
-    const admin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
 
     // 1) Fetch real prices in parallel
     const cryptoSyms = SYMBOLS.filter((s) => s.binance);
