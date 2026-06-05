@@ -18,7 +18,7 @@ function read(): RecentTrade[] {
   } catch { return []; }
 }
 function write(arr: RecentTrade[]) {
-  try { localStorage.setItem(KEY, JSON.stringify(arr.slice(-MAX_TRADES))); } catch {}
+  try { localStorage.setItem(KEY, JSON.stringify(arr.slice(-MAX_TRADES))); } catch { /* noop */ }
 }
 
 export function recordTrade(total: number, closed = false) {
