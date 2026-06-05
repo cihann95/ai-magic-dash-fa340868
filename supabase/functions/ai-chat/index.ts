@@ -5,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SYMBOL_RE = /^[A-Z0-9.\-]{1,16}$/;
+const SYMBOL_RE = /^[A-Z0-9.-]{1,16}$/;
 const MAX_MESSAGES = 20;
 const MAX_MSG_LEN = 4000;
 

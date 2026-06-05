@@ -17,7 +17,7 @@ Deno.serve(async (req) => {
     const { symbol, language = "tr" } = await req.json().catch(() => ({}));
     let safeSymbol = "";
     if (symbol != null) {
-      if (typeof symbol !== "string" || !/^[A-Z0-9.\-]{1,16}$/.test(symbol)) {
+      if (typeof symbol !== "string" || !/^[A-Z0-9.-]{1,16}$/.test(symbol)) {
         return new Response(JSON.stringify({ error: "Geçersiz sembol" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
       safeSymbol = symbol;

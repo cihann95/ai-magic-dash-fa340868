@@ -154,7 +154,7 @@ export default function OpenPositionsPanel({ refreshKey, onTradeDone, onSelectSy
       });
       if (error) throw error;
       if ((data as any)?.error) throw new Error((data as any).error);
-      try { recordTrade(p.entry * qty, true); } catch {}
+      try { recordTrade(p.entry * qty, true); } catch { /* noop */ }
       toast({
         title: tr.success,
         description: `${fraction === 1 ? tr.close : (lang === "tr" ? "Kısmi kapatıldı" : "Partial close")} ${p.symbol}`,

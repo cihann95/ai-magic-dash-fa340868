@@ -22,7 +22,7 @@ Deno.serve(async (req) => {
     const unauthorized = await requireUser(req);
     if (unauthorized) return unauthorized;
     const { symbol, asset_class, language = "tr" } = await req.json().catch(() => ({}));
-    if (typeof symbol !== "string" || !/^[A-Z0-9.\-]{1,16}$/.test(symbol)) {
+    if (typeof symbol !== "string" || !/^[A-Z0-9.-]{1,16}$/.test(symbol)) {
       return new Response(JSON.stringify({ error: "Geçersiz sembol" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
