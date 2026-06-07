@@ -37,7 +37,7 @@ export const SYMBOLS: SymbolDef[] = [
   { symbol: "GOLD", tv: "OANDA:XAUUSD", yahoo: "GC=F", name: "Gold Futures", asset_class: "commodities", market_open: true },
   { symbol: "SILVER", tv: "OANDA:XAGUSD", yahoo: "SI=F", name: "Silver Futures", asset_class: "commodities", market_open: true },
   { symbol: "OIL", tv: "TVC:USOIL", yahoo: "CL=F", name: "WTI Crude Oil", asset_class: "commodities", market_open: true },
-  { symbol: "NATGAS", tv: "TVC:NATURALGAS", yahoo: "NG=F", name: "Natural Gas", asset_class: "commodities", market_open: true },
+  { symbol: "NATGAS", tv: "NYMEX:NG1!", yahoo: "NG=F", name: "Natural Gas Futures", asset_class: "commodities", market_open: true },
   // indices - Yahoo
   { symbol: "SPX", tv: "TVC:SPX", yahoo: "^GSPC", name: "S&P 500", asset_class: "indices" },
   { symbol: "NDX", tv: "TVC:NDX", yahoo: "^NDX", name: "Nasdaq 100", asset_class: "indices" },
