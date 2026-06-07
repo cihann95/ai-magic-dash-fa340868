@@ -32,11 +32,11 @@ export const SYMBOLS: SymbolDef[] = [
   { symbol: "EURUSD", tv: "FX:EURUSD", yahoo: "EURUSD=X", name: "Euro / US Dollar", asset_class: "forex", market_open: true },
   { symbol: "GBPUSD", tv: "FX:GBPUSD", yahoo: "GBPUSD=X", name: "British Pound / USD", asset_class: "forex", market_open: true },
   { symbol: "USDJPY", tv: "FX:USDJPY", yahoo: "JPY=X", name: "USD / Japanese Yen", asset_class: "forex", market_open: true },
-  { symbol: "USDTRY", tv: "FX_IDC:USDTRY", yahoo: "TRY=X", name: "USD / Turkish Lira", asset_class: "forex", market_open: true },
-  // commodities - Yahoo futures
-  { symbol: "GOLD", tv: "OANDA:XAUUSD", yahoo: "GC=F", name: "Gold Futures", asset_class: "commodities", market_open: true },
-  { symbol: "SILVER", tv: "OANDA:XAGUSD", yahoo: "SI=F", name: "Silver Futures", asset_class: "commodities", market_open: true },
-  { symbol: "OIL", tv: "TVC:USOIL", yahoo: "CL=F", name: "WTI Crude Oil", asset_class: "commodities", market_open: true },
+  { symbol: "USDTRY", tv: "FX:USDTRY", yahoo: "TRY=X", name: "USD / Turkish Lira", asset_class: "forex", market_open: true },
+  // commodities - TV symbols aligned to Yahoo futures source (GC=F=COMEX, SI=F=COMEX, CL=F=NYMEX, NG=F=NYMEX)
+  { symbol: "GOLD", tv: "COMEX:GC1!", yahoo: "GC=F", name: "Gold Futures", asset_class: "commodities", market_open: true },
+  { symbol: "SILVER", tv: "COMEX:SI1!", yahoo: "SI=F", name: "Silver Futures", asset_class: "commodities", market_open: true },
+  { symbol: "OIL", tv: "NYMEX:CL1!", yahoo: "CL=F", name: "WTI Crude Oil Futures", asset_class: "commodities", market_open: true },
   { symbol: "NATGAS", tv: "NYMEX:NG1!", yahoo: "NG=F", name: "Natural Gas Futures", asset_class: "commodities", market_open: true },
   // indices - Yahoo
   { symbol: "SPX", tv: "TVC:SPX", yahoo: "^GSPC", name: "S&P 500", asset_class: "indices" },
