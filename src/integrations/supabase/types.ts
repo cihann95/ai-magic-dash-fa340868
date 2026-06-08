@@ -109,6 +109,154 @@ export type Database = {
           },
         ]
       }
+      blitz_orders: {
+        Row: {
+          amount: number
+          closed_at: string | null
+          created_at: string
+          entry_price: number
+          exit_price: number | null
+          id: string
+          opened_at: string
+          pnl: number | null
+          room_id: string
+          side: Database["public"]["Enums"]["blitz_side"]
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          closed_at?: string | null
+          created_at?: string
+          entry_price: number
+          exit_price?: number | null
+          id?: string
+          opened_at?: string
+          pnl?: number | null
+          room_id: string
+          side: Database["public"]["Enums"]["blitz_side"]
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          closed_at?: string | null
+          created_at?: string
+          entry_price?: number
+          exit_price?: number | null
+          id?: string
+          opened_at?: string
+          pnl?: number | null
+          room_id?: string
+          side?: Database["public"]["Enums"]["blitz_side"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blitz_orders_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "blitz_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      blitz_participants: {
+        Row: {
+          created_at: string
+          final_balance: number | null
+          final_pnl: number | null
+          id: string
+          joined_at: string
+          rank: number | null
+          room_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          final_balance?: number | null
+          final_pnl?: number | null
+          id?: string
+          joined_at?: string
+          rank?: number | null
+          room_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          final_balance?: number | null
+          final_pnl?: number | null
+          id?: string
+          joined_at?: string
+          rank?: number | null
+          room_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blitz_participants_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "blitz_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      blitz_rooms: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          ends_at: string | null
+          entry_fee: number
+          fee_collected: number
+          id: string
+          invite_code: string | null
+          max_players: number
+          mode: Database["public"]["Enums"]["blitz_mode"]
+          pot: number
+          start_price: number | null
+          starts_at: string | null
+          status: Database["public"]["Enums"]["blitz_status"]
+          symbol: string
+          updated_at: string
+          winner_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string | null
+          entry_fee: number
+          fee_collected?: number
+          id?: string
+          invite_code?: string | null
+          max_players?: number
+          mode?: Database["public"]["Enums"]["blitz_mode"]
+          pot?: number
+          start_price?: number | null
+          starts_at?: string | null
+          status?: Database["public"]["Enums"]["blitz_status"]
+          symbol: string
+          updated_at?: string
+          winner_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          ends_at?: string | null
+          entry_fee?: number
+          fee_collected?: number
+          id?: string
+          invite_code?: string | null
+          max_players?: number
+          mode?: Database["public"]["Enums"]["blitz_mode"]
+          pot?: number
+          start_price?: number | null
+          starts_at?: string | null
+          status?: Database["public"]["Enums"]["blitz_status"]
+          symbol?: string
+          updated_at?: string
+          winner_id?: string | null
+        }
+        Relationships: []
+      }
       coach_insights: {
         Row: {
           acknowledged: boolean
@@ -475,6 +623,8 @@ export type Database = {
           preferred_language: string | null
           preferred_theme: string | null
           preferred_view: string
+          real_balance: number
+          real_balance_locked: number
           trader_persona: Json | null
           updated_at: string
         }
@@ -489,6 +639,8 @@ export type Database = {
           preferred_language?: string | null
           preferred_theme?: string | null
           preferred_view?: string
+          real_balance?: number
+          real_balance_locked?: number
           trader_persona?: Json | null
           updated_at?: string
         }
@@ -503,6 +655,8 @@ export type Database = {
           preferred_language?: string | null
           preferred_theme?: string | null
           preferred_view?: string
+          real_balance?: number
+          real_balance_locked?: number
           trader_persona?: Json | null
           updated_at?: string
         }
@@ -866,6 +1020,9 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
+      blitz_mode: "public" | "private"
+      blitz_side: "long" | "short"
+      blitz_status: "waiting" | "active" | "settling" | "finished" | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -994,6 +1151,9 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      blitz_mode: ["public", "private"],
+      blitz_side: ["long", "short"],
+      blitz_status: ["waiting", "active", "settling", "finished", "cancelled"],
     },
   },
 } as const
