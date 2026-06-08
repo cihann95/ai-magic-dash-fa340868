@@ -17,7 +17,9 @@ interface Req {
 }
 
 function genInviteCode(): string {
-  return Math.random().toString(36).slice(2, 8).toUpperCase();
+  const bytes = new Uint8Array(4);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("").toUpperCase().slice(0, 8);
 }
 
 Deno.serve(async (req) => {
@@ -61,7 +63,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Bakiyeyi kontrol et + kilitle (atomik)
+  // Bakiyeyi kontrol et
   const { data: profile, error: pErr } = await admin
     .from("profiles").select("real_balance, real_balance_locked")
     .eq("id", user.id).single();
@@ -79,10 +81,16 @@ Deno.serve(async (req) => {
 
   // CREATE PRIVATE: oda yaratıp davet kodu döner, kuyruğa sokmaz
   if (mode === "create_private") {
-    // Kullanıcının bakiyesinden kilitle
-    await admin.from("profiles")
+    // Conditional UPDATE ile TOCTOU koruması
+    const { error: lockErr } = await admin.from("profiles")
       .update({ real_balance_locked: Number(profile.real_balance_locked) + entry_fee })
-      .eq("id", user.id);
+      .eq("id", user.id)
+      .eq("real_balance_locked", Number(profile.real_balance_locked));
+    if (lockErr) {
+      return new Response(JSON.stringify({ error: "Balance lock failed (concurrent request?)" }), {
+        status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const inviteCode = genInviteCode();
     const { data: room, error: rErr } = await admin.from("blitz_rooms").insert({
@@ -111,10 +119,20 @@ Deno.serve(async (req) => {
   const opponent: string | null = await redis.lpop(queueKey);
 
   if (!opponent || opponent === user.id) {
-    // Rakip yok — kuyruğa ekle ve bakiyeyi kilitle
-    await admin.from("profiles")
-      .update({ real_balance_locked: Number(profile.real_balance_locked) + entry_fee })
-      .eq("id", user.id);
+    // Rakip yok veya self-match — kuyruğa ekle ve bakiyeyi kilitle
+    // Self-match durumunda bakiye zaten kilitli, tekrar kilitlemeye gerek yok
+    if (!opponent || opponent !== user.id) {
+      // Yeni kullanıcı — kilitle
+      const { error: lockErr } = await admin.from("profiles")
+        .update({ real_balance_locked: Number(profile.real_balance_locked) + entry_fee })
+        .eq("id", user.id)
+        .eq("real_balance_locked", Number(profile.real_balance_locked));
+      if (lockErr) {
+        return new Response(JSON.stringify({ error: "Balance lock failed (concurrent request?)" }), {
+          status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
     await redis.rpush(queueKey, user.id);
     await redis.expire(queueKey, 300); // 5 dk
     return new Response(JSON.stringify({ status: "queued" }), {
@@ -127,21 +145,35 @@ Deno.serve(async (req) => {
   const { data: oppProfile } = await admin
     .from("profiles").select("real_balance, real_balance_locked")
     .eq("id", opponent).single();
-  if (!oppProfile || Number(oppProfile.real_balance) - Number(oppProfile.real_balance_locked) < 0) {
-    // Rakip artık geçersiz — kullanıcıyı kuyruğa geri koy
-    await admin.from("profiles")
-      .update({ real_balance_locked: Number(profile.real_balance_locked) + entry_fee })
-      .eq("id", user.id);
+
+  const oppAvailable = oppProfile ? Number(oppProfile.real_balance) - Number(oppProfile.real_balance_locked) : -1;
+  if (!oppProfile || oppAvailable < entry_fee) {
+    // Rakip artık geçersiz — rakibin kilitini temizle
+    if (oppProfile) {
+      const oppNewLocked = Math.max(0, Number(oppProfile.real_balance_locked) - entry_fee);
+      await admin.from("profiles")
+        .update({ real_balance_locked: oppNewLocked })
+        .eq("id", opponent);
+    }
+    // Kullanıcıyı kuyruğa geri koy (bakiyesi zaten kilitli)
     await redis.rpush(queueKey, user.id);
     return new Response(JSON.stringify({ status: "queued" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
-  // Çağıran kullanıcının bakiyesini kilitle
-  await admin.from("profiles")
+  // Çağıran kullanıcının bakiyesini kilitle (conditional UPDATE)
+  const { error: callerLockErr } = await admin.from("profiles")
     .update({ real_balance_locked: Number(profile.real_balance_locked) + entry_fee })
-    .eq("id", user.id);
+    .eq("id", user.id)
+    .eq("real_balance_locked", Number(profile.real_balance_locked));
+  if (callerLockErr) {
+    // Kilitleme başarısız — rakibi geri kuyruğa koy
+    await redis.rpush(queueKey, opponent);
+    return new Response(JSON.stringify({ error: "Balance lock failed (concurrent request?)" }), {
+      status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   // Başlangıç fiyatını Redis'ten (price-feed yazıyor) veya price_cache'ten al
   let startPriceRaw: string | null = await redis.get(`blitz:price:${symbol}`);
