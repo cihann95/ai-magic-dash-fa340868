@@ -180,6 +180,11 @@ Deno.serve(async (req) => {
       if (upErr) console.error("price_cache upsert error", upErr);
     }
 
+    // 2b) Blitz için Redis fiyat cache (60s TTL)
+    if (redisEnabled && updates.length > 0) {
+      await Promise.all(updates.map((u) => redis.set(`blitz:price:${u.symbol}`, u.price, 60)));
+    }
+
     // 3) Update open positions current_price
     for (const u of updates) {
       await admin.from("positions").update({ current_price: u.price, updated_at: new Date().toISOString() })
