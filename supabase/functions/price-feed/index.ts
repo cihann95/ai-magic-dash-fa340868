@@ -4,6 +4,7 @@
 // Aynı zamanda açık limit/stop emirlerini ve fiyat alarmlarını tetikler, açık pozisyonların current_price'ını günceller.
 // Tetiklenen alarmlar ve dolan emirler için bildirim oluşturur.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { redis, redisEnabled } from "../_shared/redis.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
