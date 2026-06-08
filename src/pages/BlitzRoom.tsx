@@ -159,12 +159,7 @@ export default function BlitzRoomPage() {
           {/* Grafik */}
           <div className="flex-1 min-h-[400px] rounded-2xl overflow-hidden border border-border/40">
             {symbolDef && (
-              <TradingViewChart
-                symbol={symbolDef.tv}
-                interval="1"
-                hideToolbar
-                key={symbolDef.symbol}
-              />
+              <TradingViewChart symbol={symbolDef.tv} key={symbolDef.symbol} />
             )}
           </div>
 
