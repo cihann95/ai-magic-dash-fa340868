@@ -1,126 +1,130 @@
+## Lumen-Blitz — FAZ 1: Lobi, Oda ve Eşleşme Altyapısı
 
+60 saniyelik P2P finansal yarışma odalarının temelini atıyoruz. Bu fazda DB şeması, cüzdan, eşleşme ve oda yaşam döngüsünü kuracağız. UI ve dopamin katmanı sonraki fazlara.
 
-## Orchestrator Stratejilerini Platforma Entegre Et — Sprint 1
-
-Orchestrator'ın 7 stratejisinden, **mevcut altyapıya en hızlı entegre olabilen ve gerçek davranışsal değer üreten** 3 tanesini seçtim (kendi tavsiyesine de uygun: **01, 03, 06**). Strateji 05 (kayıp gizleme) ek bonus olarak Portfolio'ya tek toggle ile geliyor. Diğerleri (kimlik onboarding, sessiz alarmlar, iptal akışı) Sprint 2'ye bırakılacak — çünkü ya henüz subscription katmanı yok (07) ya da geniş yeniden tasarım gerektiriyor (02).
-
----
-
-### Strateji 06 — Zorunlu Niyet Kaydı ("Neden alıyorsun?")
-
-**En yüksek ROI, en düşük teknik risk.** Her trade'e psikolojik bir mühür basar, sonra sonuçla yüzleştirir.
-
-- `OrderTicket` → "AL/SAT" butonuna basınca küçük bir Dialog açılır:
-  - 3 chip: **Teknik sinyal** / **Haber** / **Sezgi**
-  - Opsiyonel 1 satırlık serbest metin ("Neden?")
-  - "Vazgeç" / "Onayla" butonu — onayla'ya basınca trade execute olur
-- Aynı mekanik `ChartPanel`'in hızlı AL/SAT akışı için de devreye girer
-- Niyet `trades` tablosuna 2 yeni kolonla yazılır: `intent_tag`, `intent_note`
-- **Pozisyon kapanırken** (execute-trade close path) bildirim oluşur:
-  *"Sezgi ile açmıştın → +%4.2 kazandın 🎯"* veya *"Habere tepkiyle açmıştın → -$45"*
-- Yeni sayfa: **`/insights`** (sol menüye link). İçeriği:
-  - **"Niyet Aynası"** kartı: kullanıcının her etiketi için kapanmış trade ortalamaları (kazanç oranı, ortalama PnL, en iyi/en kötü)
-  - Görsel bar: hangi etiket bu kullanıcıda en kazandırıyor
+### Kararlar (sizden onaylandı)
+- **In-memory:** Upstash Redis (REST) — `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` secret olarak eklenecek
+- **Cüzdan:** Yeni `profiles.real_balance` alanı (demo'dan ayrı, manuel kredi ile başlar, ödeme entegrasyonu yok)
+- **Eşleşme:** 1v1 otomatik kuyruk + davet kodu ile özel oda (genişletilebilir mimari — sonradan multi-player eklenebilir)
+- **Ses/animasyon:** Bu fazda yok; minimal toast + temel sayaç. FAZ 3'te eklenir.
 
 ---
 
-### Strateji 03 — İşlem Sonrası AI "Ayna"
-
-Kullanıcıya tavsiye değil, **gözlem** sunar — kendi davranış kalıbını gösterir.
-
-- Yeni edge function: **`trade-mirror`**
-  - Trade kapandıktan sonra `execute-trade` içinden tetiklenir (close path'te, sadece kullanıcının kendi trade'i)
-  - Son 90 günlük `trades` ve yeni `intent_tag`'leri okur
-  - Lovable AI Gateway (`google/gemini-3-flash-preview`) ile 1-2 cümlelik gözlem üretir (tool calling ile structured output: `observation`, `pattern_type`)
-  - Sonucu `coach_insights` tablosuna `category='mirror'` olarak yazar + `notifications` tablosuna düşer
-- `coach_insights`'a INSERT politikası ekle (service role kullanılıyor zaten ama edge function user header ile gidiyorsa policy lazım) — migration ile çözülür
-- Coach sayfasında "Aynalar" sekmesi: zaman akışı şeklinde gözlemler
-
-Örnek çıktı: *"Son 3 zararlı trade'in de Cuma 18:00'dan sonraydı. Bu bir kalıp olabilir."*
-
----
-
-### Strateji 01 — Duygusal Soğuma Katmanı (Hafif Versiyon)
-
-**Tam davranışsal sinyal motorunu** (mouse hızı, ekran geçişi vs.) ilk sprintte kurmak aşırı geniş. Yerine **deterministik, yüksek-değerli tetikleyiciler** ile başlıyoruz:
-
-- **Hot-streak/Tilt tespiti** — client-side hook `useEmotionalSignal`:
-  - Son 5 dakikada ≥3 trade → "hızlı sıralı işlem" sinyali
-  - Son trade kapatma anından itibaren <60sn içinde yeni AL/SAT denemesi → "tepkisel" sinyal
-  - Bu trade'in büyüklüğü, kullanıcının son 20 trade'inin medyanından >3x → "aşırı pozisyon" sinyali
-- Sinyal varsa OrderTicket onay Dialog'unun üstüne küçük yumuşak bir kart:
-  - *"Şu an nasıl hissediyorsun? (3sn — atlayabilirsin)"*
-  - 4 emoji butonu: 😌 sakin / 🎯 odaklı / ⚡ heyecanlı / 😤 kızgın
-  - Atlanabilir, **işlem engellenmez**
-- Cevap → `emotional_logs` tablosuna kaydedilir (signal_type, mood, trade_id)
-- Haftalık özet `/insights` sayfasında: *"⚡ Heyecanlıyken yapılan 8 trade ortalama -$23. 😌 Sakinken yapılan 12 trade ortalama +$41."*
-
----
-
-### Bonus: Strateji 05 (Hafif) — Portfolio "Sağlık Modu"
-
-Tek toggle, büyük etki:
-- Portfolio header'a `Switch`: "Pozisyon Sağlığı" ↔ "P&L"
-- Sağlık modunda P&L sayıları gizli; yerine her pozisyon için: tutulma süresi, hedeften uzaklık (eğer alert varsa), volatilite-uyumu badge'i
-- Tercih `profiles.preferred_view` kolonunda saklanır
-
----
-
-## Veritabanı Migrationları
-
-Tek migration:
-```text
-ALTER TABLE trades  ADD COLUMN intent_tag text,
-                    ADD COLUMN intent_note text;
-ALTER TABLE profiles ADD COLUMN preferred_view text DEFAULT 'pnl';
-
-CREATE TABLE emotional_logs (
-  id uuid PK, user_id uuid, trade_id uuid NULL,
-  signal_type text,    -- 'rapid_fire' | 'reactive' | 'oversize' | 'manual'
-  mood text,           -- 'calm' | 'focused' | 'excited' | 'angry' | NULL (atlandı)
-  created_at timestamptz default now()
-);
-RLS: kendi user_id'in için ALL.
-
--- coach_insights'a INSERT policy ekle (auth.uid() = user_id)
-```
-
----
-
-## Dosya Değişiklik Haritası
+### 1. Veritabanı Şeması (migration)
 
 ```text
-yeni:
-  src/components/trading/IntentDialog.tsx       (S06 + S01 birleşik dialog)
-  src/hooks/useEmotionalSignal.ts               (S01 client sinyal motoru)
-  src/pages/Insights.tsx                        (S06 ayna + S01 mood özeti)
-  supabase/functions/trade-mirror/index.ts      (S03 AI gözlem)
+profiles
+  + real_balance       numeric DEFAULT 0     (guard trigger ile korunur)
+  + real_balance_locked numeric DEFAULT 0    (aktif odalarda kilitli)
 
-değişen:
-  src/components/trading/OrderTicket.tsx        (Dialog akışı)
-  src/components/trading/ChartPanel.tsx         (Dialog akışı)
-  supabase/functions/execute-trade/index.ts     (intent_tag/note kabul + mirror tetikle)
-  src/pages/Portfolio.tsx                       (sağlık toggle)
-  src/pages/Coach.tsx                           ("Aynalar" sekmesi)
-  src/components/AppShell.tsx + BottomNav       (/insights linki)
-  src/lib/i18n.ts                               (yeni stringler)
-  src/App.tsx                                   (/insights route)
+blitz_rooms
+  id              uuid PK
+  symbol          text       (SYMBOLS listesinden)
+  entry_fee       numeric    (>0)
+  status          enum: waiting | active | settling | finished | cancelled
+  mode            enum: public | private
+  invite_code     text       (private için, unique)
+  max_players     int        DEFAULT 2
+  starts_at       timestamptz
+  ends_at         timestamptz
+  start_price     numeric    (active'e geçerken Redis'ten snapshot)
+  winner_id       uuid
+  pot             numeric    (toplam havuz)
+  fee_collected   numeric    (%5 komisyon, FAZ 4'te aktif)
+  created_at, updated_at
+
+blitz_participants
+  id, room_id, user_id
+  joined_at
+  final_pnl       numeric
+  final_balance   numeric
+  rank            int
+  UNIQUE(room_id, user_id)
+
+blitz_orders     (oda içi mikro işlemler — RAM kopyası Redis'te)
+  id, room_id, user_id
+  side            enum: long | short
+  amount          numeric        ($5/$10/$25/$50)
+  entry_price     numeric
+  exit_price      numeric
+  pnl             numeric
+  opened_at, closed_at
 ```
 
+- Tüm tablolarda RLS açık; `service_role` tam, `authenticated` yalnızca kendi satırlarına SELECT.
+- GRANT'lar her tablo için migration içinde.
+- `update_updated_at_column` trigger'ı `blitz_rooms`'a bağlanır.
+- `profiles.real_balance` için mevcut `guard_profiles_financial_update` trigger'ı güncellenir: bu alan da yalnız `service_role` tarafından yazılabilir.
+- Realtime publication'a `blitz_rooms`, `blitz_participants`, `blitz_orders` eklenir.
+
+### 2. Upstash Redis Entegrasyonu
+
+Secret istenecek: `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`.
+
+Edge functions için hafif yardımcı: `supabase/functions/_shared/redis.ts` (REST `pipeline` wrapper).
+
+Key tasarımı:
+```text
+blitz:queue:{symbol}:{entry_fee}        → List (bekleyen user_id'ler, FIFO)
+blitz:room:{room_id}                    → Hash (status, start_price, ends_at)
+blitz:room:{room_id}:users              → Set
+blitz:room:{room_id}:positions          → Hash (user_id → JSON pozisyon)
+blitz:price:{symbol}                    → String (son fiyat, price-feed yazar)
+```
+
+Mevcut `price-feed` fonksiyonuna küçük ek: her tick'te `blitz:price:{symbol}` SET.
+
+### 3. Edge Functions (yeni)
+
+| Fonksiyon | Görev |
+|---|---|
+| `blitz-matchmake` | Kullanıcı "Hızlı Maç" → kuyruğa ekle. Kuyrukta hazır rakip varsa atomik `LPOP`, oda oluştur, `real_balance` kilitle, ikisini de Realtime ile bilgilendir. Private mod: `invite_code` ile oda yarat. |
+| `blitz-join-private` | Davet kodu ile odaya katılım. |
+| `blitz-cancel-queue` | Kullanıcı kuyruktan çıkar. |
+| `blitz-tick-order` | Oda aktifken LONG/SHORT emir aç/kapa. Redis'e yaz, `blitz_orders`'a satır at. (FAZ 2 UI buraya bağlanır — backend hazır olacak) |
+| `blitz-settle-room` | Oda süresi dolduğunda: tüm açık pozisyonları son fiyattan kapat, PnL'leri hesapla, kazananı belirle, %5 komisyon kes, kazananın `real_balance`'ına net ödülü ekle, kaybedenin kilidini düşür, `status=finished`, Realtime broadcast. |
+
+Hepsi `verify_jwt` default (in-code JWT doğrulama). `service_role` ile DB yazar.
+
+### 4. 60 Saniyelik Zamanlayıcı
+
+pg_cron her 5 saniyede bir çalışır: süresi dolmuş `active` odaları bulup `blitz-settle-room` çağırır (`x-cron-secret` ile).
+
+```text
+SELECT cron.schedule('blitz-settler-5s', '*/5 * * * * *', ...)
+```
+
+Yedek: client de `ends_at` bittiğinde fonksiyonu tetikleyebilir (idempotent — settle iki kez çağrılırsa ikincisi no-op).
+
+### 5. Frontend (minimal — sadece akışı çalıştırmak için)
+
+- Yeni route: `/blitz` (lobi: sembol + entry_fee seçimi + "Hızlı Maç" + "Özel Oda Oluştur/Katıl")
+- Yeni route: `/blitz/:roomId` (oda: 60s sayaç, mevcut TradingView 1m grafik, LONG/SHORT iki büyük buton, miktar quick-pick, basit canlı PnL listesi)
+- `BottomNav` ve `CommandPalette`'a Blitz girişi
+- Realtime hook: `useBlitzRoom(roomId)` → katılımcılar + statü
+- Tüm UI shadcn/ui + mevcut tema; ses/animasyon yok
+
+### 6. Güvenlik
+- `real_balance` ve `real_balance_locked` yalnız service_role tarafından yazılır (guard trigger genişletilir)
+- Matchmaking ve settle: transaction güvenliği için tek edge function içinde sıralı işlem (Postgres advisory lock + Redis atomik komutlar)
+- RLS: kullanıcı yalnızca üyesi olduğu odanın participant/order satırlarını görebilir
+
+### 7. GitHub
+- Tüm değişiklikler otomatik GitHub'a sync olur (mevcut bağlantı)
+- Commit: `feat(blitz): phase 1 — rooms, matchmaking, settlement engine`
+
 ---
 
-## Doğrulama Sırası
-1. Migration uygulanır → `trades.intent_tag` ve `emotional_logs` mevcut
-2. AL butonuna basıldığında IntentDialog açılır, etiket seçilir, trade execute olur
-3. (5dk içinde 3 trade) → Dialog'un üstünde mood prompt görünür
-4. Pozisyon kapanır → 2-3 sn içinde bildirim çanı titrer ("Sezgi ile açmıştın → ...")
-5. `/insights` açılır → niyet bazlı kazanç tablosu + mood özeti dolu
-6. Portfolio sağlık toggle → P&L gizleniyor
+### Bu fazda YAPILMAYACAKLAR (sonraki fazlar)
+- FAZ 2: Cilalı UI (canlı leaderboard animasyonları, framer-motion)
+- FAZ 3: Ses + havai fişek + flaş efektleri
+- FAZ 4: Komisyon dashboard'u, `platform_revenue` tablosu raporları
+- Ödeme entegrasyonu (real_balance manuel kredilenir)
 
----
-
-## Sprint 2'ye Bırakılanlar (Onayla, sıradaki turda yaparız)
-- **S02** Kimlik onboarding (4 soru + tema kişiselleştirme + kategori liderboard)
-- **S04** Sessiz alarmlar (push'u kapatıp pull-only badge)
-- **S07** İptal akışı (önce subscription/billing katmanı gerekir)
-
+### Onay sonrası ilk aksiyonlar
+1. `add_secret` → UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN (Upstash'ten ücretsiz alınır)
+2. Migration uygula (DB şeması)
+3. Edge functions yaz + price-feed'e Redis push ekle
+4. pg_cron job'u kur
+5. Minimal `/blitz` ve `/blitz/:roomId` sayfalarını oluştur
+6. GitHub'a push (otomatik)
