@@ -20,4 +20,11 @@ All RLS policies and GRANTs are correctly configured. No migration changes neede
 ## Status: COMPLETE
 
 ## Issues
-- `ana_sahne_view` is missing from `src/integrations/supabase/types.ts` Views section — requires `as never` cast in `.from()` call and `as unknown as AnaSahneRoom` cast on response. Not a blocker, but a `supabase gen types` run after deployment would fix this cleanly.
+### as never cast — CLOSED (commit 80caa83)
+- `ana_sahne_view` added to `src/integrations/supabase/types.ts` Views section.
+- `as never` cast removed from `.from("ana_sahne_view")` call.
+- `as unknown as AnaSahneRoom` cast remains (intentional: view returns `participants: Json`, interface expects `AnaSahneParticipant[]`).
+
+### i18n string cleanup — CLOSED (commit 80caa83)
+- EmptyArena.tsx: default message now uses `t(lang).no_live_match` instead of hardcoded English string.
+- FinishedBanner.tsx: "Prize:" and "Unknown" strings replaced with `t(lang).prize_pool` and `t(lang).player_unknown`.
