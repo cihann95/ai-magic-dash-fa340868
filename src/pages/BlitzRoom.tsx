@@ -62,10 +62,41 @@ export default function BlitzRoomPage() {
     }
   }, [secondsLeft, room]);
 
-  // Finished olunca sonuç modali
+  // Son 5 saniye tick sesi + haptik
   useEffect(() => {
-    if (room?.status === "finished") setResultOpen(true);
-  }, [room?.status]);
+    if (secondsLeft == null || room?.status !== "active") return;
+    if (secondsLeft <= 5 && secondsLeft > 0 && lastTickRef.current !== secondsLeft) {
+      lastTickRef.current = secondsLeft;
+      blitzSfx.countdown();
+      vibrate(30);
+    }
+  }, [secondsLeft, room?.status]);
+
+  // Finished olunca sonuç modali + ses + konfeti
+  useEffect(() => {
+    if (room?.status !== "finished" || resultFiredRef.current) return;
+    resultFiredRef.current = true;
+    setResultOpen(true);
+    const won = room.winner_id === user?.id;
+    const tie = !room.winner_id;
+    if (won) {
+      blitzSfx.win();
+      vibrate([60, 40, 60, 40, 120]);
+      // Konfeti — sol ve sağ kenardan
+      const duration = 1500;
+      const end = Date.now() + duration;
+      (function frame() {
+        confetti({ particleCount: 5, angle: 60, spread: 65, origin: { x: 0, y: 0.7 }, colors: ["#fbbf24", "#22c55e", "#3b82f6"] });
+        confetti({ particleCount: 5, angle: 120, spread: 65, origin: { x: 1, y: 0.7 }, colors: ["#fbbf24", "#22c55e", "#3b82f6"] });
+        if (Date.now() < end) requestAnimationFrame(frame);
+      })();
+    } else if (tie) {
+      blitzSfx.close();
+    } else {
+      blitzSfx.lose();
+      vibrate([180]);
+    }
+  }, [room?.status, room?.winner_id, user?.id]);
 
   // Kullanıcı adlarını çek
   useEffect(() => {
