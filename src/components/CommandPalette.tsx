@@ -44,6 +44,7 @@ export default function CommandPalette() {
 
   const pages: { path: string; label: string; icon: any }[] = [
     { path: "/", label: tr.markets, icon: LineChart },
+    { path: "/blitz", label: "Blitz", icon: Zap },
     { path: "/portfolio", label: tr.portfolio, icon: Wallet },
     { path: "/insights", label: tr.insights, icon: Activity },
     { path: "/coach", label: tr.coach, icon: Brain },
