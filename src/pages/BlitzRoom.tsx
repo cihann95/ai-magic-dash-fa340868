@@ -30,6 +30,15 @@ export default function BlitzRoomPage() {
   const [now, setNow] = useState(Date.now());
   const [resultOpen, setResultOpen] = useState(false);
   const [usernames, setUsernames] = useState<Record<string, string>>({});
+  const [sfxOn, setSfxOn] = useState(() => typeof window !== "undefined" && localStorage.getItem("blitz_sfx_off") !== "1");
+  const lastTickRef = useRef<number | null>(null);
+  const resultFiredRef = useRef(false);
+
+  function toggleSfx() {
+    const next = !sfxOn;
+    setSfxOn(next);
+    localStorage.setItem("blitz_sfx_off", next ? "0" : "1");
+  }
 
   const symbolDef = useMemo(() => room ? findSymbol(room.symbol) : null, [room]);
   const live = useLivePrice(room?.symbol);
