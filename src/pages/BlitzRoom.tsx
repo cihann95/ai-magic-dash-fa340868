@@ -375,7 +375,7 @@ export default function BlitzRoomPage() {
                 Rövanş
               </Button>
             </div>
-          </div>
+          </motion.div>
         </DialogContent>
       </Dialog>
     </AppShell>
