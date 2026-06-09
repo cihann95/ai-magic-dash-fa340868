@@ -1,0 +1,35 @@
+## RLS Verification - Task 2
+Date: 2026-06-09
+
+### ana_sahne_view GRANTs (migration: 20260609234136_ana_sahne.sql)
+ana_sahne_view GRANT SELECT to anon: FOUND (line 84)
+ana_sahne_view GRANT SELECT to authenticated: FOUND (line 85)
+
+### Base table GRANTs (migration: 20260608124235_88afb6c3-...sql)
+blitz_rooms GRANT SELECT to anon: NOT PRESENT (expected - anon cannot access)
+blitz_rooms GRANT SELECT to authenticated: FOUND (line 63)
+blitz_rooms GRANT SELECT to service_role: FOUND (line 64)
+
+blitz_participants GRANT SELECT to anon: NOT PRESENT (expected)
+blitz_participants GRANT SELECT to authenticated: FOUND (line 96)
+blitz_participants GRANT SELECT to service_role: FOUND (line 97)
+
+blitz_orders GRANT SELECT to anon: NOT PRESENT (expected)
+blitz_orders GRANT SELECT to authenticated: FOUND (line 131)
+blitz_orders GRANT SELECT to service_role: FOUND (line 132)
+
+### public_profiles policy (migration: 20260417111010_61686f6f-...sql)
+public_profiles pp_select_active: VERIFIED (line 13, unchanged)
+  Policy: is_active = true OR auth.uid() = user_id
+
+### Security Model Summary
+- ana_sahne_view: SECURITY DEFINER — bypasses base-table RLS
+- Anon users SELECT from the VIEW (GRANT SELECT to anon)
+- View returns only featured room, no PII (no user_id, winner_id, invite_code, final_balance)
+- Anon users CANNOT SELECT from blitz_rooms, blitz_participants, blitz_orders (no GRANT to anon)
+- profiles join works via SECURITY DEFINER owner context (not via anon access)
+- has_role() NOT used in view (correct — anon cannot call it)
+
+### Verification Method
+Static migration file analysis (no running Supabase instance available)
+All GRANTs and RLS policies confirmed in SQL migration files
