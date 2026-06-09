@@ -3,10 +3,12 @@ import { cn } from "@/lib/utils";
 import { useApp } from "@/contexts/AppContext";
 import { t } from "@/lib/i18n";
 
+const FADE_DURATION_MS = 3000;
+
 interface FinishedBannerProps {
   winner: string | null;
   pot: number;
-  /** Called after the 3s fade-out completes */
+  /** Called after the fade-out completes */
   onComplete: () => void;
 }
 
@@ -20,12 +22,11 @@ const FinishedBanner: React.FC<FinishedBannerProps> = ({
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
-    // Trigger CSS opacity fade (1 → 0 over 3s)
     setVisible(false);
 
     const timer = setTimeout(() => {
       onComplete();
-    }, 3000);
+    }, FADE_DURATION_MS);
 
     return () => clearTimeout(timer);
   }, [onComplete]);

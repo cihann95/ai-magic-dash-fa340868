@@ -1,9 +1,7 @@
-// Ana Sahne — parent orchestrator component that manages the 4-state machine
-//   loading → active → finished → empty
-// All data comes from props (AnaSahneState). Pure presentation — no side effects.
-
 import { useState, useCallback } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useApp } from "@/contexts/AppContext";
+import { t, formatViewerCount } from "@/lib/i18n";
 import type { AnaSahneState } from "@/hooks/useAnaSahne";
 import EmptyArena from "./EmptyArena";
 import FinishedBanner from "./FinishedBanner";
@@ -21,6 +19,8 @@ export default function AnaSahne({
   isFinished,
   error,
 }: AnaSahneProps) {
+  const { lang } = useApp();
+  const tr = t(lang);
   const [showEmptyAfterFinish, setShowEmptyAfterFinish] = useState(false);
 
   const handleFinishComplete = useCallback(() => {
@@ -105,7 +105,7 @@ export default function AnaSahne({
           {sortedParticipants.length > 0 ? (
             sortedParticipants.map((p, idx) => (
               <PlayerCard
-                key={p.user_id}
+                key={p.username}
                 username={p.username}
                 side={p.side}
                 pnl={p.pnl}
@@ -116,7 +116,7 @@ export default function AnaSahne({
             ))
           ) : (
             <p className="text-sm text-muted-foreground text-center py-8">
-              Henüz katılımcı yok
+              {tr.no_participants}
             </p>
           )}
         </div>
@@ -134,20 +134,19 @@ interface SectionHeaderProps {
 }
 
 function SectionHeader({ viewers, symbol, entryFee }: SectionHeaderProps) {
+  const { lang } = useApp();
+  const tr = t(lang);
   return (
     <div className="flex items-center gap-3 flex-wrap">
-      {/* "🔴 CANLI" live badge with pulse animation */}
       <span className="inline-flex items-center gap-1.5 rounded-full bg-red-600/15 px-3 py-1 text-xs font-semibold text-red-500">
         <span className="size-1.5 rounded-full bg-red-500 animate-pulse" />
-        CANLI
+        {tr.live_now}
       </span>
 
-      {/* Viewer count */}
       <span className="text-sm text-muted-foreground tabular-nums">
-        {viewers} İzleyici
+        {formatViewerCount(viewers)} {tr.viewers}
       </span>
 
-      {/* Room info: symbol • entry fee */}
       <span className="text-sm text-muted-foreground">
         {symbol} • ${entryFee.toFixed(2)}
       </span>

@@ -22,7 +22,6 @@ export interface AnaSahneRoom {
 }
 
 export interface AnaSahneParticipant {
-  user_id: string;
   username: string;
   side: "long" | "short" | null;
   pnl: number;

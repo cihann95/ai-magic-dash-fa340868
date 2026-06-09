@@ -87,7 +87,7 @@ const translations = {
     // ana sahne
     live_now: "CANLI", viewers: "izleyici", no_live_match: "Şu anda canlı maç yok",
     match_finished: "Maç bitti", won_match: "kazandı", prize_pool: "Ödül",
-    watching: "izliyor", player: "Oyuncu", player_unknown: "Bilinmeyen Oyuncu",
+    watching: "izliyor", player: "Oyuncu", player_unknown: "Bilinmeyen Oyuncu", no_participants: "Henüz katılımcı yok",
   },
   en: {
     markets: "Markets", portfolio: "Portfolio", history: "History", watchlist: "Watchlist", settings: "Settings",
@@ -151,6 +151,6 @@ const translations = {
     // ana sahne
     live_now: "LIVE", viewers: "viewers", no_live_match: "No live matches right now",
     match_finished: "Match finished", won_match: "won", prize_pool: "Prize",
-    watching: "watching", player: "Player", player_unknown: "Unknown Player",
+    watching: "watching", player: "Player", player_unknown: "Unknown Player", no_participants: "No participants yet",
   },
 };
