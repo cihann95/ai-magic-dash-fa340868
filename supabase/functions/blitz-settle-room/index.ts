@@ -99,11 +99,22 @@ async function settleRoom(admin: any, roomId: string): Promise<{ ok: boolean; re
     fee_collected: fee,
   }).eq("id", roomId);
 
+  // FAZ 4: Platform geliri kaydı (status sadece bir kez 'settling'e döndüğü için idempotent)
+  if (fee > 0) {
+    await admin.from("platform_revenue").insert({
+      source: "blitz",
+      room_id: roomId,
+      amount: fee,
+      metadata: { symbol: room.symbol, pot, participants: participants.length, winner_id: winnerId },
+    });
+  }
+
   // Redis temizliği
   await redis.del(`blitz:room:${roomId}`, `blitz:room:${roomId}:users`, `blitz:room:${roomId}:positions`);
 
   return { ok: true };
 }
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
