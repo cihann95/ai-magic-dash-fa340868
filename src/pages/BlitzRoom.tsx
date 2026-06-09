@@ -1,8 +1,10 @@
 // Blitz Oda: 60s sayaç, 1m TradingView grafik, LONG/SHORT butonları, canlı PnL listesi.
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowDown, ArrowUp, Loader2, Trophy, X } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import confetti from "canvas-confetti";
+import { ArrowDown, ArrowUp, Loader2, Trophy, Volume2, VolumeX, X } from "lucide-react";
 import AppShell from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -13,6 +15,7 @@ import { useLivePrice } from "@/hooks/useLivePrices";
 import { findSymbol, formatPrice } from "@/lib/symbols";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/contexts/AppContext";
+import { blitzSfx, vibrate } from "@/lib/blitzSfx";
 import { cn } from "@/lib/utils";
 
 const QUICK_AMOUNTS = [5, 10, 25, 50];
