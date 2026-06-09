@@ -343,12 +343,22 @@ export default function BlitzRoomPage() {
               {won ? "🏆 Kazandın!" : tie ? "🤝 Berabere" : "😔 Kaybettin"}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 text-center py-4">
-            <div className="text-4xl font-bold tabular-nums">
+          <motion.div
+            initial={{ scale: 0.85, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 280, damping: 22 }}
+            className="space-y-4 text-center py-4"
+          >
+            <motion.div
+              initial={{ scale: 0.5 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.15, type: "spring", stiffness: 220 }}
+              className="text-5xl font-bold tabular-nums"
+            >
               <span className={myFinalPnl >= 0 ? "text-green-500" : "text-red-500"}>
                 {myFinalPnl >= 0 ? "+" : ""}${myFinalPnl.toFixed(2)}
               </span>
-            </div>
+            </motion.div>
             {won && (
               <div className="text-sm text-muted-foreground">
                 Net ödül: <span className="font-bold text-foreground">
