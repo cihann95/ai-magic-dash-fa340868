@@ -4,18 +4,26 @@ import {
   CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator,
 } from "@/components/ui/command";
 import { useApp } from "@/contexts/AppContext";
+import { supabase } from "@/integrations/supabase/client";
 import { t } from "@/lib/i18n";
 import { SYMBOLS } from "@/lib/symbols";
 import {
   LineChart, Wallet, History, Eye, Settings, Trophy, Award, Flame,
-  Users, Brain, BookOpen, Activity, TrendingUp, Moon, Sun, Languages, LogOut, Zap,
+  Users, Brain, BookOpen, Activity, TrendingUp, Moon, Sun, Languages, LogOut, Zap, ShieldCheck,
 } from "lucide-react";
 
 export default function CommandPalette() {
   const [open, setOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
   const { lang, setLang, theme, setTheme, signOut, user } = useApp();
   const tr = t(lang);
+
+  useEffect(() => {
+    if (!user) { setIsAdmin(false); return; }
+    supabase.rpc("has_role", { _user_id: user.id, _role: "admin" })
+      .then(({ data }) => setIsAdmin(data === true));
+  }, [user]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -56,6 +64,7 @@ export default function CommandPalette() {
     { path: "/leaderboard", label: tr.leaderboard, icon: Trophy },
     { path: "/achievements", label: tr.achievements, icon: Award },
     { path: "/settings", label: tr.settings, icon: Settings },
+    ...(isAdmin ? [{ path: "/admin/blitz", label: "Admin · Blitz", icon: ShieldCheck }] : []),
   ];
 
   return (
