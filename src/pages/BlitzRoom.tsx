@@ -182,19 +182,34 @@ export default function BlitzRoomPage() {
         {/* Ana */}
         <div className="flex flex-col gap-3 min-h-0">
           {/* Sayaç */}
-          <Card className="p-4 glass flex items-center justify-between">
+          <Card className={cn(
+            "p-4 glass flex items-center justify-between relative overflow-hidden transition-colors",
+            secondsLeft !== null && secondsLeft <= 5 && secondsLeft > 0 && "ring-2 ring-destructive/60"
+          )}>
             <div>
-              <div className="text-xs text-muted-foreground">{room.symbol}</div>
+              <div className="text-xs text-muted-foreground flex items-center gap-1">
+                {room.symbol}
+                <button onClick={toggleSfx} className="opacity-60 hover:opacity-100" title={sfxOn ? "Sesi kapat" : "Sesi aç"}>
+                  {sfxOn ? <Volume2 className="size-3" /> : <VolumeX className="size-3" />}
+                </button>
+              </div>
               <div className="text-xl font-bold">${formatPrice(price)}</div>
             </div>
-            <div className={cn(
-              "text-5xl md:text-6xl font-bold tabular-nums tracking-tight",
-              secondsLeft !== null && secondsLeft <= 10 ? "text-destructive animate-pulse" : "text-primary"
-            )}>
+            <motion.div
+              key={secondsLeft ?? "x"}
+              initial={secondsLeft !== null && secondsLeft <= 5 ? { scale: 1.25 } : false}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 400, damping: 18 }}
+              className={cn(
+                "text-5xl md:text-6xl font-bold tabular-nums tracking-tight",
+                secondsLeft !== null && secondsLeft <= 10 ? "text-destructive" : "text-primary",
+                secondsLeft !== null && secondsLeft <= 5 && "drop-shadow-[0_0_12px_hsl(var(--destructive)/0.7)]"
+              )}
+            >
               {isWaiting && "—:—"}
               {isActive && secondsLeft !== null && `0:${secondsLeft.toString().padStart(2, "0")}`}
               {(isFinished || room.status === "settling") && "0:00"}
-            </div>
+            </motion.div>
             <div className="text-right">
               <div className="text-xs text-muted-foreground">Havuz</div>
               <div className="text-xl font-bold">${Number(room.pot).toFixed(2)}</div>
@@ -270,32 +285,52 @@ export default function BlitzRoomPage() {
             <Trophy className="size-4 text-primary" /> Canlı Sıralama
           </div>
           <div className="space-y-2">
-            {ranking.map(([uid, pnl], idx) => {
-              const isMe = uid === user?.id;
-              const pnlPct = room.entry_fee > 0 ? (pnl / Number(room.entry_fee)) * 100 : 0;
-              return (
-                <div key={uid} className={cn(
-                  "flex items-center justify-between p-2 rounded-lg border border-border/40 transition-all",
-                  isMe && "bg-primary/10 border-primary/40"
-                )}>
-                  <div className="flex items-center gap-2">
-                    <div className="size-6 rounded-full bg-muted text-xs flex items-center justify-center font-bold">
-                      {idx + 1}
+            <AnimatePresence initial={false}>
+              {ranking.map(([uid, pnl], idx) => {
+                const isMe = uid === user?.id;
+                const pnlPct = room.entry_fee > 0 ? (pnl / Number(room.entry_fee)) * 100 : 0;
+                return (
+                  <motion.div
+                    layout
+                    key={uid}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ type: "spring", stiffness: 320, damping: 26 }}
+                    className={cn(
+                      "flex items-center justify-between p-2 rounded-lg border border-border/40",
+                      isMe && "bg-primary/10 border-primary/40",
+                      idx === 0 && isActive && "ring-1 ring-amber-400/40"
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className={cn(
+                        "size-6 rounded-full text-xs flex items-center justify-center font-bold",
+                        idx === 0 ? "bg-amber-400/20 text-amber-400" : "bg-muted"
+                      )}>
+                        {idx + 1}
+                      </div>
+                      <div className="text-sm font-medium truncate max-w-[110px]">
+                        {usernames[uid] ?? (isMe ? "Sen" : "Oyuncu")}
+                        {isMe && <span className="text-[10px] text-primary ml-1">(siz)</span>}
+                      </div>
                     </div>
-                    <div className="text-sm font-medium truncate max-w-[110px]">
-                      {usernames[uid] ?? (isMe ? "Sen" : "Oyuncu")}
-                      {isMe && <span className="text-[10px] text-primary ml-1">(siz)</span>}
-                    </div>
-                  </div>
-                  <div className={cn(
-                    "text-sm font-bold tabular-nums",
-                    pnl > 0 ? "text-green-500" : pnl < 0 ? "text-red-500" : "text-muted-foreground"
-                  )}>
-                    {pnl >= 0 ? "+" : ""}{pnlPct.toFixed(2)}%
-                  </div>
-                </div>
-              );
-            })}
+                    <motion.div
+                      key={Math.sign(pnl)}
+                      initial={{ scale: 1.15 }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 0.25 }}
+                      className={cn(
+                        "text-sm font-bold tabular-nums",
+                        pnl > 0 ? "text-green-500" : pnl < 0 ? "text-red-500" : "text-muted-foreground"
+                      )}
+                    >
+                      {pnl >= 0 ? "+" : ""}{pnlPct.toFixed(2)}%
+                    </motion.div>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
           </div>
         </aside>
       </div>
