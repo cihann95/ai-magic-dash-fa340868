@@ -140,6 +140,7 @@ export default function BlitzRoomPage() {
   async function openPosition(side: "long" | "short") {
     if (!room) return;
     setSubmitting(true);
+    blitzSfx.open(); vibrate(40);
     const { data, error } = await supabase.functions.invoke("blitz-tick-order", {
       body: { room_id: room.id, action: "open", side, amount },
     });
@@ -150,6 +151,7 @@ export default function BlitzRoomPage() {
   async function closePosition() {
     if (!room || !myOpenOrder) return;
     setSubmitting(true);
+    blitzSfx.close(); vibrate(40);
     const { data, error } = await supabase.functions.invoke("blitz-tick-order", {
       body: { room_id: room.id, action: "close", order_id: myOpenOrder.id },
     });
