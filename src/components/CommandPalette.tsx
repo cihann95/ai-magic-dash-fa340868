@@ -8,7 +8,7 @@ import { t } from "@/lib/i18n";
 import { SYMBOLS } from "@/lib/symbols";
 import {
   LineChart, Wallet, History, Eye, Settings, Trophy, Award, Flame,
-  Users, Brain, BookOpen, Activity, TrendingUp, Moon, Sun, Languages, LogOut,
+  Users, Brain, BookOpen, Activity, TrendingUp, Moon, Sun, Languages, LogOut, Zap,
 } from "lucide-react";
 
 export default function CommandPalette() {
@@ -44,6 +44,7 @@ export default function CommandPalette() {
 
   const pages: { path: string; label: string; icon: any }[] = [
     { path: "/", label: tr.markets, icon: LineChart },
+    { path: "/blitz", label: "Blitz", icon: Zap },
     { path: "/portfolio", label: tr.portfolio, icon: Wallet },
     { path: "/insights", label: tr.insights, icon: Activity },
     { path: "/coach", label: tr.coach, icon: Brain },
