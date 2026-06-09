@@ -2,6 +2,10 @@ export type Lang = "tr" | "en";
 
 export const t = (lang: Lang) => translations[lang];
 
+export function formatViewerCount(n: number): string {
+  return n >= 1000 ? (n / 1000).toFixed(1) + "K" : String(n);
+}
+
 const translations = {
   tr: {
     // nav
@@ -80,6 +84,10 @@ const translations = {
     // command palette / shortcuts
     search_placeholder: "Sembol, sayfa veya komut ara...", more: "Daha fazla", shortcuts: "Kısayollar",
     no_results: "Sonuç bulunamadı.", pages: "Sayfalar", commands: "Komutlar", symbols: "Semboller",
+    // ana sahne
+    live_now: "CANLI", viewers: "izleyici", no_live_match: "Şu anda canlı maç yok",
+    match_finished: "Maç bitti", won_match: "kazandı", prize_pool: "Ödül",
+    watching: "izliyor", player: "Oyuncu",
   },
   en: {
     markets: "Markets", portfolio: "Portfolio", history: "History", watchlist: "Watchlist", settings: "Settings",
@@ -140,5 +148,9 @@ const translations = {
     intent: "Intent", sort_by: "Sort by",
     search_placeholder: "Search symbols, pages or commands...", more: "More", shortcuts: "Shortcuts",
     no_results: "No results found.", pages: "Pages", commands: "Commands", symbols: "Symbols",
+    // ana sahne
+    live_now: "LIVE", viewers: "viewers", no_live_match: "No live matches right now",
+    match_finished: "Match finished", won_match: "won", prize_pool: "Prize",
+    watching: "watching", player: "Player",
   },
 };

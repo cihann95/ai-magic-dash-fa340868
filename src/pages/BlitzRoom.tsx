@@ -2,23 +2,22 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import confetti from "canvas-confetti";
-import { ArrowDown, ArrowUp, Loader2, Trophy, Volume2, VolumeX, X } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import AppShell from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import TradingViewChart from "@/components/TradingViewChart";
+import { BlitzTimer, TradeActions, BlitzLeaderboard } from "@/components/blitz";
 import { useBlitzRoom } from "@/hooks/useBlitzRoom";
 import { useLivePrice } from "@/hooks/useLivePrices";
-import { findSymbol, formatPrice } from "@/lib/symbols";
+import { findSymbol } from "@/lib/symbols";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/contexts/AppContext";
 import { blitzSfx, vibrate } from "@/lib/blitzSfx";
 import { cn } from "@/lib/utils";
-
-const QUICK_AMOUNTS = [5, 10, 25, 50];
 
 export default function BlitzRoomPage() {
   const { roomId } = useParams<{ roomId: string }>();
@@ -182,39 +181,16 @@ export default function BlitzRoomPage() {
         {/* Ana */}
         <div className="flex flex-col gap-3 min-h-0">
           {/* Sayaç */}
-          <Card className={cn(
-            "p-4 glass flex items-center justify-between relative overflow-hidden transition-colors",
-            secondsLeft !== null && secondsLeft <= 5 && secondsLeft > 0 && "ring-2 ring-destructive/60"
-          )}>
-            <div>
-              <div className="text-xs text-muted-foreground flex items-center gap-1">
-                {room.symbol}
-                <button onClick={toggleSfx} className="opacity-60 hover:opacity-100" title={sfxOn ? "Sesi kapat" : "Sesi aç"}>
-                  {sfxOn ? <Volume2 className="size-3" /> : <VolumeX className="size-3" />}
-                </button>
-              </div>
-              <div className="text-xl font-bold">${formatPrice(price)}</div>
-            </div>
-            <motion.div
-              key={secondsLeft ?? "x"}
-              initial={secondsLeft !== null && secondsLeft <= 5 ? { scale: 1.25 } : false}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", stiffness: 400, damping: 18 }}
-              className={cn(
-                "text-5xl md:text-6xl font-bold tabular-nums tracking-tight",
-                secondsLeft !== null && secondsLeft <= 10 ? "text-destructive" : "text-primary",
-                secondsLeft !== null && secondsLeft <= 5 && "drop-shadow-[0_0_12px_hsl(var(--destructive)/0.7)]"
-              )}
-            >
-              {isWaiting && "—:—"}
-              {isActive && secondsLeft !== null && `0:${secondsLeft.toString().padStart(2, "0")}`}
-              {(isFinished || room.status === "settling") && "0:00"}
-            </motion.div>
-            <div className="text-right">
-              <div className="text-xs text-muted-foreground">Havuz</div>
-              <div className="text-xl font-bold">${Number(room.pot).toFixed(2)}</div>
-            </div>
-          </Card>
+          <BlitzTimer
+            secondsLeft={secondsLeft}
+            status={room.status}
+            isActive={isActive}
+            symbol={room.symbol}
+            price={price}
+            pot={room.pot}
+            sfxOn={sfxOn}
+            onToggleSfx={toggleSfx}
+          />
 
           {/* Grafik */}
           <div className="flex-1 min-h-[400px] rounded-2xl overflow-hidden border border-border/40">
@@ -224,47 +200,15 @@ export default function BlitzRoomPage() {
           </div>
 
           {/* Aksiyonlar */}
-          {isActive && (
-            <Card className="p-4 glass space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="text-xs text-muted-foreground">Miktar</div>
-                <div className="flex gap-1">
-                  {QUICK_AMOUNTS.map((a) => (
-                    <Button key={a} size="sm" variant={amount === a ? "default" : "outline"}
-                      onClick={() => setAmount(a)}>${a}</Button>
-                  ))}
-                </div>
-              </div>
-
-              {!myOpenOrder ? (
-                <div className="grid grid-cols-2 gap-3">
-                  <Button size="lg" className="h-16 bg-green-600 hover:bg-green-700 text-white text-lg font-bold"
-                    onClick={() => openPosition("long")} disabled={submitting}>
-                    <ArrowUp className="size-5 mr-1" /> LONG
-                  </Button>
-                  <Button size="lg" className="h-16 bg-red-600 hover:bg-red-700 text-white text-lg font-bold"
-                    onClick={() => openPosition("short")} disabled={submitting}>
-                    <ArrowDown className="size-5 mr-1" /> SHORT
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium">
-                      {myOpenOrder.side.toUpperCase()} ${Number(myOpenOrder.amount)}
-                    </span>
-                    <span className="text-muted-foreground">
-                      @ {formatPrice(Number(myOpenOrder.entry_price))}
-                    </span>
-                  </div>
-                  <Button size="lg" className="w-full h-14" variant="outline"
-                    onClick={closePosition} disabled={submitting}>
-                    {submitting ? <Loader2 className="size-4 animate-spin" /> : "Pozisyonu Kapat"}
-                  </Button>
-                </div>
-              )}
-            </Card>
-          )}
+          <TradeActions
+            isActive={isActive}
+            myOpenOrder={myOpenOrder}
+            amount={amount}
+            submitting={submitting}
+            onAmountChange={setAmount}
+            onOpenPosition={openPosition}
+            onClosePosition={closePosition}
+          />
 
           {isWaiting && (
             <Card className="p-6 glass text-center space-y-2">
@@ -280,59 +224,13 @@ export default function BlitzRoomPage() {
         </div>
 
         {/* Leaderboard */}
-        <aside className="rounded-2xl glass border border-border/40 p-4 overflow-auto">
-          <div className="text-sm font-semibold mb-3 flex items-center gap-2">
-            <Trophy className="size-4 text-primary" /> Canlı Sıralama
-          </div>
-          <div className="space-y-2">
-            <AnimatePresence initial={false}>
-              {ranking.map(([uid, pnl], idx) => {
-                const isMe = uid === user?.id;
-                const pnlPct = room.entry_fee > 0 ? (pnl / Number(room.entry_fee)) * 100 : 0;
-                return (
-                  <motion.div
-                    layout
-                    key={uid}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ type: "spring", stiffness: 320, damping: 26 }}
-                    className={cn(
-                      "flex items-center justify-between p-2 rounded-lg border border-border/40",
-                      isMe && "bg-primary/10 border-primary/40",
-                      idx === 0 && isActive && "ring-1 ring-amber-400/40"
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className={cn(
-                        "size-6 rounded-full text-xs flex items-center justify-center font-bold",
-                        idx === 0 ? "bg-amber-400/20 text-amber-400" : "bg-muted"
-                      )}>
-                        {idx + 1}
-                      </div>
-                      <div className="text-sm font-medium truncate max-w-[110px]">
-                        {usernames[uid] ?? (isMe ? "Sen" : "Oyuncu")}
-                        {isMe && <span className="text-[10px] text-primary ml-1">(siz)</span>}
-                      </div>
-                    </div>
-                    <motion.div
-                      key={Math.sign(pnl)}
-                      initial={{ scale: 1.15 }}
-                      animate={{ scale: 1 }}
-                      transition={{ duration: 0.25 }}
-                      className={cn(
-                        "text-sm font-bold tabular-nums",
-                        pnl > 0 ? "text-green-500" : pnl < 0 ? "text-red-500" : "text-muted-foreground"
-                      )}
-                    >
-                      {pnl >= 0 ? "+" : ""}{pnlPct.toFixed(2)}%
-                    </motion.div>
-                  </motion.div>
-                );
-              })}
-            </AnimatePresence>
-          </div>
-        </aside>
+        <BlitzLeaderboard
+          ranking={ranking}
+          usernames={usernames}
+          userId={user?.id ?? ""}
+          entryFee={Number(room.entry_fee)}
+          isActive={isActive}
+        />
       </div>
 
       {/* Sonuç modali */}

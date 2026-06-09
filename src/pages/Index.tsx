@@ -9,7 +9,21 @@ import SymbolList from "@/components/trading/SymbolList";
 import ChartPanel from "@/components/trading/ChartPanel";
 import AccountAIPanel from "@/components/trading/AccountAIPanel";
 import OpenPositionsPanel from "@/components/trading/OpenPositionsPanel";
+import AnaSahne from "@/components/AnaSahne";
+import { useAnaSahne } from "@/hooks/useAnaSahne";
 import { ArrowRight, BarChart3, Brain, Globe } from "lucide-react";
+
+function AnaSahneSection() {
+  const { lang } = useApp();
+  const tr = t(lang);
+  const state = useAnaSahne();
+  return (
+    <div className="mb-8">
+      <h2 className="text-lg font-semibold mb-3">{tr.live_now}</h2>
+      <AnaSahne {...state} />
+    </div>
+  );
+}
 
 export default function Index() {
   const { user, lang } = useApp();
@@ -31,6 +45,7 @@ export default function Index() {
   if (!user) {
     return (
       <AppShell>
+        {import.meta.env.VITE_ANA_SAHNE_ENABLED === "true" && <AnaSahneSection />}
         <section className="px-6 py-20 md:py-32 max-w-5xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 text-xs font-medium px-3 py-1 rounded-full bg-primary/15 text-primary mb-6 animate-fade-in">
             <Brain className="size-3" /> {lang === "tr" ? "AI destekli işlem" : "AI-powered trading"}
