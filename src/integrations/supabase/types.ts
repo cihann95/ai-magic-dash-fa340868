@@ -503,6 +503,44 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_revenue: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          id: string
+          metadata: Json | null
+          room_id: string | null
+          source: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          id?: string
+          metadata?: Json | null
+          room_id?: string | null
+          source?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          metadata?: Json | null
+          room_id?: string | null
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_revenue_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "blitz_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       positions: {
         Row: {
           asset_class: string
@@ -724,6 +762,33 @@ export type Database = {
           id?: string
           p256dh?: string
           user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      real_balance_ledger: {
+        Row: {
+          amount: number
+          created_at: string
+          granted_by: string | null
+          id: string
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          granted_by?: string | null
+          id?: string
+          reason?: string | null
           user_id?: string
         }
         Relationships: []
@@ -978,6 +1043,15 @@ export type Database = {
           side: string | null
           symbol: string | null
           user_id: string | null
+        }
+        Relationships: []
+      }
+      platform_revenue_daily: {
+        Row: {
+          day: string | null
+          source: string | null
+          total_amount: number | null
+          tx_count: number | null
         }
         Relationships: []
       }
