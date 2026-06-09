@@ -1055,6 +1055,26 @@ export type Database = {
         }
         Relationships: []
       }
+      ana_sahne_view: {
+        Row: {
+          id: string
+          symbol: string
+          entry_fee: number
+          status: Database["public"]["Enums"]["blitz_status"]
+          mode: Database["public"]["Enums"]["blitz_mode"]
+          max_players: number
+          starts_at: string | null
+          ends_at: string | null
+          start_price: number | null
+          pot: number
+          fee_collected: number
+          created_at: string
+          updated_at: string
+          is_featured: boolean
+          participants: Json
+        }
+        Relationships: []
+      }
     }
     Functions: {
       award_xp: {

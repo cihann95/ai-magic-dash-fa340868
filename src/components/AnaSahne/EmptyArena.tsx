@@ -1,14 +1,18 @@
 import React from "react";
 import { cn } from "@/lib/utils";
+import { useApp } from "@/contexts/AppContext";
+import { t } from "@/lib/i18n";
 
 interface EmptyArenaProps {
-  /** i18n-ready message override; defaults to "No live matches right now" */
+  /** i18n-ready message override; defaults to tr.no_live_match */
   message?: string;
 }
 
-const EmptyArena: React.FC<EmptyArenaProps> = ({
-  message = "No live matches right now",
-}) => {
+const EmptyArena: React.FC<EmptyArenaProps> = ({ message }) => {
+  const { lang } = useApp();
+  const tr = t(lang);
+  const displayMessage = message ?? tr.no_live_match;
+
   return (
     <div className="flex items-center justify-center min-h-[200px]">
       <div
@@ -17,7 +21,7 @@ const EmptyArena: React.FC<EmptyArenaProps> = ({
           "animate-pulse-glow",
         )}
       >
-        <p className="text-lg text-muted-foreground">{message}</p>
+        <p className="text-lg text-muted-foreground">{displayMessage}</p>
       </div>
     </div>
   );

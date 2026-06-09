@@ -66,7 +66,7 @@ export function useAnaSahne(): AnaSahneState {
     async function load() {
       try {
         const { data, error: fetchErr } = await supabase
-          .from("ana_sahne_view" as never)
+          .from("ana_sahne_view")
           .select("*")
           .single();
 
@@ -137,7 +137,6 @@ export function useAnaSahne(): AnaSahneState {
       clearInterval(timer);
       supabase.removeChannel(channel);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return {

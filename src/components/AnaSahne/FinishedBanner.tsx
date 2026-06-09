@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { useApp } from "@/contexts/AppContext";
+import { t } from "@/lib/i18n";
 
 interface FinishedBannerProps {
   winner: string | null;
@@ -13,6 +15,8 @@ const FinishedBanner: React.FC<FinishedBannerProps> = ({
   pot,
   onComplete,
 }) => {
+  const { lang } = useApp();
+  const tr = t(lang);
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
@@ -38,10 +42,10 @@ const FinishedBanner: React.FC<FinishedBannerProps> = ({
         🏆
       </div>
       <h2 className="text-2xl font-bold text-foreground mb-2">
-        {winner ?? "Unknown"}
+        {winner ?? tr.player_unknown}
       </h2>
       <p className="text-lg text-muted-foreground">
-        Prize:{" "}
+        {tr.prize_pool}:{" "}
         <span className="font-bold text-foreground tabular-nums">
           ${pot.toFixed(2)}
         </span>
