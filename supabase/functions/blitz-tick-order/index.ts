@@ -40,14 +40,46 @@ Deno.serve(async (req) => {
   const user = userRes?.user;
   if (!user) return jsonResp({ error: "Unauthorized" }, 401);
 
-  let body: Req;
+  // ── CRSH-003: server-time freshness guard ───────────────────────────
+  // Reject requests whose client-sent timestamp drifts > 150 ms from
+  // server wall clock. Anti front-running / stale-price replay defence.
+  const sentAtHdr = req.headers.get("x-client-sent-at");
+  if (sentAtHdr) {
+    const sentAt = Number(sentAtHdr);
+    if (!isFinite(sentAt) || Math.abs(Date.now() - sentAt) > 150) {
+      return jsonResp({ error: "Stale request (clock drift > 150ms)" }, 409);
+    }
+  }
+
+  let body: Req & { entry_price?: unknown; price?: unknown; timestamp?: unknown; client_time?: unknown };
   try {
     body = await req.json();
   } catch {
     return jsonResp({ error: "Invalid body" }, 400);
   }
+  // Reject client-supplied price/time fields outright (defence-in-depth).
+  if (
+    body.entry_price !== undefined || body.price !== undefined ||
+    body.timestamp !== undefined || body.client_time !== undefined
+  ) {
+    return jsonResp({ error: "Forbidden field in body" }, 400);
+  }
   const { room_id, action } = body;
   if (!room_id || !action) return jsonResp({ error: "Missing fields" }, 400);
+
+  // ── CRSH-003: idempotency guard ─────────────────────────────────────
+  // Identical Idempotency-Key from the same user within 30s → 409.
+  const idemKey = req.headers.get("idempotency-key");
+  if (idemKey) {
+    if (!/^[A-Za-z0-9_-]{8,128}$/.test(idemKey)) {
+      return jsonResp({ error: "Invalid Idempotency-Key" }, 400);
+    }
+    const fresh = await redis.setNxEx(`blitz:idem:${user.id}:${idemKey}`, "1", 30);
+    if (!fresh) {
+      return jsonResp({ error: "Duplicate request (idempotency replay)" }, 409);
+    }
+  }
+
 
   const { data: room } = await admin
     .from("blitz_rooms")
