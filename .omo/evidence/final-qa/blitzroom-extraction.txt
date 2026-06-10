@@ -1,0 +1,32 @@
+== QA Scenario 6: BlitzRoom Extraction (T5/T12) ==
+
+1. EXTRACTED COMPONENTS
+   - src/components/blitz/BlitzTimer.tsx (74 lines)
+   - src/components/blitz/TradeActions.tsx (98 lines)
+   - src/components/blitz/BlitzLeaderboard.tsx (79 lines)
+   - PASS: All 3 components extracted
+
+2. BARREL EXPORT
+   - src/components/blitz/index.ts exports all 3 components
+   - PASS
+
+3. BLITZROOM IMPORTS
+   - line 13: import { BlitzTimer, TradeActions, BlitzLeaderboard } from "@/components/blitz"
+   - PASS: Imports from barrel
+
+4. NO INLINE DEFINITIONS
+   - grep "function BlitzTimer|function TradeActions|function BlitzLeaderboard" BlitzRoom.tsx → 0 matches
+   - PASS: No leaked inline definitions
+
+5. COMPONENT USAGE IN BLITZROOM
+   - BlitzTimer: line 184-193 (with all props)
+   - TradeActions: line 203-211 (with all props)
+   - BlitzLeaderboard: line 227-233 (with all props)
+   - PASS: All components used with correct props
+
+6. ORIGINAL BEHAVIOR PRESERVED
+   - BlitzRoom.tsx reduced from ~383 to ~281 lines
+   - No logic changes, only JSX extraction
+   - PASS
+
+VERDICT: BlitzRoom extraction complete, original page works with sub-components

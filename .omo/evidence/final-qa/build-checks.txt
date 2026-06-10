@@ -1,0 +1,97 @@
+=== BUILD & TEST CHECKS ===
+Date: 2026-06-10
+
+================================================================================
+VITEST EXECUTION RESULTS
+================================================================================
+
+--- useSpectatorBroadcast.test.ts ---
+RUN  v3.2.4
+✓ src/hooks/__tests__/useSpectatorBroadcast.test.ts (4 tests) 74ms
+  Test Files  1 passed (1)
+  Tests  4 passed (4)
+  PASS: Test I — throttles emoji at 333ms (~3/5 succeed)
+  PASS: Test J — enforces 2-second chat rate limit
+  PASS: Test K — reconnects after CHANNEL_ERROR
+  PASS: Test L — caps chat at 50 messages, evicting oldest 10
+
+--- useAnalytics.test.ts ---
+RUN  v3.2.4
+✓ src/hooks/__tests__/useAnalytics.test.ts (3 tests) 44ms
+  Test Files  1 passed (1)
+  Tests  3 passed (3)
+  PASS: Test M — tracks analytics event with correct arguments
+  PASS: Test N — does not throw when analytics fails (fire-and-forget)
+  PASS: defaults payload to empty object when not provided
+
+--- useAnaSahne.test.ts ---
+RUN  v3.2.4
+✓ src/hooks/__tests__/useAnaSahne.test.ts (6 tests) 62ms
+  Test Files  1 passed (1)
+  Tests  6 passed (6)
+  (6 tests pass with act() warnings — non-blocking)
+
+TOTAL: 13/13 tests PASS ✓
+
+================================================================================
+QA SCRIPT SYNTAX CHECKS
+================================================================================
+
+--- scripts/qa-phase2.sh ---
+bash -n → PARSE OK ✓
+18 tests defined (order_timestamp, validate_slippage_accept/reject,
+  tick_order_atomic, close_order_atomic, settlement_already_processed,
+  make_settlement_idempotency_key, try_advisory_lock, lock_and_validate_room,
+  insert_analytics_event, log_observability, alert_settlement_failures,
+  guard_triggers_exist, blitz_payout_trigger_updated, no_client_timestamps,
+  analytics_events_staging, observability_log_table, slippage_config_table)
+NOTE: Requires live Supabase ($DATABASE_URL) to execute
+
+--- scripts/qa-settlement-collision.sh ---
+bash -n → PARSE OK ✓
+7 tests defined (idempotency-unique, already-processed, advisory-lock,
+  append-only, lock-and-validate-error, trigger-protections, no-update-delete-policies)
+NOTE: Requires live Supabase ($DATABASE_URL) to execute
+
+--- scripts/qa-analytics-observability.sh ---
+bash -n → PARSE OK ✓
+12 tests defined (insert-rpc-exists, insert-rpc-security-definer,
+  log-rpc-exists, analytics-events-table, analytics-staging-table,
+  observability-table, alert-functions-exist, alert-functions-empty,
+  cleanup-function, level-constraint, analytics-writer-file, monitoring-queries-file)
+NOTE: Requires live Supabase ($DATABASE_URL) to execute
+
+================================================================================
+MONITORING QUERIES
+================================================================================
+✓ scripts/monitoring-queries.sql exists (33 lines)
+  - stale_rooms query
+  - settlement_failures via alert_settlement_failures()
+  - duplicate_payouts via alert_duplicate_payout_attempts()
+  - orphaned_rooms query
+  - unflushed_analytics query
+
+================================================================================
+FILE EXISTENCE CHECK
+================================================================================
+✓ supabase/functions/blitz-tick-order/index.ts (192 lines)
+✓ supabase/functions/blitz-settle-room/index.ts (251 lines)
+✓ supabase/functions/blitz-matchmake/index.ts (269 lines)
+✓ supabase/functions/blitz-analytics-writer/index.ts (75 lines)
+✓ supabase/functions/_shared/redis.ts (73 lines)
+✓ src/hooks/useSpectatorBroadcast.ts (152 lines)
+✓ src/hooks/useAnalytics.ts (32 lines)
+✓ src/components/AnaSahne/AnaSahne.tsx
+✓ src/components/AnaSahne/SpectatorPanel.tsx
+✓ scripts/qa-phase2.sh (289 lines)
+✓ scripts/qa-settlement-collision.sh (128 lines)
+✓ scripts/qa-analytics-observability.sh (159 lines)
+✓ scripts/monitoring-queries.sql (33 lines)
+✓ 6 migration SQL files (cleanup, security, settlement, analytics, observability, ana_sahne)
+
+================================================================================
+SUMMARY
+================================================================================
+Vitest: 13/13 PASS
+QA Script Syntax: 3/3 PASS (parse-only, no live DB)
+File Existence: All required files present

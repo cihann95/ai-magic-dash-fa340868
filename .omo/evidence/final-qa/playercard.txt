@@ -1,0 +1,47 @@
+== QA Scenario 3: PlayerCard Rendering (T6) ==
+
+Component: src/components/AnaSahne/PlayerCard.tsx (78 lines)
+
+Props: { username, side, pnl, pnlPct, isWinner, index }
+
+1. USERNAME DISPLAY (line 37)
+   - <span className="truncate max-w-[12ch]">{username}</span>
+   - Truncated at 12 characters
+   - PASS
+
+2. SIDE INDICATORS (line 40-42)
+   - long → green "↑" arrow (text-green-500)
+   - short → red "↓" arrow (text-red-500)
+   - null → gray "—" em-dash
+   - PASS
+
+3. PnL COLORS (line 52-55)
+   - pnl > 0 → text-green-500
+   - pnl < 0 → text-red-500
+   - pnl === 0 → text-muted-foreground
+   - Format: {pnl >= 0 ? "+" : ""}{pnl.toFixed(2)}
+   - PASS
+
+4. RANK BADGES (line 28-34)
+   - index 0 → amber badge (bg-amber-400/20 text-amber-400)
+   - index 1+ → gray badge (bg-gray-300/20 text-gray-300)
+   - Shows numeric rank (index + 1)
+   - PASS
+
+5. PnL% DISPLAY (line 64-74)
+   - Shows percentage with +/- prefix
+   - Green/red/neutral color coding matching PnL
+   - PASS
+
+6. FRAMER MOTION ANIMATION (line 16-19)
+   - initial={{ opacity: 0, y: 8 }}
+   - animate={{ opacity: 1, y: 0 }}
+   - Spring animation with index-based delay
+   - PASS
+
+7. GLASS CARD STYLING (line 20-23)
+   - rounded-2xl glass border border-border/40
+   - Winner ring: ring-1 ring-amber-400/40 shadow-glow
+   - PASS
+
+VERDICT: PlayerCard renders all elements correctly with proper styling

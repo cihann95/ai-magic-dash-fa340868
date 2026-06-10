@@ -1,0 +1,36 @@
+== QA Scenario 1: AnaSahne States (T9) ==
+
+Component: src/components/AnaSahne/AnaSahne.tsx (156 lines)
+
+State Machine: loading → active → finished → empty
+
+1. LOADING STATE (line 43-64)
+   - Triggered when: isLoading === true
+   - Renders: Skeleton UI (3 placeholder player cards, circular countdown skeleton)
+   - PASS
+
+2. ERROR STATE (line 67-69)
+   - Triggered when: error is non-null
+   - Renders: <EmptyArena message={error} />
+   - Error comes from: useAnaSahne hook (Supabase fetch errors)
+   - PASS
+
+3. EMPTY STATE (line 72-74)
+   - Triggered when: !room (no featured room)
+   - Renders: <EmptyArena /> with default "No live matches right now"
+   - PASS
+
+4. FINISHED STATE (line 77-88)
+   - Triggered when: isFinished === true
+   - Renders: FinishedBanner (3s CSS opacity fade) → EmptyArena
+   - Winner derived from highest PnL participant
+   - PASS
+
+5. ACTIVE STATE (line 91-125)
+   - Triggered when: room exists, not finished
+   - Renders: SectionHeader + CountdownCircle + PlayerCards grid
+   - SectionHeader shows: "🔴 CANLI" badge + viewer count + symbol/entry fee
+   - Layout: responsive (vertical mobile, horizontal desktop)
+   - PASS
+
+VERDICT: All 5 states implemented correctly

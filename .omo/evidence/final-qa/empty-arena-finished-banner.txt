@@ -1,0 +1,29 @@
+== QA Scenario 5: EmptyArena + FinishedBanner (T8) ==
+
+--- EmptyArena ---
+Component: src/components/AnaSahne/EmptyArena.tsx (26 lines)
+
+1. Default message: "No live matches right now" (line 10)
+2. CSS animation: animate-pulse-glow (line 17)
+3. Glass styling: glass border-border/40 shadow-card rounded-lg
+4. i18n-ready: message prop override from parent
+VERDICT: PASS
+
+--- FinishedBanner ---
+Component: src/components/AnaSahne/FinishedBanner.tsx (53 lines)
+
+1. Props: { winner, pot, onComplete }
+2. Winner display (line 40-42): <h2>{winner ?? "Unknown"}</h2>
+3. Trophy emoji: 🏆 with role="img" aria-label
+4. Prize display (line 43-48): "Prize: ${pot.toFixed(2)}"
+5. CSS opacity fade (line 19-24, 33-34):
+   - Initial: opacity-100
+   - After mount: opacity-0 (3000ms duration)
+   - transition-opacity duration-[3000ms] ease-in-out
+6. onComplete callback (line 22-24): setTimeout(onComplete, 3000)
+VERDICT: PASS
+
+INTEGRATION: AnaSahne.tsx handles FinishedBanner → EmptyArena transition
+- line 77-88: isFinished renders FinishedBanner + conditional EmptyArena
+- handleFinishComplete sets showEmptyAfterFinish=true
+VERDICT: PASS

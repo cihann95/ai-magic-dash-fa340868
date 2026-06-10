@@ -1,0 +1,38 @@
+== QA Scenario 4: CountdownCircle (T7) ==
+
+Component: src/components/AnaSahne/CountdownCircle.tsx (107 lines)
+
+Props: { timeLeft, isActive, size = 120 }
+
+1. SVG ARC ANIMATION (line 57-90)
+   - Background track circle (gray, opacity 0.2)
+   - Progress arc circle with stroke-dashoffset
+   - Circumference = 2 * PI * radius
+   - dashOffset = circumference * (1 - clamped/60)
+   - CSS transition: stroke-dashoffset 0.5s ease, stroke 0.3s ease
+   - PASS
+
+2. COLOR TIERS (line 27-32)
+   - timeLeft > 30 → green (#22c55e)
+   - timeLeft 11-30 → yellow (#eab308)
+   - timeLeft ≤ 10 → red (#ef4444)
+   - inactive/loading → gray (#6b7280)
+   - PASS
+
+3. TIME FORMATTING (line 47-49)
+   - mins = Math.floor(timeLeft / 60)
+   - secs = Math.floor(timeLeft % 60).padStart(2, "0")
+   - Format: "M:SS" (e.g., "0:45", "0:05")
+   - PASS
+
+4. INACTIVE STATE (line 42-43)
+   - isActive=false → "—:—" in gray
+   - PASS
+
+5. LOADING STATE (line 44-45, 61, 82)
+   - timeLeft=null && isActive → spinner animation
+   - SVG has animate-spin class
+   - Partial arc (circumference * 0.3) for visual indicator
+   - PASS
+
+VERDICT: CountdownCircle renders correctly with SVG arc, colors, time format

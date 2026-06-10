@@ -1,0 +1,37 @@
+== QA Scenario 8: Barrel Exports (T10/T12) ==
+
+--- AnaSahne Barrel ---
+File: src/components/AnaSahne/index.ts
+
+Exports:
+  1. AnaSahne (default) from './AnaSahne'
+  2. PlayerCard (default) from './PlayerCard'
+  3. CountdownCircle (default) from './CountdownCircle'
+  4. EmptyArena (default) from './EmptyArena'
+  5. FinishedBanner (default) from './FinishedBanner'
+
+Source files verified:
+  ✓ src/components/AnaSahne/AnaSahne.tsx
+  ✓ src/components/AnaSahne/PlayerCard.tsx
+  ✓ src/components/AnaSahne/CountdownCircle.tsx
+  ✓ src/components/AnaSahne/EmptyArena.tsx
+  ✓ src/components/AnaSahne/FinishedBanner.tsx
+
+VERDICT: PASS (5/5 components resolve)
+
+--- Blitz Barrel ---
+File: src/components/blitz/index.ts
+
+Exports:
+  1. BlitzTimer from './BlitzTimer'
+  2. TradeActions from './TradeActions'
+  3. BlitzLeaderboard from './BlitzLeaderboard'
+
+Source files verified:
+  ✓ src/components/blitz/BlitzTimer.tsx
+  ✓ src/components/blitz/TradeActions.tsx
+  ✓ src/components/blitz/BlitzLeaderboard.tsx
+
+VERDICT: PASS (3/3 components resolve)
+
+OVERALL VERDICT: All barrel exports resolve correctly

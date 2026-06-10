@@ -1,0 +1,151 @@
+=== CROSS-TASK INTEGRATION VERIFICATION ===
+Date: 2026-06-10
+QA Type: Static E2E Verification (no live Supabase)
+
+================================================================================
+DATA FLOW PATH 1: Room creation → blitz_matchmake writes blitz_created analytics
+================================================================================
+VERIFIED: blitz-matchmake/index.ts
+
+- Line 133-137: blitz_created event inserted to analytics_events_staging on private room create
+  await admin.from("analytics_events_staging").insert({
+    event_type: "blitz_created",
+    room_id: room.id,
+    payload: { symbol, entry_fee, creator_id: user.id },
+  }).catch(() => {});
+
+- Line 243-247: blitz_created event inserted to analytics_events_staging on quick match
+  await admin.from("analytics_events_staging").insert({
+    event_type: "blitz_created",
+    room_id: room.id,
+    payload: { symbol, entry_fee, creator_id: user.id },
+  }).catch(() => {});
+
+- Line 249-253: blitz_started event also inserted on quick match
+  await admin.from("analytics_events_staging").insert({
+    event_type: "blitz_started",
+    room_id: room.id,
+    payload: { symbol, participant_count: 2, starts_at: ... },
+  }).catch(() => {});
+
+STATUS: PASS ✓
+
+================================================================================
+DATA FLOW PATH 2: Order open → validate_slippage, tick_order_atomic, order_open log
+================================================================================
+VERIFIED: blitz-tick-order/index.ts
+
+- Line 80-83: tick_order_atomic RPC call
+  await admin.rpc("tick_order_atomic", { _room_id, _user_id, _side, _amount })
+
+- Line 92-99: validate_slippage RPC call (after tick_order_atomic succeeds)
+  await admin.rpc("validate_slippage", { _symbol, _entry_price, _reference_price })
+
+- Line 130-137: order_open observability log
+  await admin.rpc("log_observability", {
+    p_service: "blitz-tick-order",
+    p_event: "order_open",
+    ...
+  }).catch(() => {});
+
+- Line 139-144: blitz_joined analytics event written to staging
+  await admin.from("analytics_events_staging").insert({
+    event_type: "blitz_joined", ...
+  }).catch(() => {});
+
+- Line 1-6: ANTI-TAMPER NOTICE present, confirming no client timestamps
+- Line 170: order_timestamp() RPC used for close (server-side only)
+
+STATUS: PASS ✓
+
+================================================================================
+DATA FLOW PATH 3: Settlement → lock room, ledger write, blitz_finished analytics, settle_complete log
+================================================================================
+VERIFIED: blitz-settle-room/index.ts
+
+- Line 18-24: try_advisory_lock RPC call
+  await admin.rpc("try_advisory_lock", { p_key: lockHash })
+
+- Line 26-33: lock_and_validate_room RPC call
+  await admin.rpc("lock_and_validate_room", { p_room_id, p_idempotency_key })
+
+- Line 133-144: settlement_ledger write (completed)
+  await admin.from("settlement_ledger").insert({
+    room_id, idempotency_key, settlement_type: "edge_function", ...
+    status: "completed"
+  })
+
+- Line 146-156: blitz_finished analytics event
+  await admin.from("analytics_events_staging").insert({
+    event_type: "blitz_finished", ...
+  }).catch(() => {});
+
+- Line 169-175: settle_complete observability log
+  await admin.rpc("log_observability", {
+    p_service: "settlement",
+    p_event: "settle_complete", ...
+  }).catch(() => {});
+
+- Line 179-190: Failed settlement also writes ledger with status "failed"
+- Line 192-198: Failed settlement logs settle_failed
+
+STATUS: PASS ✓
+
+================================================================================
+DATA FLOW PATH 4: DB trigger → blitz_payout_trigger checks advisory lock, idempotency, writes ledger
+================================================================================
+VERIFIED: supabase/migrations/20260609234136_ana_sahne.sql
+
+- Line 104: Advisory lock via pg_try_advisory_xact_lock(hashtext(NEW.id::text))
+  _lock_obtained := pg_try_advisory_xact_lock(hashtext(NEW.id::text));
+
+- Line 105-107: Non-blocking: if lock not obtained, returns early
+  IF NOT _lock_obtained THEN RETURN NEW; END IF;
+
+- Line 110-113: Idempotency check via settlement_already_processed()
+  _idempotency_key := NEW.id::text || ':db_trigger';
+  IF public.settlement_already_processed(_idempotency_key) THEN RETURN NEW; END IF;
+
+- Line 128-140: settlement_ledger write with ON CONFLICT DO NOTHING
+  INSERT INTO public.settlement_ledger (...) VALUES (...) ON CONFLICT (idempotency_key) DO NOTHING;
+
+- Line 148-152: Trigger only fires on status = 'finished'
+  WHEN (NEW.status = 'finished')
+
+STATUS: PASS ✓
+
+================================================================================
+DATA FLOW PATH 5: Analytics → blitz_analytics_writer flushes staging → main
+================================================================================
+VERIFIED: blitz-analytics-writer/index.ts
+
+- Line 31-36: Reads unflushed rows from analytics_events_staging
+  .from("analytics_events_staging").select("*").eq("flushed", false).order("created_at").limit(500)
+
+- Line 45-52: Maps staging rows to main table format
+  rows.map(r => ({ event_type, room_id, user_id, payload, server_timestamp, created_at }))
+
+- Line 54: Bulk inserts to analytics_events
+  .from("analytics_events").insert(inserts)
+
+- Line 58-61: Marks rows as flushed in staging
+  .from("analytics_events_staging").update({ flushed: true }).in("id", ids)
+
+STATUS: PASS ✓
+
+================================================================================
+INTEGRATION SUMMARY
+================================================================================
+Data Flow Paths Verified: 5/5 PASS
+- Room creation → analytics: ✓
+- Order open → validation → logging: ✓
+- Settlement → lock → ledger → analytics → logging: ✓
+- DB trigger → advisory lock → idempotency → ledger: ✓
+- Analytics staging → main flush: ✓
+
+Cross-task RPC call chain verified:
+- blitz-tick-order calls: tick_order_atomic, validate_slippage, order_timestamp, log_observability
+- blitz-settle-room calls: try_advisory_lock, lock_and_validate_room, log_observability
+- blitz-matchmake: writes analytics directly (blitz_created, blitz_started, blitz_joined)
+- blitz-analytics-writer: reads staging, writes main, marks flushed
+- blitz_payout_trigger (DB): uses settlement_already_processed, writes settlement_ledger

@@ -1,0 +1,52 @@
+== QA Scenario 10: FAZ 4 Test Script (T13) ==
+
+File: .omo/scripts/test-faz4-trigger.sh (421 lines)
+
+SCRIPT STRUCTURE:
+- set -euo pipefail (strict mode)
+- Evidence logging to file
+- Cleanup trap on exit
+- PASS
+
+TEST CASES (5 total):
+1. TEST 1: Winner payout — balance update
+   - Creates room with pot=20, fee_collected=2
+   - Finishes room with winner
+   - Asserts: winner balance = 218.00 (200 + 18)
+   - Asserts: platform_revenue row created
+   - Asserts: revenue metadata type = blitz_fee
+   - PASS
+
+2. TEST 2: Tie case (winner_id = null)
+   - Creates room with pot=10, fee_collected=1
+   - Finishes room with NO winner
+   - Asserts: both balances unchanged
+   - Asserts: fee still collected (1 revenue row)
+   - PASS
+
+3. TEST 3: Idempotency (no double-pay)
+   - Creates room with pot=50, fee_collected=5
+   - Finishes room twice
+   - Asserts: balance increased by exactly 45 (not 90)
+   - Asserts: only 1 revenue row (not 2)
+   - PASS
+
+4. TEST 4: Guard blocks non-service_role
+   - Sets JWT role to 'authenticated'
+   - Tries to tamper with real_balance
+   - Asserts: operation fails (RLS/guard blocks)
+   - PASS
+
+5. TEST 5: Negative — cancelled status doesn't trigger payout
+   - Creates room, sets status='cancelled'
+   - Asserts: balance unchanged
+   - Asserts: no revenue row
+   - PASS
+
+ASSERTION FUNCTIONS:
+- assert_eq(label, expected, actual)
+- assert_contains(label, needle, haystack)
+- assert_fails(label, sql)
+- PASS
+
+VERDICT: FAZ 4 test script covers all scenarios with proper assertions

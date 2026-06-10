@@ -1,0 +1,16 @@
+== QA Scenario 2: Feature Flag Gate (T3/T11) ==
+
+1. Index.tsx line 48:
+   {import.meta.env.VITE_ANA_SAHNE_ENABLED === "true" && <AnaSahneSection />}
+   - Only renders AnaSahneSection when flag is exactly "true"
+   - PASS
+
+2. src/vite-env.d.ts:
+   - ImportMetaEnv includes: VITE_ANA_SAHNE_ENABLED?: string (optional)
+   - PASS
+
+3. .env.example:
+   - VITE_ANA_SAHNE_ENABLED=true (default to enabled)
+   - PASS
+
+VERDICT: Feature flag gate correctly implemented

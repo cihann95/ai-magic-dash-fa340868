@@ -1,0 +1,26 @@
+== QA Scenario 7: i18n Keys (T11) ==
+
+Source: src/lib/i18n.ts (156 lines)
+
+8 NEW KEYS VERIFIED:
+
+| Key              | Turkish                    | English                    |
+|------------------|----------------------------|----------------------------|
+| live_now         | "CANLI"                   | "LIVE"                     |
+| viewers          | "izleyici"                | "viewers"                  |
+| no_live_match    | "Şu anda canlı maç yok"   | "No live matches right now"|
+| match_finished   | "Maç bitti"               | "Match finished"           |
+| won_match        | "kazandı"                 | "won"                      |
+| prize_pool       | "Ödül"                    | "Prize"                    |
+| watching         | "izliyor"                 | "watching"                 |
+| player           | "Oyuncu"                  | "Player"                   |
+
+ALL 8 KEYS PRESENT IN BOTH tr AND en: PASS
+
+HELPER FUNCTION:
+- formatViewerCount(n: number): string
+  - n >= 1000 → (n/1000).toFixed(1) + "K"
+  - n < 1000 → String(n)
+  - PASS
+
+VERDICT: All 8 i18n keys resolve in both languages
