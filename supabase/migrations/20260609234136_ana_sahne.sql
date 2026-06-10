@@ -93,19 +93,58 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  _idempotency_key text;
+  _lock_obtained boolean;
 BEGIN
   -- Only act when status changes TO 'finished'
   IF NEW.status = 'finished' AND OLD.status IS DISTINCT FROM 'finished' THEN
-    -- Record platform revenue (fee_collected)
+    
+    -- Advisory lock on room_id (non-blocking) — use consistent hash with Edge Function
+    _lock_obtained := pg_try_advisory_xact_lock(hashtext(NEW.id::text));
+    IF NOT _lock_obtained THEN
+      RETURN NEW;  -- another session (likely edge function) is handling this
+    END IF;
+    
+    -- Idempotency check
+    _idempotency_key := NEW.id::text || ':db_trigger';
+    IF public.settlement_already_processed(_idempotency_key) THEN
+      RETURN NEW;
+    END IF;
+    
+    -- Record platform revenue (existing logic)
     INSERT INTO public.platform_revenue (source, room_id, amount, currency, metadata)
-    VALUES ('blitz', NEW.id, NEW.fee_collected, 'USD', json_build_object('type', 'blitz_fee', 'room_id', NEW.id));
-
-    -- Pay winner if exists (pot - fee_collected is the prize pool)
+    VALUES ('blitz', NEW.id, NEW.fee_collected, 'USD',
+      jsonb_build_object('type', 'blitz_fee', 'room_id', NEW.id, 'settlement_type', 'db_trigger'));
+    
+    -- Pay winner if exists (existing logic)
     IF NEW.winner_id IS NOT NULL THEN
       UPDATE public.profiles
       SET real_balance = real_balance + (NEW.pot - NEW.fee_collected)
       WHERE id = NEW.winner_id;
     END IF;
+    
+    -- Write to settlement_ledger (idempotent via unique constraint)
+    INSERT INTO public.settlement_ledger
+      (room_id, idempotency_key, settlement_type, winner_id,
+       prize_amount, fee_collected, pot_total, participant_count,
+       status, metadata)
+    VALUES (
+      NEW.id, _idempotency_key, 'db_trigger',
+      NEW.winner_id,
+      NEW.pot - NEW.fee_collected, NEW.fee_collected, NEW.pot,
+      (SELECT COUNT(*) FROM public.blitz_participants WHERE room_id = NEW.id),
+      'completed',
+      jsonb_build_object('source', 'blitz_payout_trigger')
+    )
+    ON CONFLICT (idempotency_key) DO NOTHING;
+    
+    -- Write to observability_log
+    INSERT INTO public.observability_log (service, event, level, room_id, metadata, duration_ms)
+    VALUES ('blitz_settle', 'payout_completed', 'info', NEW.id,
+      jsonb_build_object('settlement_type', 'db_trigger', 'idempotency_key', _idempotency_key, 'prize', NEW.pot - NEW.fee_collected),
+      NULL);
+    
   END IF;
   RETURN NEW;
 END;
