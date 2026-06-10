@@ -58,6 +58,28 @@ Deno.serve(async (req) => {
   // CANCEL
   if (mode === "cancel") {
     await redis.lrem(queueKey, 0, user.id);
+
+    const { data: waitingRooms } = await admin
+      .from("blitz_rooms")
+      .select("id, symbol")
+      .eq("created_by", user.id)
+      .eq("status", "waiting")
+      .eq("mode", "private")
+      .limit(5);
+    for (const wr of waitingRooms ?? []) {
+      const { count } = await admin
+        .from("blitz_participants")
+        .select("*", { count: "exact", head: true })
+        .eq("room_id", wr.id);
+      if (!count) {
+        await admin.from("analytics_events_staging").insert({
+          event_type: "blitz_abandoned",
+          room_id: wr.id,
+          payload: { symbol: wr.symbol, reason: "no_participants" },
+        }).catch(() => {});
+      }
+    }
+
     return new Response(JSON.stringify({ ok: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -107,6 +129,13 @@ Deno.serve(async (req) => {
       });
     }
     await admin.from("blitz_participants").insert({ room_id: room.id, user_id: user.id });
+
+    await admin.from("analytics_events_staging").insert({
+      event_type: "blitz_created",
+      room_id: room.id,
+      payload: { symbol, entry_fee, creator_id: user.id },
+    }).catch(() => {});
+
     return new Response(JSON.stringify({ room_id: room.id, invite_code: inviteCode, status: "waiting" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -210,6 +239,26 @@ Deno.serve(async (req) => {
     { room_id: room.id, user_id: opponent },
     { room_id: room.id, user_id: user.id },
   ]);
+
+  await admin.from("analytics_events_staging").insert({
+    event_type: "blitz_created",
+    room_id: room.id,
+    payload: { symbol, entry_fee, creator_id: user.id },
+  }).catch(() => {});
+
+  await admin.from("analytics_events_staging").insert({
+    event_type: "blitz_started",
+    room_id: room.id,
+    payload: { symbol, participant_count: 2, starts_at: new Date().toISOString() },
+  }).catch(() => {});
+
+  await admin.rpc("log_observability", {
+    p_service: "blitz_matchmake",
+    p_event: "match_found",
+    p_level: "info",
+    p_room_id: room.id,
+    p_metadata: { symbol, opponent_id: opponent, caller_id: user.id },
+  }).catch(() => {});
 
   // Redis odası
   await redis.hsetAll(`blitz:room:${room.id}`, {
