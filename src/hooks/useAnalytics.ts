@@ -19,7 +19,7 @@ export function useAnalytics() {
     payload?: Record<string, unknown>,
   ) => {
     try {
-      await supabase.rpc("insert_analytics_event", {
+      await (supabase as any).rpc("insert_analytics_event", {
         _event_type: eventType,
         _payload: payload ?? {},
       });

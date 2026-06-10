@@ -64,7 +64,7 @@ export function useAnaSahne(): AnaSahneState {
 
     async function load() {
       try {
-        const { data, error: fetchErr } = await supabase
+        const { data, error: fetchErr } = await (supabase as any)
           .from("ana_sahne_view")
           .select("*")
           .single();
