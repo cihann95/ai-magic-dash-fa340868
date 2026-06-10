@@ -1,12 +1,14 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useApp } from "@/contexts/AppContext";
+import { useAnalytics } from "@/hooks/useAnalytics";
 import { t, formatViewerCount } from "@/lib/i18n";
 import type { AnaSahneState } from "@/hooks/useAnaSahne";
 import EmptyArena from "./EmptyArena";
 import FinishedBanner from "./FinishedBanner";
 import CountdownCircle from "./CountdownCircle";
 import { PlayerCard } from "./PlayerCard";
+import SpectatorPanel from "./SpectatorPanel";
 
 interface AnaSahneProps extends AnaSahneState {}
 
@@ -19,9 +21,16 @@ export default function AnaSahne({
   isFinished,
   error,
 }: AnaSahneProps) {
-  const { lang } = useApp();
+  const { lang, user } = useApp();
+  const { track } = useAnalytics();
   const tr = t(lang);
   const [showEmptyAfterFinish, setShowEmptyAfterFinish] = useState(false);
+
+  useEffect(() => {
+    if (room?.id) {
+      track("ana_sahne_viewed", { room_id: room.id });
+    }
+  }, [room?.id, track]);
 
   const handleFinishComplete = useCallback(() => {
     setShowEmptyAfterFinish(true);
@@ -121,6 +130,19 @@ export default function AnaSahne({
           )}
         </div>
       </div>
+
+      {/* SpectatorPanel — only during active playing state */}
+      {room.status === "active" && (
+        <SpectatorPanel
+          roomId={room.id}
+          userId={user?.id}
+          username={
+            user?.user_metadata?.username ||
+            user?.user_metadata?.full_name ||
+            user?.email?.split("@")[0]
+          }
+        />
+      )}
     </div>
   );
 }

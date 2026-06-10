@@ -81,6 +81,46 @@
     --shadow-elegant: 0 20px 60px -20px hsl(0 0% 0% / 0.6);
     --shadow-card: 0 1px 0 hsl(0 0% 100% / 0.04) inset, 0 8px 32px hsl(0 0% 0% / 0.4);
   }
+
+  .terminal {
+    --background: 220 30% 7%;
+    --foreground: 210 20% 82%;
+    --card: 220 23% 10%;
+    --card-foreground: 210 20% 82%;
+    --popover: 220 23% 10%;
+    --popover-foreground: 210 20% 82%;
+    --primary: 212 100% 67%;
+    --primary-foreground: 220 30% 7%;
+    --primary-glow: 212 100% 75%;
+    --secondary: 215 9% 15%;
+    --secondary-foreground: 210 20% 82%;
+    --muted: 215 9% 15%;
+    --muted-foreground: 210 20% 65%;
+    --accent: 213 7% 21%;
+    --accent-foreground: 210 20% 82%;
+    --destructive: 356 92% 63%;
+    --destructive-foreground: 220 30% 7%;
+    --bull: 137 49% 47%;
+    --bull-foreground: 220 30% 7%;
+    --bear: 356 92% 63%;
+    --bear-foreground: 220 30% 7%;
+    --border: 213 7% 21%;
+    --input: 213 7% 16%;
+    --ring: 212 100% 67%;
+    --radius: 0.625rem;
+
+    --gradient-primary: linear-gradient(135deg, hsl(212 100% 67%), hsl(190 100% 60%));
+    --gradient-bull: linear-gradient(135deg, hsl(137 49% 47%), hsl(160 60% 45%));
+    --gradient-bear: linear-gradient(135deg, hsl(356 92% 63%), hsl(10 70% 58%));
+    --gradient-surface: linear-gradient(180deg, hsl(220 23% 11% / 0.92), hsl(220 30% 7% / 0.86));
+    --gradient-mesh:
+      radial-gradient(at 15% 10%, hsl(212 100% 67% / 0.12), transparent 45%),
+      radial-gradient(at 85% 90%, hsl(268 80% 72% / 0.08), transparent 50%),
+      radial-gradient(at 50% 50%, hsl(190 100% 60% / 0.05), transparent 65%);
+    --shadow-glow: 0 0 40px hsl(212 100% 67% / 0.22);
+    --shadow-elegant: 0 0 0 1px hsl(213 7% 21% / 0.7), 0 20px 60px hsl(0 0% 0% / 0.45);
+    --shadow-card: 0 0 0 1px hsl(213 7% 21% / 0.8), 0 8px 32px hsl(0 0% 0% / 0.35);
+  }
 }
 
 @layer base {
@@ -115,4 +155,9 @@
   .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
   .scrollbar-thin::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 3px; }
   .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+}
+
+@keyframes float-up {
+  0% { transform: translateY(0) scale(1); opacity: 0.8; }
+  100% { transform: translateY(-80px) scale(0.5); opacity: 0; }
 }

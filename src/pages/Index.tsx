@@ -9,7 +9,7 @@ import SymbolList from "@/components/trading/SymbolList";
 import ChartPanel from "@/components/trading/ChartPanel";
 import AccountAIPanel from "@/components/trading/AccountAIPanel";
 import OpenPositionsPanel from "@/components/trading/OpenPositionsPanel";
-import AnaSahne from "@/components/AnaSahne";
+import { AnaSahne } from "@/components/AnaSahne";
 import { useAnaSahne } from "@/hooks/useAnaSahne";
 import { ArrowRight, BarChart3, Brain, Globe } from "lucide-react";
 
