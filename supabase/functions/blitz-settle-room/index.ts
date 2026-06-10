@@ -10,109 +10,195 @@ const corsHeaders = {
 
 const PLATFORM_FEE_PCT = 0.05; // FAZ 4 raporları için kayıt; ödül net dağıtılır
 
-async function settleRoom(admin: any, roomId: string): Promise<{ ok: boolean; reason?: string }> {
-  // Atomik: status'u 'active'ten 'settling'e çevir (race koruması)
-  const { data: locked } = await admin.from("blitz_rooms")
-    .update({ status: "settling" })
-    .eq("id", roomId).eq("status", "active")
-    .select().maybeSingle();
-  if (!locked) return { ok: false, reason: "already_settled_or_inactive" };
+async function settleRoom(admin: any, roomId: string): Promise<{ ok: boolean; reason?: string; error?: string }> {
+  const idempotencyKey = `${roomId}:edge_function`;
 
-  const room = locked;
-  const { data: participants } = await admin.from("blitz_participants").select("*").eq("room_id", roomId);
-  if (!participants || participants.length === 0) {
-    await admin.from("blitz_rooms").update({ status: "finished" }).eq("id", roomId);
-    return { ok: true, reason: "no_participants" };
+  // Acquire advisory lock (same hash as DB trigger uses via make_advisory_lock_key())
+  const { data: lockKey } = await admin.rpc("make_advisory_lock_key", { p_room_id: roomId });
+  const { data: lockAcquired, error: lockErr1 } = await admin.rpc("try_advisory_lock", {
+    p_key: lockKey,
+  });
+  if (lockErr1) return { ok: false, error: lockErr1.message };
+  if (lockAcquired === false) {
+    return { ok: true, reason: "locked_by_other_session" };
   }
 
-  // Son fiyat
-  let priceRaw: string | null = await redis.get(`blitz:price:${room.symbol}`);
-  if (!priceRaw) {
-    const { data: pc } = await admin.from("price_cache").select("price").eq("symbol", room.symbol).single();
-    priceRaw = pc ? String(pc.price) : null;
-  }
-  const lastPrice = priceRaw ? Number(priceRaw) : Number(room.start_price ?? 0);
+  const { data: lockResult, error: lockErr } = await admin.rpc("lock_and_validate_room", {
+    p_room_id: roomId,
+    p_idempotency_key: idempotencyKey,
+  });
+  if (lockErr) return { ok: false, error: lockErr.message };
+  if (!lockResult) return { ok: false, error: "No response from lock_and_validate_room" };
+  if (lockResult.already_settled) return { ok: true, reason: "already_settled" };
+  if (lockResult.error) return { ok: false, error: lockResult.error };
 
-  // Açık pozisyonları liquidate
-  const { data: openOrders } = await admin.from("blitz_orders")
-    .select("*").eq("room_id", roomId).is("closed_at", null);
-  const nowIso = new Date().toISOString();
-  for (const o of openOrders ?? []) {
-    const dir = o.side === "long" ? 1 : -1;
-    const pnl = +(((lastPrice - Number(o.entry_price)) / Number(o.entry_price)) * Number(o.amount) * dir).toFixed(6);
-    await admin.from("blitz_orders").update({ closed_at: nowIso, exit_price: lastPrice, pnl }).eq("id", o.id);
-  }
+  const room = {
+    symbol: lockResult.symbol,
+    start_price: lockResult.start_price,
+    entry_fee: lockResult.entry_fee,
+    pot: lockResult.pot,
+  };
 
-  // Her katılımcının toplam PnL'i
-  const userPnl: Record<string, number> = {};
-  for (const p of participants) userPnl[p.user_id] = 0;
-  const { data: allOrders } = await admin.from("blitz_orders").select("user_id,pnl").eq("room_id", roomId);
-  for (const o of allOrders ?? []) {
-    if (o.pnl != null) userPnl[o.user_id] = (userPnl[o.user_id] ?? 0) + Number(o.pnl);
-  }
+  await admin.rpc("log_observability", {
+    p_service: "settlement",
+    p_event: "settle_start",
+    p_level: "info",
+    p_room_id: roomId,
+    p_metadata: { symbol: room.symbol },
+  }).catch(() => {});
 
-  // Sıralama
-  const ranking = Object.entries(userPnl).sort((a, b) => b[1] - a[1]);
-  const winnerId = ranking.length > 0 && ranking[0][1] > (ranking[1]?.[1] ?? -Infinity) ? ranking[0][0] : null;
-
-  const entryFee = Number(room.entry_fee);
-  const pot = entryFee * participants.length;
-  const fee = +(pot * PLATFORM_FEE_PCT).toFixed(4);
-  const prize = +(pot - fee).toFixed(4);
-
-  // Katılımcı sonuçlarını yaz + bakiyeleri güncelle
-  for (let i = 0; i < ranking.length; i++) {
-    const [uid, pnl] = ranking[i];
-    const rank = i + 1;
-    await admin.from("blitz_participants").update({
-      final_pnl: pnl, rank, final_balance: 0,
-    }).eq("room_id", roomId).eq("user_id", uid);
-
-    // Bakiye: önce kilitlenmiş entry_fee'yi çöz, sonra kazananın ödülü ekle
-    const { data: prof } = await admin.from("profiles").select("real_balance, real_balance_locked").eq("id", uid).single();
-    if (!prof) continue;
-    const newLocked = Math.max(0, Number(prof.real_balance_locked) - entryFee);
-    let newBalance = Number(prof.real_balance) - entryFee; // entry fee düş
-    if (winnerId && uid === winnerId) {
-      newBalance += prize; // bütün havuzun net'i kazanana
+  try {
+    const { data: participants } = await admin.from("blitz_participants").select("*").eq("room_id", roomId);
+    if (!participants || participants.length === 0) {
+      await admin.from("blitz_rooms").update({ status: "finished" }).eq("id", roomId);
+      return { ok: true, reason: "no_participants" };
     }
-    await admin.from("profiles").update({
-      real_balance: +newBalance.toFixed(4),
-      real_balance_locked: +newLocked.toFixed(4),
-    }).eq("id", uid);
 
-    // Bildirim
-    await admin.from("notifications").insert({
-      user_id: uid,
-      type: "blitz_result",
-      title: winnerId === uid ? `🏆 Blitz Kazandın!` : (winnerId ? `Blitz: Kaybettin` : `Blitz: Berabere`),
-      body: winnerId === uid ? `+${prize.toFixed(2)}$ kazandın (${room.symbol})` : `${room.symbol} • PnL ${pnl >= 0 ? "+" : ""}${pnl.toFixed(4)}`,
-      link: `/blitz/${roomId}`,
-      metadata: { room_id: roomId, pnl, won: winnerId === uid },
-    });
-  }
+    let priceRaw: string | null = await redis.get(`blitz:price:${room.symbol}`);
+    if (!priceRaw) {
+      const { data: pc } = await admin.from("price_cache").select("price").eq("symbol", room.symbol).single();
+      priceRaw = pc ? String(pc.price) : null;
+    }
+    const lastPrice = priceRaw ? Number(priceRaw) : Number(room.start_price ?? 0);
 
-  await admin.from("blitz_rooms").update({
-    status: "finished",
-    winner_id: winnerId,
-    pot,
-    fee_collected: fee,
-  }).eq("id", roomId);
+    const { data: openOrders } = await admin.from("blitz_orders")
+      .select("*").eq("room_id", roomId).is("closed_at", null);
+    const nowIso = new Date().toISOString();
+    for (const o of openOrders ?? []) {
+      const dir = o.side === "long" ? 1 : -1;
+      const pnl = +(((lastPrice - Number(o.entry_price)) / Number(o.entry_price)) * Number(o.amount) * dir).toFixed(6);
+      await admin.from("blitz_orders").update({ closed_at: nowIso, exit_price: lastPrice, pnl }).eq("id", o.id);
+    }
 
-  // FAZ 4: Platform geliri kaydı (status sadece bir kez 'settling'e döndüğü için idempotent)
-  if (fee > 0) {
-    await admin.from("platform_revenue").insert({
-      source: "blitz",
+    const userPnl: Record<string, number> = {};
+    for (const p of participants) userPnl[p.user_id] = 0;
+    const { data: allOrders } = await admin.from("blitz_orders").select("user_id,pnl").eq("room_id", roomId);
+    for (const o of allOrders ?? []) {
+      if (o.pnl != null) userPnl[o.user_id] = (userPnl[o.user_id] ?? 0) + Number(o.pnl);
+    }
+
+    const ranking = Object.entries(userPnl).sort((a, b) => b[1] - a[1]);
+    const winnerId = ranking.length > 0 && ranking[0][1] > (ranking[1]?.[1] ?? -Infinity) ? ranking[0][0] : null;
+
+    const entryFee = Number(room.entry_fee);
+    const pot = entryFee * participants.length;
+    const fee = +(pot * PLATFORM_FEE_PCT).toFixed(4);
+    const prize = +(pot - fee).toFixed(4);
+
+    for (let i = 0; i < ranking.length; i++) {
+      const [uid, pnl] = ranking[i];
+      const rank = i + 1;
+      await admin.from("blitz_participants").update({
+        final_pnl: pnl, rank, final_balance: 0,
+      }).eq("room_id", roomId).eq("user_id", uid);
+
+      const { data: prof } = await admin.from("profiles").select("real_balance, real_balance_locked").eq("id", uid).single();
+      if (!prof) continue;
+      const newLocked = Math.max(0, Number(prof.real_balance_locked) - entryFee);
+      let newBalance = Number(prof.real_balance) - entryFee;
+      if (winnerId && uid === winnerId) {
+        newBalance += prize;
+      }
+      await admin.from("profiles").update({
+        real_balance: +newBalance.toFixed(4),
+        real_balance_locked: +newLocked.toFixed(4),
+      }).eq("id", uid);
+
+      await admin.from("notifications").insert({
+        user_id: uid,
+        type: "blitz_result",
+        title: winnerId === uid ? `🏆 Blitz Kazandın!` : (winnerId ? `Blitz: Kaybettin` : `Blitz: Berabere`),
+        body: winnerId === uid ? `+${prize.toFixed(2)}$ kazandın (${room.symbol})` : `${room.symbol} • PnL ${pnl >= 0 ? "+" : ""}${pnl.toFixed(4)}`,
+        link: `/blitz/${roomId}`,
+        metadata: { room_id: roomId, pnl, won: winnerId === uid },
+      });
+    }
+
+    await admin.from("blitz_rooms").update({
+      status: "finished",
+      winner_id: winnerId,
+      pot,
+      fee_collected: fee,
+    }).eq("id", roomId);
+
+    if (fee > 0) {
+      await admin.from("platform_revenue").insert({
+        source: "blitz",
+        room_id: roomId,
+        amount: fee,
+        metadata: { symbol: room.symbol, pot, participants: participants.length, winner_id: winnerId },
+      });
+    }
+
+    await admin.from("settlement_ledger").insert({
       room_id: roomId,
-      amount: fee,
-      metadata: { symbol: room.symbol, pot, participants: participants.length, winner_id: winnerId },
+      idempotency_key: idempotencyKey,
+      settlement_type: "edge_function",
+      winner_id: winnerId,
+      prize_amount: prize,
+      fee_collected: fee,
+      pot_total: pot,
+      participant_count: ranking.length,
+      status: "completed",
+      metadata: { symbol: room.symbol, participant_count: ranking.length },
     });
+
+    await admin.from("analytics_events_staging").insert({
+      event_type: "blitz_finished",
+      room_id: roomId,
+      payload: {
+        symbol: room.symbol,
+        participant_count: ranking.length,
+        winner_id: winnerId,
+        pot_total: pot,
+        fee_collected: fee,
+      },
+    }).catch(() => {});
+
+    if (winnerId) {
+      await admin.from("analytics_events_staging").insert({
+        event_type: "payout_completed",
+        room_id: roomId,
+        user_id: winnerId,
+        payload: { prize_amount: prize, symbol: room.symbol },
+      }).catch(() => {});
+    }
+
+    await redis.del(`blitz:room:${roomId}`, `blitz:room:${roomId}:users`, `blitz:room:${roomId}:positions`);
+
+    await admin.rpc("log_observability", {
+      p_service: "settlement",
+      p_event: "settle_complete",
+      p_level: "info",
+      p_room_id: roomId,
+      p_metadata: { winner_id: winnerId, prize, participant_count: ranking.length },
+    }).catch(() => {});
+
+    return { ok: true };
+  } catch (e) {
+    await admin.from("settlement_ledger").insert({
+      room_id: roomId,
+      idempotency_key: idempotencyKey,
+      settlement_type: "edge_function",
+      prize_amount: 0,
+      fee_collected: 0,
+      pot_total: 0,
+      participant_count: 1,
+      status: "failed",
+      error_message: e.message,
+      metadata: { symbol: room.symbol, error: e.message },
+    }).catch(() => {});
+
+    await admin.rpc("log_observability", {
+      p_service: "settlement",
+      p_event: "settle_failed",
+      p_level: "error",
+      p_room_id: roomId,
+      p_metadata: { error: e.message },
+    }).catch(() => {});
+
+    throw e;
   }
-
-  // Redis temizliği
-  await redis.del(`blitz:room:${roomId}`, `blitz:room:${roomId}:users`, `blitz:room:${roomId}:positions`);
-
-  return { ok: true };
 }
 
 
