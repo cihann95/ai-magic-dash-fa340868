@@ -79,7 +79,7 @@ export function useSpectatorBroadcast({
 
     const channelName = `spectator:${roomId}`;
     const channel = supabase.channel(channelName, {
-      config: { broadcast: { ack: false, selfEcho: true } },
+      config: { broadcast: { ack: false, self: true } },
     });
 
     channel

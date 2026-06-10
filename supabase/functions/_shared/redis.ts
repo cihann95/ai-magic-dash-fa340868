@@ -1,73 +1,82 @@
-// Upstash Redis REST client (lightweight, no deps)
-// Tüm Blitz edge functions tarafından paylaşılır.
+// Upstash Redis adapter — thin wrapper over the official @upstash/redis
+// HTTP client. REST-based → no persistent TCP sockets → zero connection
+// leaks across Deno cold starts. Public API preserved so existing call
+// sites do not change.
+import { Redis } from "https://esm.sh/@upstash/redis@1.34.3";
+
 const URL = Deno.env.get("UPSTASH_REDIS_REST_URL");
 const TOKEN = Deno.env.get("UPSTASH_REDIS_REST_TOKEN");
 
 export const redisEnabled = !!(URL && TOKEN);
 
-async function call(command: (string | number)[]): Promise<any> {
-  if (!redisEnabled) return null;
-  const r = await fetch(URL!, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${TOKEN}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(command),
-  });
-  if (!r.ok) {
-    console.error("redis error", r.status, await r.text());
-    return null;
-  }
-  const data = await r.json();
-  return data.result;
-}
+const client: Redis | null = redisEnabled
+  ? new Redis({ url: URL!, token: TOKEN!, automaticDeserialization: false })
+  : null;
 
-async function pipeline(commands: (string | number)[][]): Promise<any[]> {
-  if (!redisEnabled) return [];
-  const r = await fetch(`${URL!}/pipeline`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${TOKEN}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(commands),
-  });
-  if (!r.ok) {
-    console.error("redis pipeline error", r.status, await r.text());
-    return [];
+async function safe<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
+  if (!client) return fallback;
+  try {
+    return await fn();
+  } catch (e) {
+    console.error("redis error", (e as Error).message);
+    return fallback;
   }
-  const data = await r.json();
-  return data.map((x: any) => x.result);
 }
 
 export const redis = {
   set: (k: string, v: string | number, ttl?: number) =>
-    ttl ? call(["SET", k, v, "EX", ttl]) : call(["SET", k, v]),
-  get: (k: string) => call(["GET", k]),
-  del: (...keys: string[]) => call(["DEL", ...keys]),
-  hset: (k: string, field: string, v: string | number) => call(["HSET", k, field, v]),
+    safe(
+      () => ttl ? client!.set(k, String(v), { ex: ttl }) : client!.set(k, String(v)),
+      null,
+    ),
+  // SETNX with TTL — returns true if key was set (i.e. not previously present).
+  setNxEx: async (k: string, v: string, ttl: number): Promise<boolean> => {
+    if (!client) return true; // fail-open when redis disabled
+    try {
+      const res = await client.set(k, v, { ex: ttl, nx: true });
+      return res === "OK";
+    } catch (e) {
+      console.error("redis setNxEx error", (e as Error).message);
+      return true;
+    }
+  },
+  get: (k: string) => safe(() => client!.get<string>(k), null as string | null),
+  del: (...keys: string[]) =>
+    safe(() => client!.del(...keys) as Promise<number>, 0),
+  hset: (k: string, field: string, v: string | number) =>
+    safe(() => client!.hset(k, { [field]: String(v) }), 0),
   hsetAll: (k: string, obj: Record<string, string | number>) => {
-    const args: (string | number)[] = ["HSET", k];
-    for (const [f, v] of Object.entries(obj)) args.push(f, v);
-    return call(args);
+    const stringified: Record<string, string> = {};
+    for (const [f, v] of Object.entries(obj)) stringified[f] = String(v);
+    return safe(() => client!.hset(k, stringified), 0);
   },
-  hget: (k: string, field: string) => call(["HGET", k, field]),
+  hget: (k: string, field: string) =>
+    safe(() => client!.hget<string>(k, field), null as string | null),
   hgetall: async (k: string): Promise<Record<string, string>> => {
-    const res = await call(["HGETALL", k]);
-    if (!res || !Array.isArray(res)) return {};
-    const out: Record<string, string> = {};
-    for (let i = 0; i < res.length; i += 2) out[res[i]] = res[i + 1];
-    return out;
+    if (!client) return {};
+    try {
+      const res = await client.hgetall<Record<string, string>>(k);
+      return res ?? {};
+    } catch {
+      return {};
+    }
   },
-  hdel: (k: string, ...fields: string[]) => call(["HDEL", k, ...fields]),
-  sadd: (k: string, ...members: string[]) => call(["SADD", k, ...members]),
-  smembers: (k: string) => call(["SMEMBERS", k]),
-  srem: (k: string, ...members: string[]) => call(["SREM", k, ...members]),
-  rpush: (k: string, ...values: string[]) => call(["RPUSH", k, ...values]),
-  lpop: (k: string) => call(["LPOP", k]),
-  lrem: (k: string, count: number, value: string) => call(["LREM", k, count, value]),
-  lrange: (k: string, start: number, stop: number) => call(["LRANGE", k, start, stop]),
-  expire: (k: string, seconds: number) => call(["EXPIRE", k, seconds]),
-  pipeline,
+  hdel: (k: string, ...fields: string[]) =>
+    safe(() => client!.hdel(k, ...fields), 0),
+  sadd: (k: string, ...members: string[]) =>
+    safe(() => client!.sadd(k, ...members), 0),
+  smembers: (k: string) =>
+    safe(() => client!.smembers(k) as Promise<string[]>, [] as string[]),
+  srem: (k: string, ...members: string[]) =>
+    safe(() => client!.srem(k, ...members), 0),
+  rpush: (k: string, ...values: string[]) =>
+    safe(() => client!.rpush(k, ...values), 0),
+  lpop: (k: string) =>
+    safe(() => client!.lpop<string>(k), null as string | null),
+  lrem: (k: string, count: number, value: string) =>
+    safe(() => client!.lrem(k, count, value), 0),
+  lrange: (k: string, start: number, stop: number) =>
+    safe(() => client!.lrange(k, start, stop) as Promise<string[]>, [] as string[]),
+  expire: (k: string, seconds: number) =>
+    safe(() => client!.expire(k, seconds), 0),
 };
