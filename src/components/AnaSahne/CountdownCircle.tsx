@@ -26,8 +26,8 @@ export default function CountdownCircle({
   // Color tiers: green (>30s), yellow (10-30s), red (<10s)
   const getColor = () => {
     if (showInactive || isLoading) return "#6b7280";
-    if (timeLeft > 30) return "#22c55e";
-    if (timeLeft > 10) return "#eab308";
+    if ((timeLeft ?? 0) > 30) return "#22c55e";
+    if ((timeLeft ?? 0) > 10) return "#eab308";
     return "#ef4444";
   };
 
@@ -44,8 +44,9 @@ export default function CountdownCircle({
   } else if (isLoading) {
     label = "";
   } else {
-    const mins = Math.floor(timeLeft / 60);
-    const secs = Math.floor(timeLeft % 60);
+    const t = timeLeft ?? 0;
+    const mins = Math.floor(t / 60);
+    const secs = Math.floor(t % 60);
     label = `${mins}:${secs.toString().padStart(2, "0")}`;
   }
 

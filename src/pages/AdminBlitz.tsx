@@ -44,7 +44,7 @@ export default function AdminBlitz() {
       supabase.from("platform_revenue_daily" as keyof Database["public"]["Tables"]).select("*").limit(30),
       supabase.from("platform_revenue").select("*").order("created_at", { ascending: false }).limit(50),
     ]).then(([d, r]) => {
-      setDaily((d.data as DailyRow[]) ?? []);
+      setDaily((d.data as unknown as DailyRow[]) ?? []);
       setRecent((r.data as RevenueRow[]) ?? []);
       setLoading(false);
     });

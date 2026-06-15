@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import AppShell from "@/components/AppShell";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { supabase } from "@/integrations/supabase/client";
-import type { Json } from "@/integrations/supabase/types";
+import type { Database, Json } from "@/integrations/supabase/types";
 import { useApp } from "@/contexts/AppContext";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -135,12 +135,12 @@ function CoachInner() {
                       </div>
                       <h3 className="font-semibold mb-1">{it.title}</h3>
                       <p className="text-sm text-muted-foreground">{it.body}</p>
-                      {it.metadata?.stats && (
+                      {it.metadata && typeof it.metadata === 'object' && 'stats' in it.metadata && it.metadata.stats && (
                         <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
-                          <Stat label={lang === "tr" ? "İşlem" : "Trades"} value={it.metadata.stats.totalTrades} />
-                          <Stat label={lang === "tr" ? "Kazanç %" : "Win %"} value={it.metadata.stats.winRate} />
-                          <Stat label="P&L" value={`$${it.metadata.stats.totalPnl}`} />
-                          <Stat label={lang === "tr" ? "W/L Oranı" : "W/L Ratio"} value={it.metadata.stats.winLossRatio} />
+                          <Stat label={lang === "tr" ? "İşlem" : "Trades"} value={(it.metadata.stats as Record<string, unknown>).totalTrades as React.ReactNode} />
+                          <Stat label={lang === "tr" ? "Kazanç %" : "Win %"} value={(it.metadata.stats as Record<string, unknown>).winRate as React.ReactNode} />
+                          <Stat label="P&L" value={`$${(it.metadata.stats as Record<string, unknown>).totalPnl}`} />
+                          <Stat label={lang === "tr" ? "W/L Oranı" : "W/L Ratio"} value={(it.metadata.stats as Record<string, unknown>).winLossRatio as React.ReactNode} />
                         </div>
                       )}
                     </div>
