@@ -37,7 +37,9 @@
 ### T5.6 - Page Tests Partially Written
 - **Issue**: Only Portfolio.test.tsx created, missing Settings, Blitz, Index tests
 - **Impact**: Medium - incomplete regression protection
-- **Status**: PARTIAL COMPLETED - needs remaining 3 page tests
+- **Status**: PARTIAL COMPLETED - Portfolio fixed and passing (3/3 tests)
+- **Root causes fixed**: Named vs default import mismatch, vi.mock hoisting, mockReturnThis() in mockImplementation, restoreAllMocks destroying vi.hoisted() implementations, async waitFor targeting static text
+- **Remaining**: Settings, Blitz, Index tests still needed
 
 ### Known Limitations
 1. **No CD pipeline**: Only CI exists, deployment is manual

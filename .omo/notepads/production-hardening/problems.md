@@ -29,8 +29,7 @@
 ### T5.1 - No Documentation
 - **Problem**: README.md is placeholder
 - **Impact**: Low - developers can't onboard
-- **Status**: Ready to write (T0.1 synthesis complete)
-- **Next**: T5.1 will write comprehensive README
+- **Status**: COMPLETED - comprehensive README.md written (331 lines)
 
 ### T5.2 - Lint Errors
 - **Problem**: Unused imports in `useAnaSahne.ts`
@@ -41,14 +40,12 @@
 ### T5.3 - Large Bundle Size
 - **Problem**: Main chunk > 1.3MB (Recharts)
 - **Impact**: Medium - slow initial load
-- **Status**: Ready to optimize
-- **Next**: T5.3 will add dynamic imports
+- **Status**: COMPLETED - Recharts dynamic import, 1.34MB → 1.02MB (23.8% reduction)
 
 ### T5.4 - No Coverage Report
 - **Problem**: Unknown test coverage percentage
 - **Impact**: Low - can't measure improvement
-- **Status**: Ready to configure
-- **Next**: T5.4 will add vitest coverage
+- **Status**: COMPLETED - vitest coverage configured (v8 provider, 45.18% statements)
 
 ### T5.5 - Type Sync Drift Risk
 - **Problem**: `types.extra.ts` manual, may drift from auto-generated types
@@ -59,8 +56,8 @@
 ### T5.6 - No Page Tests
 - **Problem**: Portfolio, Settings, Blitz, Index pages untested
 - **Impact**: Medium - no regression protection
-- **Status**: PARTIAL - Portfolio.test.tsx created, Settings/Blitz/Index still missing
-- **Next**: Complete remaining 3 page tests
+- **Status**: PARTIAL - Portfolio.test.tsx fixed and passing (3/3 tests), Settings/Blitz/Index still missing
+- **Root causes fixed**: Named vs default import mismatch, vi.mock hoisting with vi.hoisted(), mockReturnThis() in mockImplementation, restoreAllMocks destroying vi.hoisted() implementations, async waitFor targeting static text
 
 ### T5.7 - Test File Organization
 - **Problem**: Test files scattered, not in `__tests__/`

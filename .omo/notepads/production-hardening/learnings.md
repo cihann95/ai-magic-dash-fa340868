@@ -82,10 +82,16 @@
 - Removed unused imports in `src/hooks/useAnaSahne.ts`
 - ESLint now passes with 0 errors (only warnings from coverage dir and react-hooks/exhaustive-deps)
 
-### T5.6 - Page Tests (Partial)
-- Only Portfolio.test.tsx created (not Settings, Blitz, Index)
-- Test file uses React Testing Library with mocked Supabase and recharts
-- Test infrastructure (test-utils.tsx) created for shared test utilities
+### T5.6 - Page Tests (Portfolio fixed)
+- Portfolio.test.tsx fixed and passing (3/3 tests)
+- Root causes found and resolved:
+  - Named import `{ Portfolio }` vs default export → use `import Portfolio from`
+  - `vi.mock()` hoisting: must use `vi.hoisted()` for mock objects referenced inside `vi.mock()` factories
+  - `mockReturnThis()` fails inside `mockImplementation` — use explicit chain objects with `mockReturnValue(chain)`
+  - `cleanupGlobalMocks()` calls `vi.restoreAllMocks()` which destroys `vi.fn()` implementations from `vi.hoisted()`
+  - `waitFor` must target async data-dependent text, not static labels
+- Settings, Blitz, Index tests still missing (deferred to T5.7)
+- Full test suite: 52/52 passing across 7 test files
 
 ### Decisions
 - Use Upstash Redis for rate limiting (serverless, pay-per-request)
