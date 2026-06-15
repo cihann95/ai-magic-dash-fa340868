@@ -1,0 +1,30 @@
+T5.6 — Page Unit Tests for Settings, Blitz, Index
+=====================================================
+
+Date: 2026-06-15
+Status: PASS
+
+Files Created:
+- src/pages/__tests__/Settings.test.tsx (1 test)
+- src/pages/__tests__/Blitz.test.tsx (1 test)
+- src/pages/__tests__/Index.test.tsx (1 test)
+
+Test Results (npx vitest run):
+- 10 test files passed
+- 55 tests total passed
+- 0 failures
+
+New tests:
+- Settings: "renders settings heading" — verifies "Ayarlar" heading renders
+- Blitz: "renders Blitz Arena heading" — verifies h1 contains "Blitz" and "Arena"
+- Index: "renders hero title for logged-out users" — verifies h1 contains "Akıllı" and "Paneli"
+
+Key learnings applied:
+- Used vi.hoisted() for mock objects referenced inside vi.mock() factories
+- Used vi.unstubAllGlobals() + cleanup() in afterEach (NOT cleanupGlobalMocks which destroys hoisted mocks)
+- Used getByRole("heading") for split-text assertions (Blitz Arena, Akıllı İşlem Paneli)
+- Mocked pushSubscribe module for Settings (imports supabase internally)
+- Mocked trading components and feature-flags for Index (logged-out view)
+- Set supabase.auth.getSession to return null session for Index (logged-out view)
+
+Commit: 70aa403 test(pages): add unit tests for Settings, Blitz, Index pages
