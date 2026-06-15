@@ -55,6 +55,20 @@ jobs:
       - run: npm ci
       - run: npx vitest run -c supabase/functions/__tests__/vitest.config.ts
 
+  # ─── Blitz Types Sync Check ────────────────────────────────────────────────
+  blitz-types-sync:
+    name: Blitz Types Sync Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+      - run: npx tsx scripts/blitz-types-sync.ts
+
   # ─── Hard Technical Audit (Crash Tests) ─────────────────────────────────────
   crash-test:
     name: Hard Technical Audit
