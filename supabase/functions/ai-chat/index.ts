@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { rateLimit } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,6 +19,9 @@ Deno.serve(async (req) => {
     const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!);
     const { data: u, error: ue } = await sb.auth.getUser(authHeader.replace("Bearer ", ""));
     if (ue || !u.user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+    const rlResponse = await rateLimit(u.user.id, "ai-chat");
+    if (rlResponse) return rlResponse;
 
     const body = await req.json().catch(() => ({}));
     const { messages, language = "tr", context_symbol } = body ?? {};

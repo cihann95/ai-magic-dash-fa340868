@@ -2,6 +2,7 @@
 // Modlar: 'quick' (public FIFO kuyruk), 'create_private' (davet kodu üretir), 'cancel' (kuyruktan çıkar).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { redis } from "../_shared/redis.ts";
+import { rateLimit } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -106,6 +107,9 @@ Deno.serve(async (req) => {
       status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
+
+  const rlResponse = await rateLimit(user.id, "blitz-matchmake");
+  if (rlResponse) return rlResponse;
 
   // Inline cleanup: release balances for stale waiting rooms
   await releaseStaleBalances(admin);

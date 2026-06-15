@@ -3,6 +3,7 @@
 // Trade tamamlandığında copy-trader'lara fan-out yapar.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import type { Admin } from "../_shared/blitz-types.ts";
+import { rateLimit } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -142,6 +143,18 @@ async function executeOne(admin: Admin, userId: string, body: TradeRequest, opts
   if (position_id) {
     const { data: pos } = await admin.from("positions").select("*").eq("id", position_id).eq("user_id", userId).single();
     if (!pos) return { ok: false as const, error: "Pozisyon bulunamadı" };
+    if (pos.closed_at !== null) return { ok: false as const, error: "Pozisyon zaten kapatılmış" };
+
+    // Race condition fix: atomik optimistic lock via closed_at
+    // Birden fazla eş zamanlı istek.closed_at'i aynı anda set edemez —
+    // sadece biri başarılı olur, diğerleri 0 satır etkilenir.
+    const { error: lockErr } = await admin.from("positions")
+      .update({ closed_at: new Date().toISOString() })
+      .eq("id", position_id)
+      .eq("user_id", userId)
+      .is("closed_at", null);
+    if (lockErr) return { ok: false as const, error: "Pozisyon kapatılamadı (race condition)" };
+
     action = "close";
     const entry = Number(pos.entry_price);
     const qty = Number(pos.quantity);
@@ -349,6 +362,9 @@ Deno.serve(async (req) => {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const rlResponse = await rateLimit(user.id, "execute-trade");
+    if (rlResponse) return rlResponse;
 
     const parsedBody = parsePublicTradeRequest(await req.json().catch(() => null));
     if (!parsedBody.ok) {

@@ -6,6 +6,7 @@
 // ──────────────────────────────────────────────────────────────────
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { redis } from "../_shared/redis.ts";
+import { rateLimit } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -39,6 +40,9 @@ Deno.serve(async (req) => {
   const { data: userRes } = await admin.auth.getUser(token);
   const user = userRes?.user;
   if (!user) return jsonResp({ error: "Unauthorized" }, 401);
+
+  const rlResponse = await rateLimit(user.id, "blitz-tick-order");
+  if (rlResponse) return rlResponse;
 
   // ── CRSH-003: server-time freshness guard ───────────────────────────
   // Reject requests whose client-sent timestamp drifts > 150 ms from

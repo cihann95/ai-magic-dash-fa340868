@@ -1,5 +1,6 @@
 // AI strateji önerileri - kullanıcının portföy dengesine göre
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { rateLimit } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,6 +18,9 @@ Deno.serve(async (req) => {
     const { data: userData } = await sb.auth.getUser(authHeader.replace("Bearer ", ""));
     const user = userData.user;
     if (!user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+
+    const rlResponse = await rateLimit(user.id, "ai-strategy");
+    if (rlResponse) return rlResponse;
 
     const { language = "tr" } = await req.json().catch(() => ({}));
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);

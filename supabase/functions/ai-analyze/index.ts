@@ -1,26 +1,31 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { rateLimit } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-async function requireUser(req: Request): Promise<Response | null> {
+async function requireUser(req: Request): Promise<{ response: Response | null; userId: string | null }> {
   const authHeader = req.headers.get("Authorization");
-  if (!authHeader) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  if (!authHeader) return { response: new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }), userId: null };
   const token = authHeader.replace("Bearer ", "");
   const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!);
   const { data, error } = await sb.auth.getUser(token);
-  if (error || !data.user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-  return null;
+  if (error || !data.user) return { response: new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }), userId: null };
+  return { response: null, userId: data.user.id };
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const unauthorized = await requireUser(req);
+    const { response: unauthorized, userId } = await requireUser(req);
     if (unauthorized) return unauthorized;
+
+    const rlResponse = await rateLimit(userId!, "ai-analyze");
+    if (rlResponse) return rlResponse;
+
     const { symbol, asset_class, language = "tr" } = await req.json().catch(() => ({}));
     if (typeof symbol !== "string" || !/^[A-Z0-9.-]{1,16}$/.test(symbol)) {
       return new Response(JSON.stringify({ error: "Geçersiz sembol" }), {

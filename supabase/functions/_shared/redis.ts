@@ -79,4 +79,18 @@ export const redis = {
     safe(() => client!.lrange(k, start, stop) as Promise<string[]>, [] as string[]),
   expire: (k: string, seconds: number) =>
     safe(() => client!.expire(k, seconds), 0),
+  // Sorted set operations (for rate limiting, leaderboards, etc.)
+  zadd: (k: string, score: number, member: string) =>
+    safe(() => client!.zadd(k, { score, member }), 0),
+  zremrangebyscore: (k: string, min: number, max: number) =>
+    safe(() => client!.zremrangebyscore(k, min, max), 0),
+  zcard: (k: string) =>
+    safe(() => client!.zcard(k), 0),
+  zrange: (k: string, start: number, stop: number, opts?: { withScores?: boolean }) =>
+    safe(
+      () => opts?.withScores
+        ? client!.zrangeWithScores(k, start, stop) as Promise<Array<{ score: number; member: string }>>
+        : client!.zrange(k, start, stop) as Promise<string[]>,
+      opts?.withScores ? [] as Array<{ score: number; member: string }> : [] as string[],
+    ),
 };

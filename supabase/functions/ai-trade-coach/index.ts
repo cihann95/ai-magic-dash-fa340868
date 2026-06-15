@@ -4,6 +4,7 @@
 // Tetikleme: Manuel (UI'dan) veya cron (haftalık).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import type { Admin } from "../_shared/blitz-types.ts";
+import { rateLimit } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -203,6 +204,10 @@ Deno.serve(async (req) => {
           status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+
+      const rlResponse = await rateLimit(targetUserId, "ai-trade-coach");
+      if (rlResponse) return rlResponse;
+
       const result = await processUser(admin, targetUserId);
       return new Response(JSON.stringify({ success: true, ...result }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
