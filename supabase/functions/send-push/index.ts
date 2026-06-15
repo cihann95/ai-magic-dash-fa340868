@@ -48,7 +48,7 @@ async function buildVapidJWT(audience: string): Promise<string> {
   return `${data}.${uint8ToB64url(sig)}`;
 }
 
-async function sendPush(sub: { endpoint: string; p256dh: string; auth: string }, payload: object): Promise<number> {
+async function sendPush(sub: { endpoint: string; p256dh: string; auth: string }, _payload: object): Promise<number> {
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) return 0;
   try {
     const url = new URL(sub.endpoint);

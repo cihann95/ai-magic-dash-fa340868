@@ -5,6 +5,7 @@
 // Tetiklenen alarmlar ve dolan emirler için bildirim oluşturur.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { redis, redisEnabled } from "../_shared/redis.ts";
+import type { Admin } from "../_shared/blitz-types.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -259,7 +260,7 @@ Deno.serve(async (req) => {
   }
 });
 
-async function fillOrder(admin: any, order: any, fillPrice: number) {
+async function fillOrder(admin: Admin, order: any, fillPrice: number) {
   const qty = Number(order.quantity);
   const total = +(qty * fillPrice).toFixed(2);
 

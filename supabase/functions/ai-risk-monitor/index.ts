@@ -3,6 +3,16 @@
 // Aynı kullanıcıya aynı tip uyarı son 6 saatte gönderildiyse atlanır (spam önleme).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
+interface NotificationMetadata {
+  signal?: string;
+}
+
+interface NotificationRow {
+  metadata: NotificationMetadata | null;
+  type: string;
+  created_at: string;
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -59,8 +69,8 @@ Deno.serve(async (req) => {
         .gte("created_at", cutoff);
 
       const sentSignals = new Set<string>();
-      for (const r of recent ?? []) {
-        const sig = (r.metadata as any)?.signal;
+      for (const r of (recent ?? []) as NotificationRow[]) {
+        const sig = r.metadata?.signal;
         if (sig) sentSignals.add(sig);
       }
 
