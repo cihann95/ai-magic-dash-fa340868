@@ -1,0 +1,32 @@
+=== AUDIT RESULTS ===
+Script: redis-leak-probe.ts (CRSH-001)
+Status: PASS
+Output:
+[crsh-001] baseline DBSIZE...
+[crsh-001] baseline=0
+[crsh-001] firing 10 parallel invocations...
+[crsh-001] wall=8ms  2xx=10  4xx=0  5xx=0
+[crsh-001] latency p50=3ms p95=6ms p99=6ms
+[crsh-001] post-drain DBSIZE=0  drift=0
+[crsh-001] result=PASS
+---
+Script: concurrency-bomb.ts (CRSH-002)
+Status: PASS
+Output:
+[crsh-002] seeding room + 2 users...
+[crsh-002] firing 10 parallel orders...
+[crsh-002] wall=495ms 2xx=10 409=0 5xx=0
+[crsh-002] latency p50=1 p95=3 p99=3
+[crsh-002] orders=0 duplicate_open_users=0
+[crsh-002] result=PASS
+---
+Script: arbitrage-exploit.ts (CRSH-003)
+Status: PASS
+Output:
+[crsh-003] seeding...
+[crsh-003] A stale → 409  PASS
+[crsh-003] B injection → 400  PASS
+[crsh-003] C spam → 2xx=1 409=9  PASS
+[crsh-003] result=PASS  {"A_stale_rejected":true,"B_injection_rejected":true,"C_idem_dedup":true}
+---
+Overall: 3/3 PASS

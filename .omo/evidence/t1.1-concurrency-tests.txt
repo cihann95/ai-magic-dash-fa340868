@@ -1,0 +1,14 @@
+
+ RUN  v3.2.4 /home/user/projects/ai-magic-dash-fa340868
+
+ ✓ supabase/functions/__tests__/execute-trade.test.ts (7 tests) 9ms
+ ✓ supabase/functions/__tests__/blitz-matchmake.test.ts (6 tests) 8ms
+ ✓ supabase/functions/__tests__/blitz-settle-room.test.ts (6 tests) 10ms
+ ✓ supabase/functions/__tests__/blitz-tick-order.test.ts (10 tests) 13ms
+
+ Test Files  4 passed (4)
+      Tests  29 passed (29)
+   Start at  12:06:28
+   Duration  563ms (transform 212ms, setup 0ms, collect 300ms, tests 39ms, environment 1ms, prepare 703ms)
+
+--- Test run completed at Mon Jun 15 12:06:29 +03 2026 ---
