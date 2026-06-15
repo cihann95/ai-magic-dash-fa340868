@@ -131,6 +131,13 @@
 - Staging project ID: `wufhbvshqhiiwjrvfzey`
 - **Lesson**: `deno check` type errors in third-party type definitions don't block deployment — Supabase's Deno runtime handles these correctly at runtime
 
+### T4.3 — Production Service Keys Setup Guide
+- **Sentry**: `SENTRY_DSN` declared in `.env.example` but NO SDK integration exists — `observability.ts` is console-only logger. Must add `@sentry/react` + init code before production.
+- **VAPID**: `Settings.tsx` line 17 has `VAPID_PUBLIC_KEY = ""` hardcoded — needs `import.meta.env.VITE_VAPID_PUBLIC_KEY`. `VITE_VAPID_PUBLIC_KEY` missing from `.env.example` and `config.ts`.
+- **Redis**: Production-ready with fail-open pattern. No code gaps — only env var configuration needed.
+- **Total manual steps**: 10 steps, ~3.5 hrs estimated (including Sentry SDK integration)
+- **Key finding**: 2 code gaps require developer work before production (Sentry SDK integration, VAPID key injection)
+
 ### Decisions
 - Use Upstash Redis for rate limiting (serverless, pay-per-request)
 - Sliding window over fixed window for better UX
