@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import OrderTicket from "./OrderTicket";
 import AlertsPanel from "./AlertsPanel";
 import { celebrateAchievements } from "@/lib/achievements";
+import type { ExecuteTradeResponse } from "../../lib/edge-function-types";
 import AnimatedNumber from "@/components/AnimatedNumber";
 import IntentDialog from "./IntentDialog";
 import { detectSignal, recordTrade, type EmotionalSignal } from "@/hooks/useEmotionalSignal";
@@ -68,11 +69,12 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
         },
       });
       if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
-      const fillPrice = (data as any)?.price ?? price;
+      const result = data as ExecuteTradeResponse;
+      if (result?.error) throw new Error(result.error);
+      const fillPrice = result?.price ?? price;
       recordTrade(q * (fillPrice ?? 0), false);
       toast({ title: tr.trade_success, description: `${side.toUpperCase()} ${q} ${symbol.symbol} @ ${formatPrice(fillPrice)}` });
-      const ach = (data as any)?.achievements as string[] | undefined;
+      const ach = result?.achievements;
       if (ach?.length) celebrateAchievements(ach, lang);
       setIntentOpen(null);
       onTradeDone();

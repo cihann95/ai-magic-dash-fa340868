@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import type { Json } from "../integrations/supabase/types";
 import { Compass, Target, ShieldCheck, Layers, ChevronRight, Sparkles } from "lucide-react";
 
 type Persona = {
@@ -95,7 +96,7 @@ export default function PersonaOnboarding() {
   const finish = async (full: Persona) => {
     if (!user) return;
     setSaving(true);
-    await supabase.from("profiles").update({ trader_persona: full as any }).eq("id", user.id);
+    await supabase.from("profiles").update({ trader_persona: full as unknown as Json }).eq("id", user.id);
     setSaving(false);
     setOpen(false);
   };

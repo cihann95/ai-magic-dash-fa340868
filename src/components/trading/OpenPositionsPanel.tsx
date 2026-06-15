@@ -17,6 +17,7 @@ import { useLivePrices } from "@/hooks/useLivePrices";
 import { toast } from "@/hooks/use-toast";
 import { celebrateAchievements } from "@/lib/achievements";
 import { recordTrade } from "@/hooks/useEmotionalSignal";
+import type { ExecuteTradeResponse } from "../../lib/edge-function-types";
 
 interface DbPosition {
   id: string;
@@ -58,7 +59,7 @@ export default function OpenPositionsPanel({ refreshKey, onTradeDone, onSelectSy
     if (!user) return;
     setLoading(true);
     const { data } = await supabase.from("positions").select("*").eq("user_id", user.id).order("opened_at", { ascending: false });
-    setPositions((data as any) || []);
+    setPositions(data || []);
     // Fetch latest open trade metadata for TP/SL/intent
     const { data: trades } = await supabase
       .from("trades")
@@ -153,13 +154,14 @@ export default function OpenPositionsPanel({ refreshKey, onTradeDone, onSelectSy
         },
       });
       if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
+      const result = data as ExecuteTradeResponse;
+      if (result?.error) throw new Error(result.error);
       try { recordTrade(p.entry * qty, true); } catch { /* noop */ }
       toast({
         title: tr.success,
         description: `${fraction === 1 ? tr.close : (lang === "tr" ? "Kısmi kapatıldı" : "Partial close")} ${p.symbol}`,
       });
-      const ach = (data as any)?.achievements as string[] | undefined;
+      const ach = result?.achievements;
       if (ach?.length) celebrateAchievements(ach, lang);
       onTradeDone();
     } catch (e) {

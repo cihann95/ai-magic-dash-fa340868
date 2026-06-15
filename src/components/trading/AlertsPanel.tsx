@@ -66,7 +66,7 @@ export default function AlertsPanel({ symbol }: { symbol: SymbolDef }) {
         {stale && !noPrice && <span className="inline-flex items-center gap-1 text-[10px] text-yellow-600 dark:text-yellow-400"><Clock className="size-3" />{tr.stale_data}</span>}
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <Select value={direction} onValueChange={(v) => setDirection(v as any)}>
+        <Select value={direction} onValueChange={(v) => setDirection(v as "above" | "below")}>
           <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="above">{tr.price_above}</SelectItem>

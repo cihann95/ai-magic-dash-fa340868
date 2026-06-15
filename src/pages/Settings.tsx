@@ -23,7 +23,7 @@ function SettingsInner() {
   const [saving, setSaving] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [pushOn, setPushOn] = useState(false);
-  const [installPrompt, setInstallPrompt] = useState<{ prompt(): Promise<{ outcome: string }> } | null>(null);
+  const [installPrompt, setInstallPrompt] = useState<{ prompt(): Promise<{ outcome: string }>; userChoice: Promise<{ outcome: string }> } | null>(null);
 
   // Public profile state
   const [username, setUsername] = useState("");
@@ -45,7 +45,7 @@ function SettingsInner() {
       if (pp) {
         setUsername(pp.username); setBio(pp.bio || "");
         setPubActive(pp.is_active); setShowTrades(pp.show_trades);
-        setShowPortfolio(pp.show_portfolio); setCopyable((pp as any).copyable ?? false);
+        setShowPortfolio(pp.show_portfolio); setCopyable(pp.copyable ?? false);
       }
 
       // Push state
@@ -56,7 +56,7 @@ function SettingsInner() {
       }
     })();
 
-    const handler = (e: Event) => { e.preventDefault(); setInstallPrompt(e); };
+    const handler = (e: Event) => { e.preventDefault(); setInstallPrompt(e as unknown as { prompt(): Promise<{ outcome: string }>; userChoice: Promise<{ outcome: string }> }); };
     window.addEventListener("beforeinstallprompt", handler);
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, [user]);

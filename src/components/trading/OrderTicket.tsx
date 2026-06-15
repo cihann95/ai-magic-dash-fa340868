@@ -95,7 +95,7 @@ export default function OrderTicket({ symbol }: { symbol: SymbolDef }) {
             <SelectItem value="stop_loss">{tr.stop_loss}</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={side} onValueChange={(v) => setSide(v as any)}>
+        <Select value={side} onValueChange={(v) => setSide(v as "buy" | "sell")}>
           <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="buy">{tr.buy}</SelectItem>

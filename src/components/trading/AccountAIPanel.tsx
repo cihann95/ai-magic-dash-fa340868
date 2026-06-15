@@ -13,6 +13,7 @@ import { useLivePrices } from "@/hooks/useLivePrices";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import type { AiAnalyzeResponse, AiStrategyResponse, DailyBriefResponse, NewsFeedResponse } from "../../lib/edge-function-types";
 interface Props { symbol: SymbolDef; refreshKey: number; onTradeDone: () => void; }
 
 interface Position {
@@ -21,7 +22,7 @@ interface Position {
   pending?: boolean;
 }
 
-interface NewsItem { title: string; summary: string; sentiment: "bullish" | "bearish" | "neutral"; source?: string; }
+interface NewsItem { title: string; summary: string; sentiment: "bullish" | "bearish" | "neutral"; source?: string; url?: string; published_at?: string; }
 interface ChatMsg { role: "user" | "assistant"; content: string; }
 
 export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTradeDone }: Props) {
@@ -51,7 +52,7 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
       supabase.from("positions").select("*").eq("user_id", user.id).order("opened_at", { ascending: false }),
     ]);
     if (prof) { setBalance(Number(prof.demo_balance)); setInitial(Number(prof.initial_balance)); }
-    if (pos) setPositions(pos as any);
+    if (pos) setPositions(pos as Position[]);
   };
 
   useEffect(() => { loadAcct(); }, [user, refreshKey]);
@@ -90,8 +91,9 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
         body: { symbol: symbol.symbol, asset_class: symbol.asset_class, language: lang },
       });
       if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
-      setAnalysis((data as any).analysis);
+      const result = data as AiAnalyzeResponse;
+      if (result?.error) throw new Error(result.error);
+      setAnalysis(result.analysis);
     } catch (e) {
       toast({ title: tr.error, description: e instanceof Error ? e.message : "Unknown", variant: "destructive" });
     } finally { setLoadingA(false); }
@@ -102,8 +104,9 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
     try {
       const { data, error } = await supabase.functions.invoke("ai-strategy", { body: { language: lang } });
       if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
-      setStrategy((data as any).suggestion);
+      const result = data as AiStrategyResponse;
+      if (result?.error) throw new Error(result.error);
+      setStrategy(result.suggestion);
     } catch (e) {
       toast({ title: tr.error, description: e instanceof Error ? e.message : "Unknown", variant: "destructive" });
     } finally { setLoadingS(false); }
@@ -114,8 +117,9 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
     try {
       const { data, error } = await supabase.functions.invoke("daily-brief", { body: { language: lang } });
       if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
-      setBrief((data as any).content);
+      const result = data as DailyBriefResponse;
+      if (result?.error) throw new Error(result.error);
+      setBrief(result.content);
     } catch (e) {
       toast({ title: tr.error, description: e instanceof Error ? e.message : "Unknown", variant: "destructive" });
     } finally { setLoadingB(false); }
@@ -128,8 +132,9 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
         body: { symbol: symbol.symbol, language: lang },
       });
       if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
-      setNews((data as any).items || []);
+      const result = data as NewsFeedResponse;
+      if (result?.error) throw new Error(result.error);
+      setNews((result.items ?? []).map((item) => ({ ...item, summary: item.summary ?? "", sentiment: item.sentiment ?? "neutral" as const })));
     } catch (e) {
       toast({ title: tr.error, description: e instanceof Error ? e.message : "Unknown", variant: "destructive" });
     } finally { setLoadingN(false); }
