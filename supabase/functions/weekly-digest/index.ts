@@ -2,6 +2,21 @@
 // Frontend client haftada en fazla 1 kere çağırır (profiles.last_weekly_digest_at kontrolü ile).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
+interface DigestTrade {
+  symbol: string;
+  action: string;
+  pnl: number | null;
+  intent_tag: string | null;
+  executed_at: string;
+  plan_adherence: number | null;
+}
+
+interface EmotionalLog {
+  mood: string;
+  signal_type: string | null;
+  created_at: string;
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -49,8 +64,8 @@ Deno.serve(async (req) => {
         .eq("user_id", user.id).gte("created_at", since),
     ]);
 
-    const trades = tradesRes.data ?? [];
-    const closes = trades.filter((t: any) => t.action === "close");
+    const trades = (tradesRes.data ?? []) as DigestTrade[];
+    const closes = trades.filter((t) => t.action === "close");
 
     if (closes.length < 2) {
       return json({ skipped: true, reason: "not_enough_trades", count: closes.length });
@@ -59,16 +74,16 @@ Deno.serve(async (req) => {
     const lang = (profile?.preferred_language ?? "tr") as "tr" | "en";
 
     // En iyi/en kötü
-    const sorted = [...closes].sort((a: any, b: any) => Number(b.pnl ?? 0) - Number(a.pnl ?? 0));
+    const sorted = [...closes].sort((a, b) => Number(b.pnl ?? 0) - Number(a.pnl ?? 0));
     const best = sorted[0];
     const worst = sorted[sorted.length - 1];
 
     // Niyet bazlı
     const intentAgg: Record<string, { count: number; pnl: number }> = {};
     for (const t of closes) {
-      const k = (t as any).intent_tag ?? "untagged";
+      const k = t.intent_tag ?? "untagged";
       const g = intentAgg[k] ?? { count: 0, pnl: 0 };
-      g.count += 1; g.pnl += Number((t as any).pnl ?? 0);
+      g.count += 1; g.pnl += Number(t.pnl ?? 0);
       intentAgg[k] = g;
     }
     const bestIntent = Object.entries(intentAgg)
@@ -76,19 +91,19 @@ Deno.serve(async (req) => {
       .sort((a, b) => (b[1].pnl / b[1].count) - (a[1].pnl / a[1].count))[0];
 
     // Mood
-    const moods = (emoRes.data ?? []).filter((e: any) => e.mood);
+    const moods = (emoRes.data ?? []).filter((e: EmotionalLog) => e.mood);
     const moodCounts: Record<string, number> = {};
-    for (const m of moods) moodCounts[(m as any).mood] = (moodCounts[(m as any).mood] ?? 0) + 1;
+    for (const m of moods) moodCounts[m.mood] = (moodCounts[m.mood] ?? 0) + 1;
     const dominantMood = Object.entries(moodCounts).sort((a, b) => b[1] - a[1])[0];
 
     // Plan adherence ortalaması
-    const planScores = closes.map((t: any) => Number(t.plan_adherence)).filter((n: number) => isFinite(n) && n > 0);
+    const planScores = closes.map((t) => Number(t.plan_adherence)).filter((n: number) => isFinite(n) && n > 0);
     const avgAdherence = planScores.length
       ? Math.round(planScores.reduce((a, b) => a + b, 0) / planScores.length)
       : null;
 
-    const totalPnl = closes.reduce((a: number, t: any) => a + Number(t.pnl ?? 0), 0);
-    const wins = closes.filter((t: any) => Number(t.pnl ?? 0) > 0).length;
+    const totalPnl = closes.reduce((a: number, t) => a + Number(t.pnl ?? 0), 0);
+    const wins = closes.filter((t) => Number(t.pnl ?? 0) > 0).length;
     const winRate = Math.round((wins / closes.length) * 100);
 
     // Body
@@ -98,11 +113,11 @@ Deno.serve(async (req) => {
       if (best && Number(best.pnl) > 0) lines.push(`🏆 En iyi: ${best.symbol} (+$${Number(best.pnl).toFixed(2)})`);
       if (worst && Number(worst.pnl) < 0) lines.push(`⚠️ En kötü: ${worst.symbol} ($${Number(worst.pnl).toFixed(2)})`);
       if (bestIntent) {
-        const tagTr: any = { technical: "Teknik sinyal", news: "Haber", intuition: "Sezgi" };
+        const tagTr: Record<string, string> = { technical: "Teknik sinyal", news: "Haber", intuition: "Sezgi" };
         lines.push(`🎯 En kazandıran niyetin: "${tagTr[bestIntent[0]] ?? bestIntent[0]}" (ortalama ${(bestIntent[1].pnl / bestIntent[1].count >= 0 ? "+" : "")}$${(bestIntent[1].pnl / bestIntent[1].count).toFixed(2)})`);
       }
       if (dominantMood) {
-        const mTr: any = { calm: "sakin 😌", focused: "odaklı 🎯", excited: "heyecanlı ⚡", angry: "kızgın 😤" };
+        const mTr: Record<string, string> = { calm: "sakin 😌", focused: "odaklı 🎯", excited: "heyecanlı ⚡", angry: "kızgın 😤" };
         lines.push(`💭 Çoğunlukla ${mTr[dominantMood[0]] ?? dominantMood[0]} hissettin.`);
       }
       if (avgAdherence !== null) lines.push(`📐 Plan uyumu: %${avgAdherence}`);
@@ -151,7 +166,7 @@ Deno.serve(async (req) => {
   }
 });
 
-function json(data: any, status = 200) {
+function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -2,6 +2,7 @@
 // Her zaman price_cache'ten anlık fiyatı okur ve stale/eksik veriyi reddeder.
 // Trade tamamlandığında copy-trader'lara fan-out yapar.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import type { Admin } from "../_shared/blitz-types.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -33,6 +34,13 @@ interface PublicTradeRequest {
   intent_note?: string | null;
   planned_tp?: number | null;
   planned_sl?: number | null;
+}
+
+interface OpenTrade {
+  planned_tp: number | null;
+  planned_sl: number | null;
+  intent_tag: string | null;
+  executed_at: string;
 }
 
 const STALE_MS = 5 * 60 * 1000;
@@ -99,7 +107,7 @@ function parsePublicTradeRequest(payload: unknown): { ok: true; data: PublicTrad
   };
 }
 
-async function executeOne(admin: any, userId: string, body: TradeRequest, opts: { fanOut: boolean }) {
+async function executeOne(admin: Admin, userId: string, body: TradeRequest, opts: { fanOut: boolean }) {
   const { symbol, asset_class, side, quantity, position_id, executor = "demo", copied_from, leader_user_id, intent_tag, intent_note, planned_tp, planned_sl } = body;
 
   // ========== GERÇEK FİYAT - price_cache ==========
@@ -129,7 +137,7 @@ async function executeOne(admin: any, userId: string, body: TradeRequest, opts: 
   let action: "open" | "close" = "open";
   let newBalance = Number(profile.demo_balance);
   let planAdherence: number | null = null;
-  let openTrade: any = null; // entry trade for close: read planned_tp/sl
+  let openTrade: OpenTrade | null = null;
 
   if (position_id) {
     const { data: pos } = await admin.from("positions").select("*").eq("id", position_id).eq("user_id", userId).single();

@@ -10,10 +10,77 @@ const corsHeaders = {
 
 const ROOM_DURATION_SECONDS = 60;
 
+// How long a waiting room can exist before it's considered stale.
+// Default: 300s (5 min). Set via WAITING_ROOM_TTL_SECONDS env var.
+const WAITING_ROOM_TTL_SECONDS = Number(
+  Deno.env.get("WAITING_ROOM_TTL_SECONDS") ?? "300",
+);
+
 interface Req {
   mode: "quick" | "create_private" | "cancel";
   symbol: string;
   entry_fee: number;
+}
+
+/**
+ * Release locked balances for participants of stale waiting rooms.
+ * Called inline on each matchmake request to catch rooms that exceeded
+ * WAITING_ROOM_TTL_SECONDS.  The DB-side cron (cleanup_stale_rooms)
+ * also runs every 5 min as a safety net but does NOT unlock balances.
+ */
+async function releaseStaleBalances(admin: ReturnType<typeof createClient>): Promise<void> {
+  const cutoff = new Date(Date.now() - WAITING_ROOM_TTL_SECONDS * 1000).toISOString();
+  const { data: staleRooms, error } = await admin
+    .from("blitz_rooms")
+    .select("id, symbol, entry_fee, created_by")
+    .eq("status", "waiting")
+    .lt("created_at", cutoff)
+    .limit(20);
+
+  if (error || !staleRooms?.length) return;
+
+  for (const room of staleRooms) {
+    // Find participants who locked balance for this room
+    const { data: participants } = await admin
+      .from("blitz_participants")
+      .select("user_id")
+      .eq("room_id", room.id);
+
+    for (const p of participants ?? []) {
+      // Release locked balance (unlock entry_fee)
+      const { data: profile } = await admin
+        .from("profiles")
+        .select("real_balance_locked")
+        .eq("id", p.user_id)
+        .single();
+      if (profile) {
+        const newLocked = Math.max(0, Number(profile.real_balance_locked) - Number(room.entry_fee));
+        await admin.from("profiles")
+          .update({ real_balance_locked: newLocked })
+          .eq("id", p.user_id);
+      }
+    }
+
+    // Mark room as cancelled
+    await admin.from("blitz_rooms")
+      .update({ status: "cancelled", updated_at: new Date().toISOString() })
+      .eq("id", room.id);
+
+    // Log for observability
+    await admin.rpc("log_observability", {
+      p_service: "blitz_matchmake",
+      p_event: "waiting_room_timeout",
+      p_level: "warn",
+      p_room_id: room.id,
+      p_metadata: {
+        symbol: room.symbol,
+        entry_fee: room.entry_fee,
+        created_by: room.created_by,
+        participant_count: participants?.length ?? 0,
+        ttl_seconds: WAITING_ROOM_TTL_SECONDS,
+      },
+    }).catch(() => {});
+  }
 }
 
 function genInviteCode(): string {
@@ -39,6 +106,9 @@ Deno.serve(async (req) => {
       status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
+
+  // Inline cleanup: release balances for stale waiting rooms
+  await releaseStaleBalances(admin);
 
   let body: Req;
   try { body = await req.json(); } catch {
@@ -163,7 +233,16 @@ Deno.serve(async (req) => {
       }
     }
     await redis.rpush(queueKey, user.id);
-    await redis.expire(queueKey, 300); // 5 dk
+    await redis.expire(queueKey, WAITING_ROOM_TTL_SECONDS);
+
+    // Log queue entry for observability (helps detect orphaned queues)
+    await admin.rpc("log_observability", {
+      p_service: "blitz_matchmake",
+      p_event: "queue_joined",
+      p_level: "info",
+      p_metadata: { symbol, entry_fee, user_id: user.id, ttl_seconds: WAITING_ROOM_TTL_SECONDS },
+    }).catch(() => {});
+
     return new Response(JSON.stringify({ status: "queued" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

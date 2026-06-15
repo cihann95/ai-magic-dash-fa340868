@@ -2,6 +2,7 @@
 // Hem manuel (room_id ile) hem de cron tarafından (tüm süresi dolmuşları tara) çağrılabilir. Idempotent.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { redis } from "../_shared/redis.ts";
+import type { Admin } from "../_shared/blitz-types.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,7 +11,7 @@ const corsHeaders = {
 
 const PLATFORM_FEE_PCT = 0.05; // FAZ 4 raporları için kayıt; ödül net dağıtılır
 
-async function settleRoom(admin: any, roomId: string): Promise<{ ok: boolean; reason?: string; error?: string }> {
+async function settleRoom(admin: Admin, roomId: string): Promise<{ ok: boolean; reason?: string; error?: string }> {
   const idempotencyKey = `${roomId}:edge_function`;
 
   // Acquire advisory lock (same hash as DB trigger uses via make_advisory_lock_key())
@@ -63,7 +64,10 @@ async function settleRoom(admin: any, roomId: string): Promise<{ ok: boolean; re
 
     const { data: openOrders } = await admin.from("blitz_orders")
       .select("*").eq("room_id", roomId).is("closed_at", null);
-    const nowIso = new Date().toISOString();
+    const { data: nowIso, error: tsErr } = await admin.rpc("order_timestamp");
+    if (tsErr || !nowIso) {
+      return { ok: false, error: "Server timestamp unavailable" };
+    }
     for (const o of openOrders ?? []) {
       const dir = o.side === "long" ? 1 : -1;
       const pnl = +(((lastPrice - Number(o.entry_price)) / Number(o.entry_price)) * Number(o.amount) * dir).toFixed(6);

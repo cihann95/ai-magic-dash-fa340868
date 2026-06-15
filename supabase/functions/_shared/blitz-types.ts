@@ -1,5 +1,10 @@
 // Mirror of src/types/blitz.ts for Deno edge functions.
 // Keep in sync manually — Deno cannot import from src/.
+import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+
+/** Typed alias for the Supabase service-role client used across edge functions. */
+export type Admin = SupabaseClient;
+
 export type BlitzStatus =
   | "waiting"
   | "active"

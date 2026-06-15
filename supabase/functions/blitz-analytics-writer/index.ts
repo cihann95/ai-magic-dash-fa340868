@@ -1,5 +1,15 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
+interface StagingEvent {
+  id: string;
+  event_type: string;
+  room_id: string | null;
+  user_id: string | null;
+  payload: Record<string, unknown>;
+  server_timestamp: string | null;
+  created_at: string;
+}
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
@@ -42,7 +52,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const inserts = rows.map((r: any) => ({
+    const inserts = (rows as StagingEvent[]).map((r) => ({
       event_type: r.event_type,
       room_id: r.room_id,
       user_id: r.user_id,
@@ -54,7 +64,7 @@ Deno.serve(async (req) => {
     const { error: insertErr } = await admin.from("analytics_events").insert(inserts);
     if (insertErr) throw insertErr;
 
-    const ids = rows.map((r: any) => r.id);
+    const ids = (rows as StagingEvent[]).map((r) => r.id);
     const { error: updateErr } = await admin
       .from("analytics_events_staging")
       .update({ flushed: true })
