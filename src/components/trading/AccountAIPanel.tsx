@@ -6,16 +6,13 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, RefreshCw, Send, Sparkles, TrendingDown, TrendingUp, X, Brain } from "lucide-react";
-import { SymbolDef, formatPrice } from "@/lib/symbols";
+import { Loader2, RefreshCw, Send, Sparkles, Brain } from "lucide-react";
+import { SymbolDef } from "@/lib/symbols";
 import AIDisclaimer from "@/components/AIDisclaimer";
 import { useLivePrices } from "@/hooks/useLivePrices";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
-import { celebrateAchievements } from "@/lib/achievements";
-import { recordTrade } from "@/hooks/useEmotionalSignal";
-
 interface Props { symbol: SymbolDef; refreshKey: number; onTradeDone: () => void; }
 
 interface Position {
@@ -27,7 +24,7 @@ interface Position {
 interface NewsItem { title: string; summary: string; sentiment: "bullish" | "bearish" | "neutral"; source?: string; }
 interface ChatMsg { role: "user" | "assistant"; content: string; }
 
-export default function AccountAIPanel({ symbol, refreshKey, onTradeDone }: Props) {
+export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTradeDone }: Props) {
   const { lang, user } = useApp();
   const tr = t(lang);
   const [balance, setBalance] = useState(0);
@@ -85,25 +82,6 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone }: Prop
 
   const totalEquity = balance + positions.reduce((acc, p) => acc + Number(p.entry_price) * Number(p.quantity), 0) + livePnl;
   const totalChange = ((totalEquity - initial) / initial) * 100;
-
-  const closePos = async (p: Position) => {
-    try {
-      const { data, error } = await supabase.functions.invoke("execute-trade", {
-        body: { symbol: p.symbol, asset_class: p.asset_class, side: p.side === "long" ? "sell" : "buy",
-                quantity: p.quantity, position_id: p.id },
-      });
-      if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
-      // Record close timestamp for emotional signal motor
-      try { recordTrade(Number(p.entry_price) * Number(p.quantity), true); } catch { /* noop */ }
-      toast({ title: tr.success, description: `${tr.close} ${p.symbol}` });
-      const ach = (data as any)?.achievements as string[] | undefined;
-      if (ach?.length) celebrateAchievements(ach, lang);
-      onTradeDone();
-    } catch (e) {
-      toast({ title: tr.error, description: e instanceof Error ? e.message : "Unknown", variant: "destructive" });
-    }
-  };
 
   const runAnalysis = async () => {
     setLoadingA(true); setAnalysis("");

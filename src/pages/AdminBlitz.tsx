@@ -11,10 +11,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database, Json } from "@/integrations/supabase/types";
 import { useApp } from "@/contexts/AppContext";
 
 interface DailyRow { day: string; source: string; tx_count: number; total_amount: number; }
-interface RevenueRow { id: string; created_at: string; amount: number; source: string; metadata: any; room_id: string | null; }
+interface RevenueRow { id: string; created_at: string; amount: number; source: string; metadata: Json; room_id: string | null; }
 
 export default function AdminBlitz() {
   const { user, loading: authLoading } = useApp();
@@ -40,11 +41,11 @@ export default function AdminBlitz() {
   useEffect(() => {
     if (isAdmin !== true) return;
     Promise.all([
-      supabase.from("platform_revenue_daily" as any).select("*").limit(30),
+      supabase.from("platform_revenue_daily" as keyof Database["public"]["Tables"]).select("*").limit(30),
       supabase.from("platform_revenue").select("*").order("created_at", { ascending: false }).limit(50),
     ]).then(([d, r]) => {
-      setDaily((d.data as any) ?? []);
-      setRecent((r.data as any) ?? []);
+      setDaily((d.data as DailyRow[]) ?? []);
+      setRecent((r.data as RevenueRow[]) ?? []);
       setLoading(false);
     });
   }, [isAdmin]);

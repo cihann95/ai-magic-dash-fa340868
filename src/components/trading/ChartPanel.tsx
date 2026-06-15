@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import TradingViewChart from "@/components/TradingViewChart";
 import { SymbolDef, isMarketOpen, formatPrice, isStale } from "@/lib/symbols";
 import { useLivePrice } from "@/hooks/useLivePrices";

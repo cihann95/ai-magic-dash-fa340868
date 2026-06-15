@@ -3,6 +3,9 @@
 // - Diğer varlıklar: price_cache (Postgres realtime + 5sn polling yedek)
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { RealtimeChannel } from "@supabase/supabase-js";
+import type { Tables } from "@/integrations/supabase/types";
+import type { RealtimePostgresChangesPayload } from "@supabase/realtime-js";
 import { startBinanceStream } from "@/lib/binanceStream";
 
 export interface LivePrice {
@@ -13,17 +16,23 @@ export interface LivePrice {
   updated_at: string;
 }
 
+type PriceCacheRow = Tables<"price_cache">;
+
 interface PriceState {
   cache: Record<string, LivePrice>;
   listeners: Set<() => void>;
   initialized: boolean;
-  channel: any;
+  channel: RealtimeChannel | null;
   pollInterval: number | null;
   cleanupBinance: (() => void) | null;
 }
 
+interface HmrWindow extends Window {
+  __price_state?: PriceState;
+}
+
 // HMR-safe singleton: window üzerinde tut, modül reload'unda yeniden init etme
-const w = typeof window !== "undefined" ? (window as any) : ({} as any);
+const w: HmrWindow = typeof window !== "undefined" ? window : ({} as HmrWindow);
 const state: PriceState = w.__price_state ?? {
   cache: {},
   listeners: new Set<() => void>(),
@@ -74,8 +83,8 @@ function init() {
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "price_cache" },
-      (payload: any) => {
-        const row = payload.new;
+      (payload: RealtimePostgresChangesPayload<PriceCacheRow>) => {
+        const row = payload.eventType !== "DELETE" ? payload.new : null;
         if (!row?.symbol) return;
         state.cache[row.symbol] = {
           symbol: row.symbol,

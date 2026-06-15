@@ -1,45 +1,12 @@
 // Blitz oda durumu için realtime hook
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
+import type { RealtimePostgresChangesPayload } from "@supabase/realtime-js";
 
-export interface BlitzRoom {
-  id: string;
-  symbol: string;
-  entry_fee: number;
-  status: "waiting" | "active" | "settling" | "finished" | "cancelled";
-  mode: "public" | "private";
-  invite_code: string | null;
-  max_players: number;
-  starts_at: string | null;
-  ends_at: string | null;
-  start_price: number | null;
-  winner_id: string | null;
-  pot: number;
-  fee_collected: number;
-  created_by: string | null;
-}
-
-export interface BlitzParticipant {
-  id: string;
-  room_id: string;
-  user_id: string;
-  joined_at: string;
-  final_pnl: number | null;
-  rank: number | null;
-}
-
-export interface BlitzOrder {
-  id: string;
-  room_id: string;
-  user_id: string;
-  side: "long" | "short";
-  amount: number;
-  entry_price: number;
-  exit_price: number | null;
-  pnl: number | null;
-  opened_at: string;
-  closed_at: string | null;
-}
+export type BlitzRoom = Tables<"blitz_rooms">;
+export type BlitzParticipant = Tables<"blitz_participants">;
+export type BlitzOrder = Tables<"blitz_orders">;
 
 export function useBlitzRoom(roomId: string | undefined) {
   const [room, setRoom] = useState<BlitzRoom | null>(null);
@@ -58,16 +25,18 @@ export function useBlitzRoom(roomId: string | undefined) {
         supabase.from("blitz_orders").select("*").eq("room_id", roomId!).order("opened_at", { ascending: true }),
       ]);
       if (cancelled) return;
-      setRoom((r.data as any) ?? null);
-      setParticipants((p.data as any) ?? []);
-      setOrders((o.data as any) ?? []);
+      setRoom(r.data ?? null);
+      setParticipants(p.data ?? []);
+      setOrders(o.data ?? []);
       setLoading(false);
     }
     load();
 
     const ch = supabase.channel(`blitz_room_${roomId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "blitz_rooms", filter: `id=eq.${roomId}` },
-        (payload: any) => { if (payload.new) setRoom(payload.new as BlitzRoom); })
+        (payload: RealtimePostgresChangesPayload<BlitzRoom>) => {
+          if (payload.eventType !== "DELETE" && payload.new) setRoom(payload.new as BlitzRoom);
+        })
       .on("postgres_changes", { event: "*", schema: "public", table: "blitz_participants", filter: `room_id=eq.${roomId}` },
         () => { load(); })
       .on("postgres_changes", { event: "*", schema: "public", table: "blitz_orders", filter: `room_id=eq.${roomId}` },

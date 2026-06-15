@@ -15,7 +15,15 @@ const REVERSE: Record<string, string> = Object.fromEntries(
 );
 
 // HMR-safe singleton
-const w = typeof window !== "undefined" ? (window as any) : ({} as any);
+interface BinanceStreamState {
+  listeners: Set<Listener>;
+  ws: WebSocket | null;
+  reconnectTimer: number | null;
+  backoff: number;
+  last24hPct: Record<string, number>;
+}
+const w: { __binance_stream?: BinanceStreamState } =
+  typeof window !== "undefined" ? (window as { __binance_stream?: BinanceStreamState }) : {};
 const S = w.__binance_stream ?? {
   listeners: new Set<Listener>(),
   ws: null as WebSocket | null,

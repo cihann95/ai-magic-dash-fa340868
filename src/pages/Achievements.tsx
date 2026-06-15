@@ -2,6 +2,7 @@ import AppShell from "@/components/AppShell";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useApp } from "@/contexts/AppContext";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { t } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
 import { useEffect, useState } from "react";
@@ -22,7 +23,7 @@ const RARITY_COLOR: Record<string, string> = {
 function AchievementsInner() {
   const { user, lang } = useApp();
   const tr = t(lang);
-  const [all, setAll] = useState<any[]>([]);
+  const [all, setAll] = useState<Database["public"]["Tables"]["achievements"]["Row"][]>([]);
   const [earned, setEarned] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -32,7 +33,7 @@ function AchievementsInner() {
       supabase.from("user_achievements").select("achievement_code").eq("user_id", user.id),
     ]).then(([a, e]) => {
       setAll(a.data ?? []);
-      setEarned(new Set((e.data ?? []).map((x: any) => x.achievement_code)));
+      setEarned(new Set((e.data ?? []).map((x) => x.achievement_code)));
     });
   }, [user]);
 

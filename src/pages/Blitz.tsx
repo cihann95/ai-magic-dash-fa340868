@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { SYMBOLS } from "@/lib/symbols";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { useApp } from "@/contexts/AppContext";
 
 const ENTRY_FEES = [5, 10, 25, 50];
@@ -40,8 +41,8 @@ export default function Blitz() {
     if (!queueing || !user) return;
     const ch = supabase.channel("blitz_lobby_wait")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "blitz_participants", filter: `user_id=eq.${user.id}` },
-        async (payload: any) => {
-          const roomId = payload.new?.room_id;
+        async (payload: { new: Database["public"]["Tables"]["blitz_participants"]["Row"] }) => {
+          const roomId = payload.new.room_id;
           if (roomId) {
             setQueueing(false);
             navigate(`/blitz/${roomId}`);
@@ -118,8 +119,8 @@ export default function Blitz() {
     if (!waitingRoomId) return;
     const ch = supabase.channel(`blitz_wait_${waitingRoomId}`)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "blitz_rooms", filter: `id=eq.${waitingRoomId}` },
-        (payload: any) => {
-          if (payload.new?.status === "active") {
+        (payload: { new: Database["public"]["Tables"]["blitz_rooms"]["Row"] }) => {
+          if (payload.new.status === "active") {
             navigate(`/blitz/${waitingRoomId}`);
           }
         })

@@ -7,7 +7,7 @@ import {
   Trophy, Award, Flame, Users, Brain, BookOpen, Activity, Search, MoreHorizontal, Keyboard,
 } from "lucide-react";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuLabel,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
 import GameBadge from "./GameBadge";

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import AppShell from "@/components/AppShell";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { useApp } from "@/contexts/AppContext";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,7 @@ import AIDisclaimer from "@/components/AIDisclaimer";
 
 interface Insight {
   id: string; category: string; severity: string;
-  title: string; body: string; metadata: any;
+  title: string; body: string; metadata: Json;
   acknowledged: boolean; created_at: string;
 }
 
@@ -46,7 +47,7 @@ function CoachInner() {
     if (!user) return;
     const ch = supabase.channel(`coach_${user.id}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "coach_insights", filter: `user_id=eq.${user.id}` },
-        (p: any) => { setItems((prev) => [p.new as Insight, ...prev]); })
+        (p: { new: Database["public"]["Tables"]["coach_insights"]["Row"] }) => { setItems((prev) => [p.new as Insight, ...prev]); })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [user]);
@@ -159,7 +160,7 @@ function CoachInner() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: any }) {
+function Stat({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="bg-card/50 rounded p-2">
       <div className="text-muted-foreground">{label}</div>

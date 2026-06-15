@@ -1,6 +1,19 @@
 // Ana Sahne (featured room) hook — fetch, realtime, presence, viewer count
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { RealtimeChannel } from "@supabase/supabase-js";
+
+/**
+ * ana_sahne_view is a Postgres view not included in the auto-generated Supabase types.
+ * Narrow type for querying unregistered tables/views.
+ */
+interface UnregisteredTableClient {
+  from(table: string): {
+    select(cols?: string): {
+      single(): Promise<{ data: unknown; error: { message: string } | null }>;
+    };
+  };
+}
 
 /** Shape returned by ana_sahne_view (SECURITY DEFINER — no PII) */
 export interface AnaSahneRoom {

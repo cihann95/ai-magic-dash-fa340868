@@ -7,7 +7,7 @@ function getCtx(): AudioContext | null {
   if (localStorage.getItem("blitz_sfx_off") === "1") return null;
   if (!ctx) {
     try {
-      const AC = (window.AudioContext || (window as any).webkitAudioContext);
+      const AC = window.AudioContext ?? (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       ctx = AC ? new AC() : null;
     } catch { ctx = null; }
   }
@@ -44,6 +44,6 @@ export const blitzSfx = {
 
 export function vibrate(pattern: number | number[]) {
   if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-    try { (navigator as any).vibrate(pattern); } catch { /* noop */ }
+    try { navigator.vibrate(pattern); } catch { /* noop */ }
   }
 }

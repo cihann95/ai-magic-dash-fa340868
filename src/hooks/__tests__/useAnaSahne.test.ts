@@ -3,14 +3,9 @@ import { renderHook, act, cleanup } from "@testing-library/react";
 
 // ─── Hoisted mocks (vi.hoisted ensures availability in vi.mock factory) ───
 const {
-  mockSelect,
   mockSingle,
   mockTrack,
-  mockPresenceState,
   mockRemoveChannel,
-  mockSubscribe,
-  mockOn,
-  mockChannelObj,
   mockFrom,
   mockChannel,
 } = vi.hoisted(() => {
@@ -38,7 +33,7 @@ const {
 
   const mockChannel = vi.fn(() => mockChannelObj);
 
-  return { mockSelect, mockSingle, mockTrack, mockPresenceState, mockRemoveChannel, mockSubscribe, mockOn, mockChannelObj, mockFrom, mockChannel };
+  return { mockSingle, mockTrack, mockRemoveChannel, mockFrom, mockChannel };
 });
 
 vi.mock("@/integrations/supabase/client", () => ({
