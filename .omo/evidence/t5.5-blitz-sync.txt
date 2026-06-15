@@ -1,0 +1,41 @@
+T5.5 — Blitz Tip Senkronizasyon Script'i: Evidence
+===================================================
+Date: 2026-06-15
+
+## Summary
+Created `scripts/blitz-types-sync.ts` — a read-only comparison script that
+checks whether `src/types/blitz.ts` (frontend) and
+`supabase/functions/_shared/blitz-types.ts` (edge) are in sync.
+
+The script extracts all `export type` and `export interface` declarations
+from both files, compares them, reports differences, and exits with 1 if
+any mismatch exists.
+
+## Files Created/Modified
+1. scripts/blitz-types-sync.ts           (NEW) — comparison script
+2. .omo/evidence/t5.5-blitz-sync.txt     (NEW) — this file
+3. .github/workflows/ci.yml              (MODIFIED) — added blitz-types-sync job
+
+## Script Run Output
+  Frontend file: src/types/blitz.ts
+  Edge file:     supabase/functions/_shared/blitz-types.ts
+
+  Frontend exports (11):
+    • BlitzMode, BlitzOrder, BlitzParticipant, BlitzRoom, BlitzSide
+    • BlitzStatus, MatchmakeRequest, SettleResult
+    • TickOrderCloseRequest, TickOrderOpenRequest, TickOrderRequest
+
+  Edge exports (7):
+    • Admin, BlitzMode, BlitzSide, BlitzStatus
+    • TickOrderCloseRequest, TickOrderOpenRequest, TickOrderRequest
+
+  MISSING from edge (5):  BlitzOrder, BlitzParticipant, BlitzRoom,
+                          MatchmakeRequest, SettleResult
+  EXTRA in edge (1):      Admin (Deno-specific type alias)
+
+  ❌ Result: OUT OF SYNC — 6 differences (exit 1)
+
+## Verification
+- Script runs with: npx tsx scripts/blitz-types-sync.ts
+- Exit code 0 when sync is perfect, 1 when differences exist
+- Read-only: never modifies type files
