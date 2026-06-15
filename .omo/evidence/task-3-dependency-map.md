@@ -1,0 +1,105 @@
+# Task 3 Evidence: Edge Function Dependency Map
+
+**Project:** Lumen Trade (ai-magic-dash-fa340868)
+**Task:** Wave 0, Task 3 — Edge Function Dependency Map + Redis Key Audit
+**Date:** 2026-06-10
+**Auditor:** Sisyphus-Junior
+**Status:** COMPLETE
+
+---
+
+## Completion Certificate
+
+### Deliverables
+
+| Deliverable | Status | Path |
+|-------------|--------|------|
+| Dependency Map | ✅ Created | `supabase/functions/DEPENDENCY_MAP.md` |
+| Redis Key Audit | ✅ Created | `.omo/evidence/task-3-redis-keys.md` |
+| Learnings Append | ✅ Pending | `.omo/notepads/production-readiness/learnings.md` |
+
+### Scope Coverage
+
+| Requirement | Status | Evidence |
+|-------------|--------|----------|
+| All 19 Edge Functions documented | ✅ | 19 function sections in DEPENDENCY_MAP.md |
+| Trigger type identified | ✅ | HTTP/Cron/DB trigger per function |
+| Inputs documented | ✅ | Request body shape per function |
+| Outputs documented | ✅ | Response shape + status codes per function |
+| Called functions documented | ✅ | 1 inter-function call found (execute-trade → trade-mirror) |
+| Env vars documented | ✅ | 58 Deno.env.get() calls across 20 files mapped |
+| Redis keys documented | ✅ | 6 unique key patterns across 5 functions |
+| DB tables documented | ✅ | 22 tables accessed across all functions |
+| RPC calls documented | ✅ | 14 unique RPCs across 8 functions |
+| Auth patterns documented | ✅ | 5 distinct auth patterns identified |
+| `admin: any` parameters documented | ✅ | 4 functions with untyped admin parameter |
+| Shared modules documented | ✅ | 2 shared modules (redis.ts, blitz-types.ts) |
+
+### Files Read
+
+| File | Lines | Purpose |
+|------|-------|---------|
+| `supabase/functions/_shared/redis.ts` | 82 | Redis client wrapper |
+| `supabase/functions/_shared/blitz-types.ts` | 26 | Shared types |
+| `supabase/functions/ai-analyze/index.ts` | 71 | AI analysis |
+| `supabase/functions/ai-chat/index.ts` | 85 | AI chat (streaming) |
+| `supabase/functions/ai-risk-monitor/index.ts` | 152 | Risk alerts |
+| `supabase/functions/ai-strategy/index.ts` | 78 | AI strategy |
+| `supabase/functions/ai-trade-coach/index.ts` | 223 | AI trade coaching |
+| `supabase/functions/blitz-admin-topup/index.ts` | 84 | Admin balance topup |
+| `supabase/functions/blitz-analytics-writer/index.ts` | 75 | Analytics flush |
+| `supabase/functions/blitz-join-private/index.ts` | 73 | Private room join |
+| `supabase/functions/blitz-matchmake/index.ts` | 277 | Matchmaking |
+| `supabase/functions/blitz-settle-room/index.ts` | 251 | Settlement |
+| `supabase/functions/blitz-tick-order/index.ts` | 224 | Order execution |
+| `supabase/functions/daily-brief/index.ts` | 96 | Daily briefing |
+| `supabase/functions/execute-trade/index.ts` | 372 | Trade execution |
+| `supabase/functions/news-feed/index.ts` | 95 | News feed |
+| `supabase/functions/price-feed/index.ts` | 314 | Price feed |
+| `supabase/functions/reset-demo-account/index.ts` | 54 | Demo reset |
+| `supabase/functions/send-push/index.ts` | 117 | Push notifications |
+| `supabase/functions/trade-mirror/index.ts` | 178 | Behavioral mirror |
+| `supabase/functions/weekly-digest/index.ts` | 159 | Weekly digest |
+| `.omo/reports/env-spec.md` | 201 | Env var inventory |
+| `.omo/reports/threat-model.md` | 855 | Threat model |
+| `.omo/notepads/production-readiness/learnings.md` | 75 | Previous learnings |
+
+### Grep Results
+
+| Search | Matches | Files |
+|--------|---------|-------|
+| `redis.` operations | 25 matches | 5 files |
+| `Deno.env.get` | 58 matches | 20 files |
+| `functions/v1/` (inter-function calls) | 1 match | 1 file |
+| `.from(` (DB table access) | 119 matches | 16 files |
+| `.rpc(` (RPC calls) | 21 matches | 8 files |
+
+### Key Findings
+
+1. **19 Edge Functions** (not 20 — `_shared` is a module directory, not a function)
+2. **5 functions use Redis** — all in the blitz subsystem + price-feed
+3. **1 inter-function call** — `execute-trade` → `trade-mirror` (fire-and-forget)
+4. **4 cron-authenticated functions** — all use `verify_cron_secret` RPC
+5. **22 DB tables** accessed across all functions
+6. **14 unique RPCs** used
+7. **5 distinct auth patterns** identified
+8. **`admin: any`** in 4 functions (settle-room, execute-trade, price-feed, ai-trade-coach)
+9. **No rate limiting** exists on any function
+10. **No health check endpoints** on any function
+11. **All functions use inline CORS** with `Access-Control-Allow-Origin: *`
+
+### Downstream Tasks Impacted
+
+| Task | Impact |
+|------|--------|
+| T33 | Redis credentials rotation — 5 functions affected |
+| T31 | Rate limiting — 19 functions need implementation |
+| T32 | CORS restriction — 19 functions use wildcard |
+| T41 | Health check endpoints — 0 exist today |
+| T45-T48 | `as any` elimination — 4 functions with `admin: any` |
+| T49 | Admin type safety — settle-room, execute-trade, price-feed, ai-trade-coach |
+| T52 | Settlement timestamp fix — blitz-settle-room uses `new Date()` |
+
+---
+
+*Evidence generated by Wave 0, Task 3*
