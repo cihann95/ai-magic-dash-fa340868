@@ -1,12 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-const mockZadd = vi.fn().mockResolvedValue(1);
-const mockZcard = vi.fn().mockResolvedValue(0);
-const mockZremrangebyscore = vi.fn().mockResolvedValue(0);
-const mockZrange = vi.fn().mockResolvedValue([]);
-const mockExpire = vi.fn().mockResolvedValue(1);
+const { mockZadd, mockZcard, mockZremrangebyscore, mockZrange, mockExpire } = vi.hoisted(() => ({
+  mockZadd: vi.fn().mockResolvedValue(1),
+  mockZcard: vi.fn().mockResolvedValue(0),
+  mockZremrangebyscore: vi.fn().mockResolvedValue(0),
+  mockZrange: vi.fn().mockResolvedValue([]),
+  mockExpire: vi.fn().mockResolvedValue(1),
+}));
 
-vi.mock("../../_shared/redis.ts", () => ({
+vi.mock("../_shared/redis.ts", () => ({
   redisEnabled: true,
   redis: {
     zadd: mockZadd,
@@ -17,7 +19,7 @@ vi.mock("../../_shared/redis.ts", () => ({
   },
 }));
 
-import { checkRateLimit, RATE_LIMITS, createRateLimitResponse, rateLimit } from "../../_shared/rate-limit.ts";
+import { checkRateLimit, RATE_LIMITS, createRateLimitResponse, rateLimit } from "../_shared/rate-limit.ts";
 
 describe("rate-limit", () => {
   beforeEach(() => {
@@ -104,11 +106,11 @@ describe("rate-limit", () => {
 describe("rate-limit fail-open", () => {
   it("should allow request when Redis is disabled", async () => {
     vi.resetModules();
-    vi.doMock("../../_shared/redis.ts", () => ({
+    vi.doMock("../_shared/redis.ts", () => ({
       redisEnabled: false,
       redis: {},
     }));
-    const { checkRateLimit: checkDisabled } = await import("../../_shared/rate-limit.ts");
+    const { checkRateLimit: checkDisabled } = await import("../_shared/rate-limit.ts");
     const result = await checkDisabled("user-1", "execute-trade");
     expect(result.allowed).toBe(true);
     expect(result.remaining).toBe(20);

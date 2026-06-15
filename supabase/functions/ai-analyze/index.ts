@@ -1,10 +1,17 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { rateLimit } from "../_shared/rate-limit.ts";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const AnalyzeRequestSchema = z.object({
+  symbol: z.string().regex(/^[A-Z0-9.-]{1,16}$/, "Geçersiz sembol formatı"),
+  asset_class: z.string().regex(/^[a-z]{1,16}$/).optional(),
+  language: z.enum(["tr", "en"]).default("tr"),
+});
 
 async function requireUser(req: Request): Promise<{ response: Response | null; userId: string | null }> {
   const authHeader = req.headers.get("Authorization");
@@ -26,14 +33,16 @@ Deno.serve(async (req) => {
     const rlResponse = await rateLimit(userId!, "ai-analyze");
     if (rlResponse) return rlResponse;
 
-    const { symbol, asset_class, language = "tr" } = await req.json().catch(() => ({}));
-    if (typeof symbol !== "string" || !/^[A-Z0-9.-]{1,16}$/.test(symbol)) {
-      return new Response(JSON.stringify({ error: "Geçersiz sembol" }), {
+    const body = await req.json().catch(() => ({}));
+    const parseResult = AnalyzeRequestSchema.safeParse(body);
+    if (!parseResult.success) {
+      return new Response(JSON.stringify({ error: parseResult.error.errors[0].message }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const safeAsset = typeof asset_class === "string" && /^[a-z]{1,16}$/.test(asset_class) ? asset_class : null;
-    const lang = language === "en" ? "en" : "tr";
+    const { symbol, asset_class, language } = parseResult.data;
+    const safeAsset = asset_class ?? null;
+    const lang = language;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY yapılandırılmamış");

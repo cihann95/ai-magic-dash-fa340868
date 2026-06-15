@@ -1,0 +1,274 @@
+
+ RUN  v3.2.4 /home/user/projects/ai-magic-dash-fa340868
+      Coverage enabled with v8
+
+ ✓ src/test/example.test.ts (1 test) 10ms
+stderr | src/hooks/__tests__/useAnaSahne.test.ts > useAnaSahne > starts in loading state with null room
+Warning: An update to TestComponent inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at TestComponent (/home/user/projects/ai-magic-dash-fa340868/node_modules/@testing-library/react/dist/pure.js:328:5)
+Warning: An update to TestComponent inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at TestComponent (/home/user/projects/ai-magic-dash-fa340868/node_modules/@testing-library/react/dist/pure.js:328:5)
+
+stderr | src/hooks/__tests__/useAnaSahne.test.ts > useAnaSahne > tracks presence with anonymous user_id on mount
+Warning: An update to TestComponent inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at TestComponent (/home/user/projects/ai-magic-dash-fa340868/node_modules/@testing-library/react/dist/pure.js:328:5)
+Warning: An update to TestComponent inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://reactjs.org/link/wrap-tests-with-act
+    at TestComponent (/home/user/projects/ai-magic-dash-fa340868/node_modules/@testing-library/react/dist/pure.js:328:5)
+
+ ✓ src/hooks/__tests__/useSpectatorBroadcast.test.ts (4 tests) 88ms
+ ✓ src/hooks/__tests__/useAnalytics.test.ts (3 tests) 76ms
+ ✓ src/hooks/__tests__/useAnaSahne.test.ts (6 tests) 104ms
+ ✓ src/components/__tests__/ErrorBoundary.test.tsx (4 tests) 320ms
+ ✓ src/test-utils/test-utils.test.ts (31 tests) 682ms
+   ✓ test-utils: health-check > isServerHealthy returns false for unreachable server  603ms
+
+ Test Files  6 passed (6)
+      Tests  49 passed (49)
+   Start at  12:54:13
+   Duration  4.61s (transform 534ms, setup 791ms, collect 1.74s, tests 1.28s, environment 5.14s, prepare 1.35s)
+
+ % Coverage report from v8
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+All files          |    4.87 |    32.93 |   20.48 |    4.87 |                   
+ ...-dash-fa340868 |       0 |        0 |       0 |       0 |                   
+  ...css.config.js |       0 |        0 |       0 |       0 | 1-6               
+  ...ind.config.ts |       0 |        0 |       0 |       0 | 1-95              
+ ...a340868/public |       0 |        0 |       0 |       0 |                   
+  sw.js            |       0 |        0 |       0 |       0 | 1-64              
+ ...340868/scripts |       0 |        0 |       0 |       0 |                   
+  ...tion-order.ts |       0 |        0 |       0 |       0 | 1-976             
+ .../scripts/audit |       0 |        0 |       0 |       0 |                   
+  _mock_server.ts  |       0 |        0 |       0 |       0 | 1-403             
+  _run_all.ts      |       0 |        0 |       0 |       0 | 1-198             
+  ...ge-exploit.ts |       0 |        0 |       0 |       0 | 1-102             
+  ...rency-bomb.ts |       0 |        0 |       0 |       0 | 1-142             
+  ...leak-probe.ts |       0 |        0 |       0 |       0 | 1-77              
+ ...h-fa340868/src |       0 |        0 |       0 |       0 |                   
+  App.tsx          |       0 |        0 |       0 |       0 | 1-74              
+  main.tsx         |       0 |        0 |       0 |       0 | 1-5               
+ ...src/components |    6.08 |     40.9 |   23.52 |    6.08 |                   
+  AIDisclaimer.tsx |       0 |        0 |       0 |       0 | 1-16              
+  ...tedNumber.tsx |       0 |        0 |       0 |       0 | 1-58              
+  AppShell.tsx     |       0 |        0 |       0 |       0 | 1-27              
+  BottomNav.tsx    |       0 |        0 |       0 |       0 | 1-35              
+  ...ndPalette.tsx |       0 |        0 |       0 |       0 | 1-122             
+  ...rBoundary.tsx |   95.74 |      100 |     100 |   95.74 | 43-44             
+  GameBadge.tsx    |       0 |        0 |       0 |       0 | 1-80              
+  ...ationBell.tsx |       0 |        0 |       0 |       0 | 1-146             
+  ...rdingTour.tsx |       0 |        0 |       0 |       0 | 1-76              
+  ...nboarding.tsx |       0 |        0 |       0 |       0 | 1-181             
+  ...ctedRoute.tsx |       0 |        0 |       0 |       0 | 1-10              
+  ...tcutsHelp.tsx |       0 |        0 |       0 |       0 | 1-53              
+  TopBar.tsx       |       0 |        0 |       0 |       0 | 1-174             
+  ...ViewChart.tsx |       0 |        0 |       0 |       0 | 1-47              
+ ...nents/AnaSahne |       0 |        0 |       0 |       0 |                   
+  AnaSahne.tsx     |       0 |        0 |       0 |       0 | 1-177             
+  ...ownCircle.tsx |       0 |        0 |       0 |       0 | 1-108             
+  EmptyArena.tsx   |       0 |        0 |       0 |       0 | 1-30              
+  ...hedBanner.tsx |       0 |        0 |       0 |       0 | 1-58              
+  PlayerCard.tsx   |       0 |        0 |       0 |       0 | 1-78              
+  ...atorPanel.tsx |       0 |        0 |       0 |       0 | 1-168             
+  index.ts         |       0 |        0 |       0 |       0 | 1                 
+ ...mponents/blitz |       0 |        0 |       0 |       0 |                   
+  ...aderboard.tsx |       0 |        0 |       0 |       0 | 1-79              
+  BlitzTimer.tsx   |       0 |        0 |       0 |       0 | 1-74              
+  TradeActions.tsx |       0 |        0 |       0 |       0 | 1-98              
+  index.ts         |       0 |        0 |       0 |       0 | 1                 
+ ...onents/trading |       0 |        0 |       0 |       0 |                   
+  ...ntAIPanel.tsx |       0 |        0 |       0 |       0 | 1-324             
+  AlertsPanel.tsx  |       0 |        0 |       0 |       0 | 1-106             
+  ChartPanel.tsx   |       0 |        0 |       0 |       0 | 1-211             
+  IntentDialog.tsx |       0 |        0 |       0 |       0 | 1-265             
+  ...ionsPanel.tsx |       0 |        0 |       0 |       0 | 1-399             
+  OrderTicket.tsx  |       0 |        0 |       0 |       0 | 1-144             
+  SymbolList.tsx   |       0 |        0 |       0 |       0 | 1-114             
+ .../components/ui |       0 |        0 |       0 |       0 |                   
+  accordion.tsx    |       0 |        0 |       0 |       0 | 1-50              
+  alert-dialog.tsx |       0 |        0 |       0 |       0 | 1-90              
+  alert.tsx        |       0 |        0 |       0 |       0 | 1-41              
+  aspect-ratio.tsx |       0 |        0 |       0 |       0 | 1-3               
+  avatar.tsx       |       0 |        0 |       0 |       0 | 1-36              
+  badge.tsx        |       0 |        0 |       0 |       0 | 1-27              
+  breadcrumb.tsx   |       0 |        0 |       0 |       0 | 1-80              
+  button.tsx       |       0 |        0 |       0 |       0 | 1-45              
+  calendar.tsx     |       0 |        0 |       0 |       0 | 1-52              
+  card.tsx         |       0 |        0 |       0 |       0 | 1-41              
+  carousel.tsx     |       0 |        0 |       0 |       0 | 1-222             
+  chart.tsx        |       0 |        0 |       0 |       0 | 1-310             
+  checkbox.tsx     |       0 |        0 |       0 |       0 | 1-24              
+  collapsible.tsx  |       0 |        0 |       0 |       0 | 1-7               
+  command.tsx      |       0 |        0 |       0 |       0 | 1-120             
+  context-menu.tsx |       0 |        0 |       0 |       0 | 1-160             
+  dialog.tsx       |       0 |        0 |       0 |       0 | 1-82              
+  drawer.tsx       |       0 |        0 |       0 |       0 | 1-74              
+  ...down-menu.tsx |       0 |        0 |       0 |       0 | 1-161             
+  empty-state.tsx  |       0 |        0 |       0 |       0 | 1-43              
+  form.tsx         |       0 |        0 |       0 |       0 | 1-127             
+  hover-card.tsx   |       0 |        0 |       0 |       0 | 1-25              
+  input-otp.tsx    |       0 |        0 |       0 |       0 | 1-59              
+  input.tsx        |       0 |        0 |       0 |       0 | 1-20              
+  label.tsx        |       0 |        0 |       0 |       0 | 1-15              
+  ...ing-state.tsx |       0 |        0 |       0 |       0 | 1-44              
+  menubar.tsx      |       0 |        0 |       0 |       0 | 1-188             
+  ...tion-menu.tsx |       0 |        0 |       0 |       0 | 1-108             
+  pagination.tsx   |       0 |        0 |       0 |       0 | 1-71              
+  popover.tsx      |       0 |        0 |       0 |       0 | 1-27              
+  progress.tsx     |       0 |        0 |       0 |       0 | 1-21              
+  radio-group.tsx  |       0 |        0 |       0 |       0 | 1-34              
+  resizable.tsx    |       0 |        0 |       0 |       0 | 1-31              
+  scroll-area.tsx  |       0 |        0 |       0 |       0 | 1-36              
+  select.tsx       |       0 |        0 |       0 |       0 | 1-130             
+  separator.tsx    |       0 |        0 |       0 |       0 | 1-18              
+  sheet.tsx        |       0 |        0 |       0 |       0 | 1-94              
+  sidebar.tsx      |       0 |        0 |       0 |       0 | 1-610             
+  skeleton.tsx     |       0 |        0 |       0 |       0 | 1-5               
+  slider.tsx       |       0 |        0 |       0 |       0 | 1-21              
+  sonner.tsx       |       0 |        0 |       0 |       0 | 1-25              
+  switch.tsx       |       0 |        0 |       0 |       0 | 1-25              
+  table.tsx        |       0 |        0 |       0 |       0 | 1-70              
+  tabs.tsx         |       0 |        0 |       0 |       0 | 1-51              
+  textarea.tsx     |       0 |        0 |       0 |       0 | 1-19              
+  toast.tsx        |       0 |        0 |       0 |       0 | 1-95              
+  toaster.tsx      |       0 |        0 |       0 |       0 | 1-24              
+  toggle-group.tsx |       0 |        0 |       0 |       0 | 1-47              
+  toggle.tsx       |       0 |        0 |       0 |       0 | 1-35              
+  tooltip.tsx      |       0 |        0 |       0 |       0 | 1-26              
+  use-toast.ts     |       0 |        0 |       0 |       0 | 1                 
+ ...8/src/contexts |       0 |        0 |       0 |       0 |                   
+  AppContext.tsx   |       0 |        0 |       0 |       0 | 1-66              
+ ...0868/src/hooks |   26.37 |    64.58 |   30.76 |   26.37 |                   
+  use-mobile.tsx   |       0 |        0 |       0 |       0 | 1-19              
+  use-toast.ts     |       0 |        0 |       0 |       0 | 1-184             
+  ...ifications.ts |       0 |        0 |       0 |       0 | 1-40              
+  useAnaSahne.ts   |   74.73 |    81.81 |   66.66 |   74.73 | ...25-132,140-144 
+  useAnalytics.ts  |     100 |      100 |     100 |     100 |                   
+  useBlitzRoom.ts  |       0 |        0 |       0 |       0 | 1-50              
+  ...onalSignal.ts |       0 |        0 |       0 |       0 | 1-90              
+  ...dShortcuts.ts |       0 |        0 |       0 |       0 | 1-65              
+  useLivePrices.ts |       0 |        0 |       0 |       0 | 1-145             
+  ...rBroadcast.ts |   89.69 |    70.83 |     100 |   89.69 | 67-72,90-93       
+  ...eklyDigest.ts |       0 |        0 |       0 |       0 | 1-40              
+ ...tions/supabase |       0 |       50 |      50 |       0 |                   
+  client.ts        |       0 |        0 |       0 |       0 | 1-17              
+  types.ts         |       0 |      100 |     100 |       0 | 1224-1233         
+ ...340868/src/lib |       0 |    27.27 |   27.27 |       0 |                   
+  achievements.ts  |       0 |        0 |       0 |       0 | 1-25              
+  binanceStream.ts |       0 |        0 |       0 |       0 | 1-97              
+  blitzSfx.ts      |       0 |        0 |       0 |       0 | 1-49              
+  config.ts        |       0 |        0 |       0 |       0 | 1-102             
+  ...tion-types.ts |       0 |        0 |       0 |       0 | 1-50              
+  feature-flags.ts |       0 |        0 |       0 |       0 | 1-83              
+  i18n.ts          |       0 |      100 |     100 |       0 | 3-156             
+  observability.ts |       0 |      100 |     100 |       0 | 11-65             
+  pushSubscribe.ts |       0 |        0 |       0 |       0 | 1-74              
+  symbols.ts       |       0 |      100 |     100 |       0 | 13-87             
+  utils.ts         |       0 |        0 |       0 |       0 | 1-6               
+ ...0868/src/pages |       0 |        0 |       0 |       0 |                   
+  Achievements.tsx |       0 |        0 |       0 |       0 | 1-69              
+  AdminBlitz.tsx   |       0 |        0 |       0 |       0 | 1-206             
+  Auth.tsx         |       0 |        0 |       0 |       0 | 1-129             
+  Blitz.tsx        |       0 |        0 |       0 |       0 | 1-234             
+  BlitzRoom.tsx    |       0 |        0 |       0 |       0 | 1-281             
+  Coach.tsx        |       0 |        0 |       0 |       0 | 1-172             
+  Heatmap.tsx      |       0 |        0 |       0 |       0 | 1-113             
+  History.tsx      |       0 |        0 |       0 |       0 | 1-87              
+  Index.tsx        |       0 |        0 |       0 |       0 | 1-112             
+  Insights.tsx     |       0 |        0 |       0 |       0 | 1-324             
+  Journal.tsx      |       0 |        0 |       0 |       0 | 1-230             
+  Leaderboard.tsx  |       0 |        0 |       0 |       0 | 1-107             
+  NotFound.tsx     |       0 |        0 |       0 |       0 | 1-24              
+  Portfolio.tsx    |       0 |        0 |       0 |       0 | 1-208             
+  ...tPassword.tsx |       0 |        0 |       0 |       0 | 1-60              
+  Settings.tsx     |       0 |        0 |       0 |       0 | 1-215             
+  Social.tsx       |       0 |        0 |       0 |       0 | 1-304             
+  Watchlist.tsx    |       0 |        0 |       0 |       0 | 1-74              
+ ...src/test-utils |   72.86 |    88.37 |   76.92 |   72.86 |                   
+  factories.ts     |     100 |      100 |     100 |     100 |                   
+  health-check.ts  |   65.82 |    55.55 |      75 |   65.82 | ...00-111,127-138 
+  index.ts         |     100 |      100 |     100 |     100 |                   
+  mocks.ts         |   79.48 |      100 |      50 |   79.48 | ...45-348,407-408 
+  setup.ts         |       0 |        0 |       0 |       0 | 1-113             
+ ...0868/src/types |       0 |        0 |       0 |       0 |                   
+  blitz.ts         |       0 |        0 |       0 |       0 | 1-80              
+ ...ctions/_shared |       0 |        0 |       0 |       0 |                   
+  blitz-types.ts   |       0 |        0 |       0 |       0 | 1-31              
+  config.ts        |       0 |        0 |       0 |       0 | 1-123             
+  rate-limit.ts    |       0 |        0 |       0 |       0 | 1-111             
+  redis.ts         |       0 |        0 |       0 |       0 | 1-96              
+ ...ons/ai-analyze |       0 |        0 |       0 |       0 |                   
+  index.ts         |       0 |        0 |       0 |       0 | 1-76              
+ ...ctions/ai-chat |       0 |        0 |       0 |       0 |                   
+  index.ts         |       0 |        0 |       0 |       0 | 1-89              
+ ...i-risk-monitor |       0 |        0 |       0 |       0 |                   
+  index.ts         |       0 |        0 |       0 |       0 | 1-162             
+ ...ns/ai-strategy |       0 |        0 |       0 |       0 |                   
+  index.ts         |       0 |        0 |       0 |       0 | 1-82              
+ ...ai-trade-coach |       0 |        0 |       0 |       0 |                   
+  index.ts         |       0 |        0 |       0 |       0 | 1-244             
+ ...tz-admin-topup |       0 |        0 |       0 |       0 |                   
+  index.ts         |       0 |        0 |       0 |       0 | 1-84              
+ ...alytics-writer |       0 |        0 |       0 |       0 |                   
+  index.ts         |       0 |        0 |       0 |       0 | 1-85              
+ ...z-join-private |       0 |        0 |       0 |       0 |                   
+  index.ts         |       0 |        0 |       0 |       0 | 1-73              
+ ...litz-matchmake |       0 |        0 |       0 |       0 |                   
+  index.ts         |       0 |        0 |       0 |       0 | 1-360             
+ ...tz-settle-room |       0 |        0 |       0 |       0 |                   
+  index.ts         |       0 |        0 |       0 |       0 | 1-255             
+ ...itz-tick-order |       0 |        0 |       0 |       0 |                   
+  index.ts         |       0 |        0 |       0 |       0 | 1-228             
+ ...ns/daily-brief |       0 |        0 |       0 |       0 |                   
+  index.ts         |       0 |        0 |       0 |       0 | 1-96              
+ .../execute-trade |       0 |        0 |       0 |       0 |                   
+  index.ts         |       0 |        0 |       0 |       0 | 1-396             
+ ...ions/news-feed |       0 |        0 |       0 |       0 |                   
+  index.ts         |       0 |        0 |       0 |       0 | 1-95              
+ ...ons/price-feed |       0 |        0 |       0 |       0 |                   
+  index.ts         |       0 |        0 |       0 |       0 | 1-315             
+ ...t-demo-account |       0 |        0 |       0 |       0 |                   
+  index.ts         |       0 |        0 |       0 |       0 | 1-54              
+ ...ions/send-push |       0 |        0 |       0 |       0 |                   
+  index.ts         |       0 |        0 |       0 |       0 | 1-117             
+ ...s/trade-mirror |       0 |        0 |       0 |       0 |                   
+  index.ts         |       0 |        0 |       0 |       0 | 1-178             
+ .../weekly-digest |       0 |        0 |       0 |       0 |                   
+  index.ts         |       0 |        0 |       0 |       0 | 1-174             
+-------------------|---------|----------|---------|---------|-------------------

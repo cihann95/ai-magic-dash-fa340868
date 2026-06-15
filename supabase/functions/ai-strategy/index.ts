@@ -1,11 +1,16 @@
 // AI strateji önerileri - kullanıcının portföy dengesine göre
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { rateLimit } from "../_shared/rate-limit.ts";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const StrategyRequestSchema = z.object({
+  language: z.enum(["tr", "en"]).default("tr"),
+});
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -22,7 +27,14 @@ Deno.serve(async (req) => {
     const rlResponse = await rateLimit(user.id, "ai-strategy");
     if (rlResponse) return rlResponse;
 
-    const { language = "tr" } = await req.json().catch(() => ({}));
+    const body = await req.json().catch(() => ({}));
+    const parseResult = StrategyRequestSchema.safeParse(body);
+    if (!parseResult.success) {
+      return new Response(JSON.stringify({ error: parseResult.error.errors[0].message }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { language } = parseResult.data;
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     const [{ data: positions }, { data: profile }] = await Promise.all([

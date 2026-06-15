@@ -133,7 +133,7 @@ Wave FINAL (After ALL tasks):
 
 ## TODOs
 
-- [ ] 0. T0.1 — .omo Analizlerini Sentezle
+- [x] 0. T0.1 — .omo Analizlerini Sentezle
 
   **What to do**:
   - `.omo/reports/threat-model.md`, `.omo/plans/production-hardening.md`, `.omo/notepads/production-readiness/learnings.md` dosyalarını oku
@@ -179,7 +179,7 @@ Wave FINAL (After ALL tasks):
 
 ---
 
-- [ ] 1. T0.2 — Audit Script'lerini Çalıştır
+- [x] 1. T0.2 — Audit Script'lerini Çalıştır
 
   **What to do**:
   - `scripts/audit/_run_all.ts` ile üç audit script'ini çalıştır
@@ -230,7 +230,7 @@ Wave FINAL (After ALL tasks):
 
 ---
 
-- [ ] 2. T0.3 — CI Revert Sebebini Doğrula
+- [x] 2. T0.3 — CI Revert Sebebini Doğrula
 
   **What to do**:
   - `a505afd` commit'inin revert ettiği orijinal commit'i bul
@@ -277,7 +277,7 @@ Wave FINAL (After ALL tasks):
 
 ---
 
-- [ ] 3. T0.4 — activity_feed SECURITY DEFINER View'ını Denetle
+- [x] 3. T0.4 — activity_feed SECURITY DEFINER View'ını Denetle
 
   **What to do**:
   - `supabase/migrations/20260610000001_security_hardening.sql` dosyasından view tanımını çıkar
@@ -325,7 +325,7 @@ Wave FINAL (After ALL tasks):
 
 ---
 
-- [ ] 4. T1.1 — Kritik Edge Function'lara Concurrency/Idempotency Testi
+- [x] 4. T1.1 — Kritik Edge Function'lara Concurrency/Idempotency Testi
 
   **What to do**:
   - execute-trade, blitz-matchmake, blitz-tick-order, blitz-settle-room için:
@@ -376,7 +376,7 @@ Wave FINAL (After ALL tasks):
 
 ---
 
-- [ ] 5. T1.2 — blitz_settle_ledger için Invariant Kontrolü
+- [x] 5. T1.2 — blitz_settle_ledger için Invariant Kontrolü
 
   **What to do**:
   - "Ledger toplamı her an sıfıra denk gelmeli" invariant sorgusu yaz
@@ -424,7 +424,7 @@ Wave FINAL (After ALL tasks):
 
 ---
 
-- [ ] 6. T1.3 — Bulunan Açıkları Kapat
+- [x] 6. T1.3 — Bulunan Açıkları Kapat
 
   **What to do**:
   - T0.2 ve T1.1'de bulunan her açık için fix uygula
@@ -568,7 +568,7 @@ Wave FINAL (After ALL tasks):
 
 ---
 
-- [ ] 9. T3.1 — 21 `as any` Kullanımının Kök Neden Analizi
+- [x] 9. T3.1 — 21 `as any` Kullanımının Kök Neden Analizi
 
   **What to do**:
   - Her `as any`/cast için: Supabase types eksikliği mi (view/RPC tip tanımı yok), yoksa gerçek tip uyumsuzluğu mu?
@@ -612,7 +612,7 @@ Wave FINAL (After ALL tasks):
 
 ---
 
-- [ ] 10. T3.2 — Eksik View/RPC Tipleri için Manuel Tip Extension Dosyası
+- [x] 10. T3.2 — Eksik View/RPC Tipleri için Manuel Tip Extension Dosyası
 
   **What to do**:
   - `src/integrations/supabase/types.extra.ts` dosyası oluştur
@@ -659,7 +659,7 @@ Wave FINAL (After ALL tasks):
 
 ---
 
-- [ ] 11. T3.3 — strictNullChecks'i Kademeli Aç
+- [x] 11. T3.3 — strictNullChecks'i Kademeli Aç
 
   **What to do**:
   - Önce src/lib/ ve src/hooks/ için strict mod aç
@@ -708,7 +708,7 @@ Wave FINAL (After ALL tasks):
 
 ---
 
-- [ ] 12. T4.1 — Edge Functions'a Rate Limiting Ekle
+- [x] 12. T4.1 — Edge Functions'a Rate Limiting Ekle
 
   **What to do**:
   - Özellikle execute-trade ve blitz-tick-order için kullanıcı/IP bazlı rate limit
@@ -753,7 +753,7 @@ Wave FINAL (After ALL tasks):
 
 ---
 
-- [ ] 13. T4.2 — AI Fonksiyonlarına Zod Input Validation Ekle
+- [x] 13. T4.2 — AI Fonksiyonlarına Zod Input Validation Ekle
 
   **What to do**:
   - Her AI fonksiyonu için request body'ye Zod schema validation ekle
@@ -844,7 +844,7 @@ Wave FINAL (After ALL tasks):
 
 ---
 
-- [ ] 15. T5.1 — README.md Yaz
+- [x] 15. T5.1 — README.md Yaz
 
   **What to do**:
   - Proje kurulumu, mimari, env değişkenleri, test çalıştırma adımlarını yaz
@@ -887,7 +887,7 @@ Wave FINAL (After ALL tasks):
 
 ---
 
-- [ ] 16. T5.2 — Lint Hatalarını Düzelt
+- [x] 16. T5.2 — Lint Hatalarını Düzelt
 
   **What to do**:
   - `src/hooks/useAnaSahne.ts` satır 4, 10 — kullanılmayan import'ları kaldır
@@ -928,7 +928,7 @@ Wave FINAL (After ALL tasks):
 
 ---
 
-- [ ] 17. T5.3 — Build Chunk Optimizasyonu
+- [x] 17. T5.3 — Build Chunk Optimizasyonu
 
   **What to do**:
   - Recharts/CartesianChart için dynamic import, ana chunk'ı 1.3MB'ın altına çek
@@ -971,7 +971,7 @@ Wave FINAL (After ALL tasks):
 
 ---
 
-- [ ] 18. T5.4 — Coverage Raporu Ekle
+- [x] 18. T5.4 — Coverage Raporu Ekle
 
   **What to do**:
   - `vitest.config.ts`'e coverage ayarı ekle

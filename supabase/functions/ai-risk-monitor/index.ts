@@ -2,6 +2,7 @@
 // kullanıcılara bildirim gönderir. Cron her 15 dk'da bir çalıştırır.
 // Aynı kullanıcıya aynı tip uyarı son 6 saatte gönderildiyse atlanır (spam önleme).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 interface NotificationMetadata {
   signal?: string;
@@ -17,6 +18,8 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const RiskMonitorRequestSchema = z.object({}).strict();
 
 const COOLDOWN_HOURS = 6;
 
@@ -39,6 +42,15 @@ Deno.serve(async (req) => {
   }
   if (!isServiceRole && !isCron) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+
+  // Validate request body (should be empty for cron jobs)
+  const body = await req.json().catch(() => ({}));
+  const parseResult = RiskMonitorRequestSchema.safeParse(body);
+  if (!parseResult.success) {
+    return new Response(JSON.stringify({ error: parseResult.error.errors[0].message }), {
+      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   try {

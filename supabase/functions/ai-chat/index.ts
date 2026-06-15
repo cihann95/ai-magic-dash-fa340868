@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { rateLimit } from "../_shared/rate-limit.ts";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,6 +10,17 @@ const corsHeaders = {
 const SYMBOL_RE = /^[A-Z0-9.-]{1,16}$/;
 const MAX_MESSAGES = 20;
 const MAX_MSG_LEN = 4000;
+
+const ChatMessageSchema = z.object({
+  role: z.enum(["user", "assistant", "system"]),
+  content: z.string().min(1).max(MAX_MSG_LEN),
+});
+
+const ChatRequestSchema = z.object({
+  messages: z.array(ChatMessageSchema).min(1).max(MAX_MESSAGES),
+  language: z.enum(["tr", "en"]).default("tr"),
+  context_symbol: z.string().regex(SYMBOL_RE).optional(),
+});
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -24,33 +36,16 @@ Deno.serve(async (req) => {
     if (rlResponse) return rlResponse;
 
     const body = await req.json().catch(() => ({}));
-    const { messages, language = "tr", context_symbol } = body ?? {};
-
-    if (!Array.isArray(messages) || messages.length === 0 || messages.length > MAX_MESSAGES) {
-      return new Response(JSON.stringify({ error: "Geçersiz mesaj listesi" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const parseResult = ChatRequestSchema.safeParse(body);
+    if (!parseResult.success) {
+      return new Response(JSON.stringify({ error: parseResult.error.errors[0].message }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
-    const cleanMessages: Array<{ role: string; content: string }> = [];
-    for (const m of messages) {
-      if (!m || typeof m !== "object") return new Response(JSON.stringify({ error: "Geçersiz mesaj" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      const role = m.role;
-      const content = m.content;
-      if (role !== "user" && role !== "assistant" && role !== "system") {
-        return new Response(JSON.stringify({ error: "Geçersiz rol" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      }
-      if (typeof content !== "string" || content.length === 0 || content.length > MAX_MSG_LEN) {
-        return new Response(JSON.stringify({ error: "Mesaj uzunluğu sınır dışı" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      }
-      cleanMessages.push({ role, content });
-    }
-
-    let safeSymbol: string | undefined;
-    if (context_symbol != null) {
-      if (typeof context_symbol !== "string" || !SYMBOL_RE.test(context_symbol)) {
-        return new Response(JSON.stringify({ error: "Geçersiz sembol" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      }
-      safeSymbol = context_symbol;
-    }
-    const lang = language === "en" ? "en" : "tr";
+    const { messages, language, context_symbol } = parseResult.data;
+    const cleanMessages = messages;
+    const safeSymbol = context_symbol;
+    const lang = language;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {

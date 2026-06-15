@@ -19,4 +19,14 @@ export default defineConfig(({ mode }) => ({
     },
     dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime", "@tanstack/react-query", "@tanstack/query-core"],
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Separate Recharts library to reduce main bundle size
+          recharts: ["recharts"],
+        },
+      },
+    },
+  },
 }));

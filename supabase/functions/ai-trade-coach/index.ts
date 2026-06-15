@@ -5,11 +5,16 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import type { Admin } from "../_shared/blitz-types.ts";
 import { rateLimit } from "../_shared/rate-limit.ts";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const TradeCoachRequestSchema = z.object({
+  user_id: z.string().uuid().optional(),
+});
 
 interface TradeRow {
   symbol: string; asset_class: string; side: string; action: string;
@@ -188,7 +193,13 @@ Deno.serve(async (req) => {
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
-    const targetUserId = body?.user_id;
+    const parseResult = TradeCoachRequestSchema.safeParse(body);
+    if (!parseResult.success) {
+      return new Response(JSON.stringify({ error: parseResult.error.errors[0].message }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const targetUserId = parseResult.data.user_id;
 
     // Tek kullanıcı modu (UI'dan tetik) — auth kontrolü
     if (targetUserId) {
