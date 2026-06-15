@@ -3,6 +3,7 @@ import AppShell from "@/components/AppShell";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useApp } from "@/contexts/AppContext";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { t } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -17,8 +18,8 @@ const COLORS = ["hsl(var(--primary))", "hsl(var(--bull))", "hsl(var(--primary-gl
 function PortfolioInner() {
   const { user, lang } = useApp();
   const tr = t(lang);
-  const [positions, setPositions] = useState<any[]>([]);
-  const [trades, setTrades] = useState<any[]>([]);
+  const [positions, setPositions] = useState<Database["public"]["Tables"]["positions"]["Row"][]>([]);
+  const [trades, setTrades] = useState<Database["public"]["Tables"]["trades"]["Row"][]>([]);
   const [balance, setBalance] = useState(0);
   const [initial, setInitial] = useState(100000);
   const [healthMode, setHealthMode] = useState(false);
@@ -35,7 +36,7 @@ function PortfolioInner() {
       if (pr.data) {
         setBalance(Number(pr.data.demo_balance));
         setInitial(Number(pr.data.initial_balance));
-        setHealthMode((pr.data as any).preferred_view === "health");
+        setHealthMode(pr.data.preferred_view === "health");
       }
     });
   }, [user]);
@@ -66,7 +67,7 @@ function PortfolioInner() {
   const toggleHealthMode = async (v: boolean) => {
     setHealthMode(v);
     if (user) {
-      await supabase.from("profiles").update({ preferred_view: v ? "health" : "pnl" } as any).eq("id", user.id);
+      await supabase.from("profiles").update({ preferred_view: v ? "health" : "pnl" }).eq("id", user.id);
     }
   };
 

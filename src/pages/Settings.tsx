@@ -23,7 +23,7 @@ function SettingsInner() {
   const [saving, setSaving] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [pushOn, setPushOn] = useState(false);
-  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [installPrompt, setInstallPrompt] = useState<{ prompt(): Promise<{ outcome: string }> } | null>(null);
 
   // Public profile state
   const [username, setUsername] = useState("");

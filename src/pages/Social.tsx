@@ -3,11 +3,12 @@ import { useCallback, useEffect, useState } from "react";
 import AppShell from "@/components/AppShell";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { useApp } from "@/contexts/AppContext";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -52,13 +53,15 @@ function SocialInner() {
 
     const { data: followsRows } = await supabase.from("followers")
       .select("following_id").eq("follower_id", user.id);
-    const followIds = new Set((followsRows ?? []).map((r: any) => r.following_id));
+    const followIds = new Set((followsRows ?? []).map((r) => r.following_id));
     setFollowing(followIds);
 
     const ids = Array.from(followIds);
     let feedRows: Activity[] = [];
     if (ids.length > 0) {
-      const { data: f } = await (supabase as any).from("activity_feed")
+      // activity_feed is a View — cast table name to satisfy .from() constraint
+      const VIEW_TABLE = "activity_feed" as keyof Database["public"]["Tables"];
+      const { data: f } = await supabase.from(VIEW_TABLE)
         .select("*").in("user_id", ids).order("event_at", { ascending: false }).limit(50);
       feedRows = (f as unknown as Activity[]) ?? [];
     }
@@ -70,14 +73,14 @@ function SocialInner() {
       const userIds = lbRows.map((r) => r.user_id);
       const { data: pps } = await supabase.from("public_profiles")
         .select("user_id, copyable").in("user_id", userIds);
-      const copyMap = new Map((pps ?? []).map((p: any) => [p.user_id, p.copyable]));
+      const copyMap = new Map((pps ?? []).map((p) => [p.user_id, p.copyable]));
       lbRows.forEach((r) => { r.copyable = copyMap.get(r.user_id) ?? false; });
     }
     setLeaders(lbRows);
 
     const { data: cs } = await supabase.from("copy_settings").select("*").eq("follower_id", user.id);
     const csMap: Record<string, CopySetting> = {};
-    (cs ?? []).forEach((c: any) => { csMap[c.leader_id] = c; });
+    (cs ?? []).forEach((c) => { csMap[c.leader_id] = c as CopySetting; });
     setCopySettings(csMap);
 
     setLoading(false);

@@ -5,6 +5,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppProvider } from "@/contexts/AppContext";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
 
@@ -39,30 +40,32 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <AppProvider>
-          <Suspense fallback={<RouteFallback />}>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/portfolio" element={<Portfolio />} />
-              <Route path="/history" element={<History />} />
-              <Route path="/watchlist" element={<Watchlist />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/leaderboard" element={<Leaderboard />} />
-              <Route path="/achievements" element={<Achievements />} />
-              <Route path="/heatmap" element={<Heatmap />} />
-              <Route path="/social" element={<Social />} />
-              <Route path="/coach" element={<Coach />} />
-              <Route path="/journal" element={<Journal />} />
-              <Route path="/insights" element={<Insights />} />
-              <Route path="/blitz" element={<Blitz />} />
-              <Route path="/blitz/:roomId" element={<BlitzRoom />} />
-              <Route path="/admin/blitz" element={<AdminBlitz />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </AppProvider>
+        <ErrorBoundary>
+          <AppProvider>
+            <Suspense fallback={<RouteFallback />}>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/portfolio" element={<Portfolio />} />
+                <Route path="/history" element={<History />} />
+                <Route path="/watchlist" element={<Watchlist />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/leaderboard" element={<Leaderboard />} />
+                <Route path="/achievements" element={<Achievements />} />
+                <Route path="/heatmap" element={<Heatmap />} />
+                <Route path="/social" element={<Social />} />
+                <Route path="/coach" element={<Coach />} />
+                <Route path="/journal" element={<Journal />} />
+                <Route path="/insights" element={<Insights />} />
+                <Route path="/blitz" element={<Blitz />} />
+                <Route path="/blitz/:roomId" element={<BlitzRoom />} />
+                <Route path="/admin/blitz" element={<AdminBlitz />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </AppProvider>
+        </ErrorBoundary>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

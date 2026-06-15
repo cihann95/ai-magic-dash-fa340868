@@ -17,7 +17,7 @@ import { findSymbol } from "@/lib/symbols";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/contexts/AppContext";
 import { blitzSfx, vibrate } from "@/lib/blitzSfx";
-import { cn } from "@/lib/utils";
+
 
 export default function BlitzRoomPage() {
   const { roomId } = useParams<{ roomId: string }>();

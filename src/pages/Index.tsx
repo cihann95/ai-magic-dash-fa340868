@@ -11,6 +11,7 @@ import AccountAIPanel from "@/components/trading/AccountAIPanel";
 import OpenPositionsPanel from "@/components/trading/OpenPositionsPanel";
 import { AnaSahne } from "@/components/AnaSahne";
 import { useAnaSahne } from "@/hooks/useAnaSahne";
+import { hasFeature } from "@/lib/feature-flags";
 import { ArrowRight, BarChart3, Brain, Globe } from "lucide-react";
 
 function AnaSahneSection() {
@@ -45,7 +46,7 @@ export default function Index() {
   if (!user) {
     return (
       <AppShell>
-        {import.meta.env.VITE_ANA_SAHNE_ENABLED === "true" && <AnaSahneSection />}
+        {hasFeature('ana-sahne') && <AnaSahneSection />}
         <section className="px-6 py-20 md:py-32 max-w-5xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 text-xs font-medium px-3 py-1 rounded-full bg-primary/15 text-primary mb-6 animate-fade-in">
             <Brain className="size-3" /> {lang === "tr" ? "AI destekli işlem" : "AI-powered trading"}
