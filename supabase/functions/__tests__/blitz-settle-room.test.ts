@@ -72,7 +72,7 @@ function createSimulatedSettlementEngine() {
     },
 
     // lock_and_validate_room — checks if already settled
-    lockAndValidateRoom(roomId: string, idempotencyKey: string): {
+    lockAndValidateRoom(roomId: string, _idempotencyKey: string): {
       already_settled: boolean;
       error?: string;
       symbol?: string;

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { screen, cleanup, waitFor } from "@testing-library/react";
 import Portfolio from "@/pages/Portfolio";
-import { renderWithProviders, setupGlobalMocks, cleanupGlobalMocks } from "@/pages/__tests__/test-utils";
+import { renderWithProviders, setupGlobalMocks } from "@/pages/__tests__/test-utils";
 
 // ── Hoisted mocks (available before vi.mock hoisting) ──
 const mockSupabaseClient = vi.hoisted(() => ({
@@ -49,9 +49,9 @@ vi.mock("@/components/AppShell", () => ({
 
 // ── Mock lucide-react icons as simple functional components ──
 vi.mock("lucide-react", () => ({
-  Heart: (props: Record<string, unknown>) => <svg data-testid="icon-heart" />,
-  EyeOff: (props: Record<string, unknown>) => <svg data-testid="icon-eyeoff" />,
-  Eye: (props: Record<string, unknown>) => <svg data-testid="icon-eye" />,
+  Heart: (_props: Record<string, unknown>) => <svg data-testid="icon-heart" />,
+  EyeOff: (_props: Record<string, unknown>) => <svg data-testid="icon-eyeoff" />,
+  Eye: (_props: Record<string, unknown>) => <svg data-testid="icon-eye" />,
 }));
 
 // ── Mock recharts ──
