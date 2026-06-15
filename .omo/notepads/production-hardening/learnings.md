@@ -112,6 +112,25 @@
 - CI now fully green: all 3 jobs pass (Edge Function Tests, Frontend Unit Tests, Hard Technical Audit)
 - **Lesson**: When adding npm dependencies to `package.json` in a project that also uses Deno, always run `deno install --frozen=false` to update `deno.lock` — otherwise CI `--frozen` checks will fail
 
+### T5.7 — Test Convention Enforced (`__tests__/` directories)
+- Moved `src/test/example.test.ts` → `src/test/__tests__/example.test.ts`
+- Moved `src/test-utils/test-utils.test.ts` → `src/test-utils/__tests__/test-utils.test.ts`
+- `src/test/setup.ts` and `src/test-utils/setup.ts` left in place (not tests, or referenced by vitest config)
+- vitest config unchanged (glob `src/**/*.{test,spec}.{ts,tsx}` already covers `__tests__/`)
+- All 55 tests passing across 10 test files
+- Commit: `45948eb`
+
+### T2.2 — Staging Setup & Smoke Test
+- 30 migration files validated — all valid SQL, proper chronological ordering
+- 19 edge functions identified; `deno check` results: 9 PASS clean, 10 have type errors
+- Type errors are all from shared modules (`_shared/redis.ts` and `@supabase/postgrest-js` generic inference), NOT application logic
+- `_shared/redis.ts` issues: `zrangeWithScores` missing from Redis type def, spread argument in `sadd()` — runtime unaffected
+- `postgrest-js` issues: `.eq()` overload resolution with `unknown` type — Deno-specific type inference, runtime unaffected
+- Hard audit 3/3 PASS (CRSH-001/002/003)
+- No Docker or staging credentials available — deployment procedure documented, not executed
+- Staging project ID: `wufhbvshqhiiwjrvfzey`
+- **Lesson**: `deno check` type errors in third-party type definitions don't block deployment — Supabase's Deno runtime handles these correctly at runtime
+
 ### Decisions
 - Use Upstash Redis for rate limiting (serverless, pay-per-request)
 - Sliding window over fixed window for better UX
