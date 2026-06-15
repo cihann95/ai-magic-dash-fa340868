@@ -18,6 +18,13 @@ const ROOT = process.cwd();
 const FRONTEND_FILE = path.resolve(ROOT, "src/types/blitz.ts");
 const EDGE_FILE = path.resolve(ROOT, "supabase/functions/_shared/blitz-types.ts");
 
+/**
+ * Edge-only types that are INTENTIONALLY not in the frontend file.
+ * These are Deno-specific aliases (e.g. typed SupabaseClient) that have
+ * no frontend equivalent. Update this list when adding new edge-only types.
+ */
+const ALLOWED_EDGE_ONLY = new Set<string>(["Admin"]);
+
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 
 /** Extract exported type/interface names from a TS source string. */
@@ -53,7 +60,9 @@ function main(): void {
   const edgeSet = new Set(edgeExports);
 
   const frontendOnly = frontendExports.filter((n) => !edgeSet.has(n));
-  const edgeOnly = edgeExports.filter((n) => !frontendSet.has(n));
+  const edgeOnlyUnfiltered = edgeExports.filter((n) => !frontendSet.has(n));
+  const edgeOnly = edgeOnlyUnfiltered.filter((n) => !ALLOWED_EDGE_ONLY.has(n));
+  const allowedEdgeOnly = edgeOnlyUnfiltered.filter((n) => ALLOWED_EDGE_ONLY.has(n));
 
   console.log("═══════════════════════════════════════════════════════════════");
   console.log("  BLITZ TYPES SYNC CHECK");
@@ -96,6 +105,16 @@ function main(): void {
       `  ⚠️  In edge file but MISSING from frontend (${edgeOnly.length}):`
     );
     for (const name of edgeOnly) {
+      console.log(`      - ${name}`);
+    }
+    console.log("");
+  }
+
+  if (allowedEdgeOnly.length > 0) {
+    console.log(
+      `  ℹ️  Edge-only types (allowed, Deno-specific) (${allowedEdgeOnly.length}):`
+    );
+    for (const name of allowedEdgeOnly) {
       console.log(`      - ${name}`);
     }
     console.log("");
