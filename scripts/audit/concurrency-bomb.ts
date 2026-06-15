@@ -73,8 +73,7 @@ const jwt1 = await jwtFor(u1.email);
 const jwt2 = await jwtFor(u2.email);
 
 // Deadlock baseline
-const { data: dlBefore } = await admin.rpc("pg_stat_database_deadlocks" as never).single();
-const deadlocksBefore = (dlBefore as { deadlocks?: number } | null)?.deadlocks ?? 0;
+await admin.rpc("pg_stat_database_deadlocks" as never).single();
 
 async function fire(jwt: string, action: "open" | "close", side?: "long" | "short") {
   const t0 = performance.now();
