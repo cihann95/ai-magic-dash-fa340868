@@ -48,7 +48,7 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
   const loadAcct = async () => {
     if (!user) return;
     const [{ data: prof }, { data: pos }] = await Promise.all([
-      supabase.from("profiles").select("demo_balance, initial_balance").eq("id", user.id).single(),
+      supabase.from("profiles").select("demo_balance, initial_balance").eq("id", user.id).maybeSingle(),
       supabase.from("positions").select("*").eq("user_id", user.id).order("opened_at", { ascending: false }),
     ]);
     if (prof) { setBalance(Number(prof.demo_balance)); setInitial(Number(prof.initial_balance)); }

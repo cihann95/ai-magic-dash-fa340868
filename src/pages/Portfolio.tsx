@@ -29,7 +29,7 @@ function PortfolioInner() {
     Promise.all([
       supabase.from("positions").select("*").eq("user_id", user.id),
       supabase.from("trades").select("*").eq("user_id", user.id).order("executed_at"),
-      supabase.from("profiles").select("demo_balance, initial_balance, preferred_view").eq("id", user.id).single(),
+      supabase.from("profiles").select("demo_balance, initial_balance, preferred_view").eq("id", user.id).maybeSingle(),
     ]).then(([p, t, pr]) => {
       setPositions(p.data || []);
       setTrades(t.data || []);
