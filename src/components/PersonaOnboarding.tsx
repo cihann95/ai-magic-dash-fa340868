@@ -1,10 +1,10 @@
 // Trader Persona Onboarding — 4 soru: deneyim, hedef, risk, ana kategori.
 // Sonuç profiles.trader_persona JSONB olarak kaydedilir.
 // OnboardingTour bittikten sonra (onboarding_completed=true ama persona null ise) açılır.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Json } from "../integrations/supabase/types";
@@ -73,17 +73,29 @@ export default function PersonaOnboarding() {
   const [answers, setAnswers] = useState<Partial<Persona>>({});
   const [saving, setSaving] = useState(false);
 
+  // Per-user fetch guard: her sayfa navigation'ında yeniden fetch etme,
+  // ve query hata verirse sonsuz popup loop'undan kaçın.
+  // user?.id değişmediği sürece effect'i bir kez çalıştır.
+  const fetchedForUser = useRef<string | null>(null);
   useEffect(() => {
-    if (!user) return;
+    if (!user || fetchedForUser.current === user.id) return;
+    fetchedForUser.current = user.id;
     let cancelled = false;
     (async () => {
-      const { data: stats } = await supabase.from("user_stats")
-        .select("onboarding_completed").eq("user_id", user.id).maybeSingle();
-      const { data: profile } = await supabase.from("profiles")
-        .select("trader_persona").eq("id", user.id).maybeSingle();
-      if (cancelled) return;
-      // Tour bittikten sonra ve persona henüz yoksa aç
-      if (stats?.onboarding_completed && !profile?.trader_persona) setOpen(true);
+      try {
+        const { data: stats } = await supabase.from("user_stats")
+          .select("onboarding_completed").eq("user_id", user.id).maybeSingle();
+        const { data: profile } = await supabase.from("profiles")
+          .select("trader_persona").eq("id", user.id).maybeSingle();
+        if (cancelled) return;
+        // Sadece veri kesin olarak "persona yok" dediğinde aç.
+        // Hata (500) veya belirsiz durumda popup'ı AÇMA — aksi halde her
+        // sayfa navigation'ında sonsuz loop oluşurdu.
+        const personaMissing = !profile?.error && !profile?.trader_persona;
+        if (stats?.onboarding_completed && personaMissing) setOpen(true);
+      } catch {
+        // Sessizce yut — bir sonraki mount'ta tekrar denenecek
+      }
     })();
     return () => { cancelled = true; };
   }, [user]);
@@ -118,6 +130,14 @@ export default function PersonaOnboarding() {
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
+        <DialogTitle className="sr-only">
+          {lang === "tr" ? "Seni tanıyalım" : "Get to know you"}
+        </DialogTitle>
+        <DialogDescription className="sr-only">
+          {lang === "tr"
+            ? "Yatırım deneyimini ve hedeflerini öğrenmemize yardım eden kısa bir anket."
+            : "A short survey to help us understand your trading experience and goals."}
+        </DialogDescription>
         <div className={cn("bg-gradient-to-br p-7 text-white", current.color)}>
           <div className="flex items-center gap-2 mb-3">
             <Sparkles className="size-4 opacity-80" />

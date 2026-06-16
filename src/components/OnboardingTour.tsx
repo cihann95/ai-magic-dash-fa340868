@@ -1,10 +1,10 @@
 // 4 adımlı interaktif onboarding modal'ı
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { supabase } from "@/integrations/supabase/client";
 import { t } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { BarChart3, Brain, MousePointerClick, Rocket, ChevronRight } from "lucide-react";
 
 export default function OnboardingTour() {
@@ -13,10 +13,13 @@ export default function OnboardingTour() {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
 
+  const fetchedForUser = useRef<string | null>(null);
   useEffect(() => {
-    if (!user) return;
-    supabase.from("user_stats").select("onboarding_completed").eq("user_id", user.id).single()
-      .then(({ data }) => {
+    if (!user || fetchedForUser.current === user.id) return;
+    fetchedForUser.current = user.id;
+    supabase.from("user_stats").select("onboarding_completed").eq("user_id", user.id).maybeSingle()
+      .then(({ data, error }) => {
+        if (error) return;
         if (data && !data.onboarding_completed) setOpen(true);
       });
   }, [user]);
@@ -45,6 +48,12 @@ export default function OnboardingTour() {
   return (
     <Dialog open={open} onOpenChange={(v) => !v && finish()}>
       <DialogContent className="max-w-md p-0 gap-0 overflow-hidden border-border/40">
+        <DialogTitle className="sr-only">
+          {lang === "tr" ? "Lumen Trade'e Hoş Geldin" : "Welcome to Lumen Trade"}
+        </DialogTitle>
+        <DialogDescription className="sr-only">
+          {current.title} — {current.desc}
+        </DialogDescription>
         <div className={`bg-gradient-to-br ${current.color} p-8 text-white`}>
           <div className="size-16 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center mb-4">
             <Icon className="size-8" />
