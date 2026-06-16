@@ -2,8 +2,24 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
+// Accept both the canonical name (VITE_SUPABASE_PUBLISHABLE_KEY) and the
+// legacy Supabase Dashboard name (VITE_SUPABASE_ANON_KEY) so the build
+// works regardless of which name was used when configuring Vercel.
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const SUPABASE_PUBLISHABLE_KEY =
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+  import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!SUPABASE_URL) {
+  throw new Error(
+    "[supabase] VITE_SUPABASE_URL is missing. Set it in Vercel → Settings → Environment Variables."
+  );
+}
+if (!SUPABASE_PUBLISHABLE_KEY) {
+  throw new Error(
+    "[supabase] Missing Supabase key. Set VITE_SUPABASE_PUBLISHABLE_KEY (preferred) or VITE_SUPABASE_ANON_KEY in Vercel → Settings → Environment Variables."
+  );
+}
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
