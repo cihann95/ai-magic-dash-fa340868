@@ -23,7 +23,7 @@ SELECT cron.schedule(
   '* * * * *',
   $$
   SELECT net.http_post(
-    url := 'https://wufhbvshqhiiwjrvfzey.supabase.co/functions/v1/price-feed',
+    url := 'https://xynpcusbbjfoyphtfcgz.supabase.co/functions/v1/price-feed',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
       'Authorization', 'Bearer ' || current_setting('app.settings.service_role_key', true)
@@ -39,7 +39,7 @@ SELECT cron.schedule(
   '*/15 * * * *',
   $$
   SELECT net.http_post(
-    url := 'https://wufhbvshqhiiwjrvfzey.supabase.co/functions/v1/ai-risk-monitor',
+    url := 'https://xynpcusbbjfoyphtfcgz.supabase.co/functions/v1/ai-risk-monitor',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
       'Authorization', 'Bearer ' || current_setting('app.settings.service_role_key', true)

@@ -41,10 +41,15 @@ CREATE TRIGGER trg_pick_featured_room
   EXECUTE FUNCTION public.pick_featured_room();
 
 -- ============================================================
--- 3) ana_sahne_view — SECURITY DEFINER, no PII columns
+-- 3) ana_sahne_view — SECURITY INVOKER, no PII columns
+-- ============================================================
+-- SECURITY INVOKER: base-table RLS policies are enforced for the querying user.
+-- The view is a curated read-only aggregation; RLS on the base tables
+-- must allow SELECT on featured-room data (see policies below).
 -- ============================================================
 DROP VIEW IF EXISTS public.ana_sahne_view CASCADE;
-CREATE OR REPLACE VIEW public.ana_sahne_view WITH (security_barrier) AS
+CREATE OR REPLACE VIEW public.ana_sahne_view
+  WITH (security_invoker, security_barrier) AS
 SELECT
   r.id,
   r.symbol,
@@ -80,9 +85,70 @@ LEFT JOIN public.blitz_orders o ON o.room_id = r.id AND o.user_id = bp.user_id A
 WHERE r.is_featured = true
 GROUP BY r.id;
 
--- Accessible by everyone (view is SECURITY DEFINER, bypasses base-table RLS)
+-- ── RLS on the view itself (PostgreSQL 15+) ────────────────────────────────
+ALTER VIEW public.ana_sahne_view ENABLE ROW LEVEL SECURITY;
+
+-- Everyone may SELECT the curated featured-room view
+CREATE POLICY "ana_sahne_view_anon_select"
+  ON public.ana_sahne_view
+  FOR SELECT
+  TO anon
+  USING (true);
+
+CREATE POLICY "ana_sahne_view_authenticated_select"
+  ON public.ana_sahne_view
+  FOR SELECT
+  TO authenticated
+  USING (true);
+
+-- ── Grants on the view ───────────────────────────────────────────────────
 GRANT SELECT ON public.ana_sahne_view TO anon;
 GRANT SELECT ON public.ana_sahne_view TO authenticated;
+
+-- ── Grants on base tables (required for SECURITY INVOKER) ─────────────────
+GRANT SELECT ON public.blitz_rooms TO anon, authenticated;
+GRANT SELECT ON public.blitz_participants TO anon, authenticated;
+GRANT SELECT ON public.blitz_orders TO anon, authenticated;
+
+-- ── RLS on base tables: allow public read of featured-room data ───────────
+-- blitz_rooms
+CREATE POLICY "featured_room_select"
+  ON public.blitz_rooms
+  FOR SELECT
+  TO anon, authenticated
+  USING (is_featured = true);
+
+-- blitz_participants (participants in featured rooms)
+CREATE POLICY "featured_room_participants_select"
+  ON public.blitz_participants
+  FOR SELECT
+  TO anon, authenticated
+  USING (EXISTS (
+    SELECT 1 FROM public.blitz_rooms
+    WHERE id = blitz_participants.room_id AND is_featured = true
+  ));
+
+-- blitz_orders (completed orders in featured rooms)
+CREATE POLICY "featured_room_orders_select"
+  ON public.blitz_orders
+  FOR SELECT
+  TO anon, authenticated
+  USING (closed_at IS NOT NULL AND EXISTS (
+    SELECT 1 FROM public.blitz_rooms
+    WHERE id = blitz_orders.room_id AND is_featured = true
+  ));
+
+-- profiles (display_name of participants in featured rooms)
+CREATE POLICY "featured_room_profiles_select"
+  ON public.profiles
+  FOR SELECT
+  TO anon, authenticated
+  USING (EXISTS (
+    SELECT 1
+    FROM public.blitz_participants bp
+    JOIN public.blitz_rooms br ON br.id = bp.room_id
+    WHERE br.is_featured = true AND bp.user_id = profiles.id
+  ));
 
 -- ============================================================
 -- 4) FAZ 4: blitz_payout_trigger — records revenue, pays winner

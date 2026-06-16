@@ -1,3 +1,6 @@
+-- Enable pgcrypto (required for gen_random_bytes)
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- Enable Vault for secure secret storage
 CREATE EXTENSION IF NOT EXISTS supabase_vault WITH SCHEMA vault;
 
@@ -5,7 +8,7 @@ CREATE EXTENSION IF NOT EXISTS supabase_vault WITH SCHEMA vault;
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM vault.secrets WHERE name = 'cron_secret') THEN
-    PERFORM vault.create_secret(encode(gen_random_bytes(32), 'hex'), 'cron_secret', 'Shared secret for pg_cron -> edge function calls');
+    PERFORM vault.create_secret(encode(extensions.gen_random_bytes(32), 'hex'), 'cron_secret', 'Shared secret for pg_cron -> edge function calls');
   END IF;
 END $$;
 
@@ -26,7 +29,7 @@ SELECT cron.schedule(
   '* * * * *',
   $$
   SELECT net.http_post(
-    url := 'https://wufhbvshqhiiwjrvfzey.supabase.co/functions/v1/price-feed',
+    url := 'https://xynpcusbbjfoyphtfcgz.supabase.co/functions/v1/price-feed',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
       'x-cron-secret', (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'cron_secret' LIMIT 1)
@@ -42,7 +45,7 @@ SELECT cron.schedule(
   '*/15 * * * *',
   $$
   SELECT net.http_post(
-    url := 'https://wufhbvshqhiiwjrvfzey.supabase.co/functions/v1/ai-risk-monitor',
+    url := 'https://xynpcusbbjfoyphtfcgz.supabase.co/functions/v1/ai-risk-monitor',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
       'x-cron-secret', (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'cron_secret' LIMIT 1)

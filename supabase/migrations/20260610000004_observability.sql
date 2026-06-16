@@ -76,7 +76,7 @@ CREATE OR REPLACE FUNCTION public.alert_duplicate_payout_attempts()
 RETURNS TABLE(room_id uuid, attempt_count bigint, last_attempt timestamptz)
 LANGUAGE sql STABLE SET search_path = public
 AS $$
-  SELECT room_id, COUNT(*)::bigint, MAX(created_at)
+  SELECT room_id, COUNT(*)::bigint AS attempt_count, MAX(created_at) AS last_attempt
   FROM public.settlement_ledger
   WHERE status = 'completed'
   GROUP BY room_id
@@ -89,7 +89,7 @@ CREATE OR REPLACE FUNCTION public.alert_broadcast_anomalies()
 RETURNS TABLE(event text, occurrences bigint, last_seen timestamptz)
 LANGUAGE sql STABLE SET search_path = public
 AS $$
-  SELECT event, COUNT(*)::bigint, MAX(created_at)
+  SELECT event, COUNT(*)::bigint AS occurrences, MAX(created_at) AS last_seen
   FROM public.observability_log
   WHERE service = 'broadcast'
     AND level IN ('error', 'critical')

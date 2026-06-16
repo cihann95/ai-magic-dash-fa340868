@@ -15,7 +15,7 @@ SELECT cron.schedule(
   '*/5 * * * * *',
   $$
   SELECT net.http_post(
-    url := 'https://wufhbvshqhiiwjrvfzey.supabase.co/functions/v1/blitz-settle-room',
+    url := 'https://xynpcusbbjfoyphtfcgz.supabase.co/functions/v1/blitz-settle-room',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
       'x-cron-secret', (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'cron_secret' LIMIT 1)

@@ -3,12 +3,10 @@
 // - Cache used only as offline fallback
 // - Web Push: tickle alındığında en güncel bildirimi DB'den çekip gösterir
 //
-// FIX 2026-06-16: Bumped to v2 — old v1 caches were serving stale hashed
-// assets (e.g. /assets/index-OLDHASH.js) that no longer exist on the
-// origin after a new Vite build. The previous cache-first strategy for
-// /assets/*.js caused a hard MIME-type mismatch loop on the next deploy.
-// Strategy is now network-first for everything; cache is offline-only.
-const CACHE = "lumen-v2";
+// FIX 2026-06-16 v3: force all v2 caches deleted — users were still seeing
+// stale JS from previous deploys despite network-first strategy. Bumping
+// the cache name ensures a clean slate on next SW activation.
+const CACHE = "lumen-v3";
 const SHELL = ["/manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {

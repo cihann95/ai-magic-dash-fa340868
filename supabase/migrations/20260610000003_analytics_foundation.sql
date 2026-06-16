@@ -77,9 +77,9 @@ CREATE POLICY "admin_select_all_analytics_events"
   TO authenticated
   USING (
     EXISTS (
-      SELECT 1 FROM public.profiles
-      WHERE profiles.id = auth.uid()
-        AND profiles.role = 'admin'
+      SELECT 1 FROM auth.users
+      WHERE users.id = auth.uid()
+        AND users.raw_user_meta_data ->> 'role' = 'admin'
     )
   );
 

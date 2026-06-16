@@ -36,10 +36,10 @@ SELECT cron.schedule(
   '* * * * *',
   $$
   SELECT net.http_post(
-    url := format('https://%s/functions/v1/blitz-analytics-writer', current_setting('supabase_url')),
+    url := 'https://xynpcusbbjfoyphtfcgz.supabase.co/functions/v1/blitz-analytics-writer',
     headers := jsonb_build_object(
       'Content-Type', 'application/json',
-      'Authorization', 'Bearer ' || (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'service_role_key' LIMIT 1)
+      'Authorization', 'Bearer ' || current_setting('app.settings.service_role_key', true)
     ),
     body := '{}'::jsonb
   ) AS request_id;
