@@ -14,7 +14,7 @@ import { toast } from "@/hooks/use-toast";
 import { Moon, Sun, RotateCcw, Bell, Download, Users } from "lucide-react";
 import { enablePushNotifications, disablePushNotifications } from "@/lib/pushSubscribe";
 
-const VAPID_PUBLIC_KEY = ""; // Server tarafından enjekte edilecek; boşsa push devre dışı
+const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY ?? ""; // Server tarafından enjekte edilecek; boşsa push devre dışı
 
 function SettingsInner() {
   const { user, lang, setLang, theme, setTheme } = useApp();

@@ -138,6 +138,16 @@
 - **Total manual steps**: 10 steps, ~3.5 hrs estimated (including Sentry SDK integration)
 - **Key finding**: 2 code gaps require developer work before production (Sentry SDK integration, VAPID key injection)
 
+### Final Wave 3 — Quality Fixes (noImplicitAny, Lint, Env Vars)
+- **noImplicitAny**: Enabled in both `tsconfig.json` and `tsconfig.app.json` — was already `true` in practice from T3.3, but config files still had `false`. Now consistent.
+- **9 ESLint unused-vars errors fixed**:
+  - `test-utils.tsx`: Removed unused `BrowserRouter` import; prefixed unused destructured params (`user`→`_user`, `session`→`_session`, `lang`→`_lang`)
+  - `Portfolio.test.tsx`: Removed unused `cleanupGlobalMocks` import; prefixed unused `props` args in mock components (`_props`)
+  - `blitz-settle-room.test.ts`: Prefixed unused `idempotencyKey` param (`_idempotencyKey`)
+- **Missing env vars**: Added `VITE_VAPID_PUBLIC_KEY` and `VITE_SENTRY_DSN` to both `.env.example` and `.env`
+- **Lesson**: ESLint `no-unused-vars` rule requires `_` prefix for intentionally unused params — applies to mock component props and destructured defaults in test wrappers
+- **Lesson**: `.env` is gitignored; only `.env.example` is committed. Local dev placeholders go in `.env` for developer convenience but won't be pushed.
+
 ### Decisions
 - Use Upstash Redis for rate limiting (serverless, pay-per-request)
 - Sliding window over fixed window for better UX

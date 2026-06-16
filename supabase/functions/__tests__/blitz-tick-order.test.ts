@@ -92,7 +92,7 @@ function checkForbiddenFields(body: Record<string, unknown>): { ok: boolean; err
 // Simulated atomic order with row-level lock
 // ═══════════════════════════════════════════════════════════════════════════
 function createSimulatedAtomicOrder() {
-  const orders = new Map<string, { id: string; room_id: string; user_id: string; side: string; amount: number; entry_price: number; closed_at: string | null }>();
+  const orders = new Map<string, { id: string; room_id: string; user_id: string; side: string; amount: number; entry_price: number; closed_at: string | null; exit_price?: number; pnl?: number }>();
   const locks = new Set<string>();
 
   return {

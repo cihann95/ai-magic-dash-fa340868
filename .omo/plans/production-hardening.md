@@ -471,7 +471,7 @@ Wave FINAL (After ALL tasks):
 
 ---
 
-- [ ] 7. T2.1 — CI Pipeline'ı Yeniden Etkinleştir
+- [x] 7. T2.1 — CI Pipeline'ı Yeniden Etkinleştir
 
   **What to do**:
   - T0.3 bulgularına göre workflow'u düzelt
@@ -517,7 +517,7 @@ Wave FINAL (After ALL tasks):
 
 ---
 
-- [ ] 8. T2.2 — Staging Ortamı Kur ve Smoke Test
+- [x] 8. T2.2 — Staging Ortamı Kur ve Smoke Test
 
   **What to do**:
   - Staging Supabase projesi (veya mevcut wufhbvshqhiiwjrvfzey'i staging olarak kullan)
@@ -801,7 +801,7 @@ Wave FINAL (After ALL tasks):
 
 ---
 
-- [ ] 14. T4.3 — Prod Servis Anahtarlarını Kur
+- [x] 14. T4.3 — Prod Servis Anahtarlarını Kur
 
   **What to do**:
   - Sentry DSN, VAPID keys, Upstash Redis prod instance kurulumu ve bağlanması
@@ -1012,7 +1012,7 @@ Wave FINAL (After ALL tasks):
 
 ---
 
-- [ ] 19. T5.5 — Blitz Tip Senkronizasyon Script'i
+- [x] 19. T5.5 — Blitz Tip Senkronizasyon Script'i
 
   **What to do**:
   - İki dosya arasında farkları tespit eden basit bir karşılaştırma script'i yaz
@@ -1055,7 +1055,7 @@ Wave FINAL (After ALL tasks):
 
 ---
 
-- [ ] 20. T5.6 — Kritik Sayfalar İçin Test Yaz
+- [x] 20. T5.6 — Kritik Sayfalar İçin Test Yaz
 
   **What to do**:
   - Portfolio, Settings, Blitz, Index için test yaz
@@ -1100,7 +1100,7 @@ Wave FINAL (After ALL tasks):
 
 ---
 
-- [ ] 21. T5.7 — Test Dosyası Convention'ı Belirle ve Uygula
+- [x] 21. T5.7 — Test Dosyası Convention'ı Belirle ve Uygula
 
   **What to do**:
   - Tüm test dosyalarını `__tests__/` altında topla
@@ -1146,19 +1146,19 @@ Wave FINAL (After ALL tasks):
 
 ## Final Verification Wave
 
-- [ ] F1. **Plan Compliance Audit** — `oracle`
+- [x] F1. **Plan Compliance Audit** — `oracle`
   Read the plan end-to-end. For each "Must Have": verify implementation exists (read file, curl endpoint, run command). For each "Must NOT Have": search codebase for forbidden patterns — reject with file:line if found. Check evidence files exist in .omo/evidence/. Compare deliverables against plan.
   Output: `Must Have [N/N] | Must NOT Have [N/N] | Tasks [N/N] | VERDICT: APPROVE/REJECT`
 
-- [ ] F2. **Code Quality Review** — `unspecified-high`
+- [x] F2. **Code Quality Review** — `unspecified-high`
   Run `tsc --noEmit` + linter + `vitest run`. Review all changed files for: `as any`/`@ts-ignore`, empty catches, console.log in prod, commented-out code, unused imports. Check AI slop: excessive comments, over-abstraction, generic names (data/result/item/temp).
   Output: `Build [PASS/FAIL] | Lint [PASS/FAIL] | Tests [N pass/N fail] | Files [N clean/N issues] | VERDICT`
 
-- [ ] F3. **Real Manual QA** — `unspecified-high`
+- [x] F3. **Real Manual QA** — `unspecified-high`
   Start from clean state. Execute EVERY QA scenario from EVERY task — follow exact steps, capture evidence. Test cross-task integration (features working together, not isolation). Test edge cases: empty state, invalid input, rapid actions. Save to `.omo/evidence/final-qa/`.
   Output: `Scenarios [N/N pass] | Integration [N/N] | Edge Cases [N tested] | VERDICT`
 
-- [ ] F4. **Scope Fidelity Check** — `deep`
+- [x] F4. **Scope Fidelity Check** — `deep`
   For each task: read "What to do", read actual diff (git log/diff). Verify 1:1 — everything in spec was built (no missing), nothing beyond spec was built (no creep). Check "Must NOT do" compliance. Detect cross-task contamination: Task N touching Task M's files. Flag unaccounted changes.
   Output: `Tasks [N/N compliant] | Contamination [CLEAN/N issues] | Unaccounted [CLEAN/N files] | VERDICT`
 

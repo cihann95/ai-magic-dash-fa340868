@@ -46,7 +46,7 @@ async function settleRoom(admin: Admin, roomId: string): Promise<{ ok: boolean; 
     p_level: "info",
     p_room_id: roomId,
     p_metadata: { symbol: room.symbol },
-  }).catch(() => {});
+  }).catch((e: unknown) => console.warn("[settlement] log_observability failed", e));
 
   try {
     const { data: participants } = await admin.from("blitz_participants").select("*").eq("room_id", roomId);
@@ -157,7 +157,7 @@ async function settleRoom(admin: Admin, roomId: string): Promise<{ ok: boolean; 
         pot_total: pot,
         fee_collected: fee,
       },
-    }).catch(() => {});
+    }).catch((e: unknown) => console.warn("[settlement] analytics_events_staging insert failed", e));
 
     if (winnerId) {
       await admin.from("analytics_events_staging").insert({
@@ -165,7 +165,7 @@ async function settleRoom(admin: Admin, roomId: string): Promise<{ ok: boolean; 
         room_id: roomId,
         user_id: winnerId,
         payload: { prize_amount: prize, symbol: room.symbol },
-      }).catch(() => {});
+      }).catch((e: unknown) => console.warn("[settlement] payout_completed insert failed", e));
     }
 
     await redis.del(`blitz:room:${roomId}`, `blitz:room:${roomId}:users`, `blitz:room:${roomId}:positions`);
@@ -176,10 +176,11 @@ async function settleRoom(admin: Admin, roomId: string): Promise<{ ok: boolean; 
       p_level: "info",
       p_room_id: roomId,
       p_metadata: { winner_id: winnerId, prize, participant_count: ranking.length },
-    }).catch(() => {});
+    }).catch((e: unknown) => console.warn("[settlement] log settle_complete failed", e));
 
     return { ok: true };
   } catch (e) {
+    const errorMessage = e instanceof Error ? e.message : String(e);
     await admin.from("settlement_ledger").insert({
       room_id: roomId,
       idempotency_key: idempotencyKey,
@@ -189,17 +190,17 @@ async function settleRoom(admin: Admin, roomId: string): Promise<{ ok: boolean; 
       pot_total: 0,
       participant_count: 1,
       status: "failed",
-      error_message: e.message,
-      metadata: { symbol: room.symbol, error: e.message },
-    }).catch(() => {});
+      error_message: errorMessage,
+      metadata: { symbol: room.symbol, error: errorMessage },
+    }).catch((err: unknown) => console.warn("[settlement] settlement_ledger insert failed", err));
 
     await admin.rpc("log_observability", {
       p_service: "settlement",
       p_event: "settle_failed",
       p_level: "error",
       p_room_id: roomId,
-      p_metadata: { error: e.message },
-    }).catch(() => {});
+      p_metadata: { error: errorMessage },
+    }).catch((err: unknown) => console.warn("[settlement] log settle_failed failed", err));
 
     throw e;
   }

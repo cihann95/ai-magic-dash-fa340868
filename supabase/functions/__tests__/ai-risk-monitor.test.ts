@@ -41,7 +41,7 @@ describe("ai-risk-monitor Zod validation", () => {
     });
 
     it("should reject array input", () => {
-      const input = [];
+      const input: unknown[] = [];
       const result = RiskMonitorRequestSchema.safeParse(input);
       expect(result.success).toBe(false);
     });

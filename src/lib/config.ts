@@ -45,6 +45,10 @@ export interface FrontendConfig {
   readonly supabasePublishableKey: string;
   /** Ana Sahne section toggle — `true` to show on landing page. Defaults to `false`. */
   readonly anaSahneEnabled: boolean;
+  /** VAPID public key for Web Push notifications. Optional — empty string when not configured. */
+  readonly vapidPublicKey: string;
+  /** Sentry DSN for frontend error tracking. Optional — empty string when not configured. */
+  readonly sentryDsn: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -82,6 +86,8 @@ function loadFrontendConfig(): FrontendConfig {
     supabaseUrl: getRequired("VITE_SUPABASE_URL"),
     supabasePublishableKey: getRequired("VITE_SUPABASE_PUBLISHABLE_KEY"),
     anaSahneEnabled: parseBoolean(import.meta.env.VITE_ANA_SAHNE_ENABLED),
+    vapidPublicKey: (import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined) ?? "",
+    sentryDsn: (import.meta.env.VITE_SENTRY_DSN as string | undefined) ?? "",
   }) satisfies FrontendConfig;
 }
 

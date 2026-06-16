@@ -64,7 +64,7 @@ export const redis = {
   hdel: (k: string, ...fields: string[]) =>
     safe(() => client!.hdel(k, ...fields), 0),
   sadd: (k: string, ...members: string[]) =>
-    safe(() => client!.sadd(k, ...members), 0),
+    safe(() => client!.sadd(k, members as [string, ...string[]]), 0),
   smembers: (k: string) =>
     safe(() => client!.smembers(k) as Promise<string[]>, [] as string[]),
   srem: (k: string, ...members: string[]) =>
@@ -89,7 +89,7 @@ export const redis = {
   zrange: (k: string, start: number, stop: number, opts?: { withScores?: boolean }) =>
     safe(
       () => opts?.withScores
-        ? client!.zrangeWithScores(k, start, stop) as Promise<Array<{ score: number; member: string }>>
+        ? client!.zrange(k, start, stop, { withScores: true }) as Promise<Array<{ score: number; member: string }>>
         : client!.zrange(k, start, stop) as Promise<string[]>,
       opts?.withScores ? [] as Array<{ score: number; member: string }> : [] as string[],
     ),

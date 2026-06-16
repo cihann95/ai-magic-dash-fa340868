@@ -80,7 +80,7 @@ async function releaseStaleBalances(admin: ReturnType<typeof createClient>): Pro
         participant_count: participants?.length ?? 0,
         ttl_seconds: WAITING_ROOM_TTL_SECONDS,
       },
-    }).catch(() => {});
+    }).catch((e: unknown) => console.warn("[blitz-matchmake] log stale room release failed", e));
   }
 }
 
@@ -150,7 +150,7 @@ Deno.serve(async (req) => {
           event_type: "blitz_abandoned",
           room_id: wr.id,
           payload: { symbol: wr.symbol, reason: "no_participants" },
-        }).catch(() => {});
+        }).catch((e: unknown) => console.warn("[blitz-matchmake] blitz_abandoned insert failed", e));
       }
     }
 
@@ -208,7 +208,7 @@ Deno.serve(async (req) => {
       event_type: "blitz_created",
       room_id: room.id,
       payload: { symbol, entry_fee, creator_id: user.id },
-    }).catch(() => {});
+    }).catch((e: unknown) => console.warn("[blitz-matchmake] blitz_created insert failed", e));
 
     return new Response(JSON.stringify({ room_id: room.id, invite_code: inviteCode, status: "waiting" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -245,7 +245,7 @@ Deno.serve(async (req) => {
       p_event: "queue_joined",
       p_level: "info",
       p_metadata: { symbol, entry_fee, user_id: user.id, ttl_seconds: WAITING_ROOM_TTL_SECONDS },
-    }).catch(() => {});
+    }).catch((e: unknown) => console.warn("[blitz-matchmake] log queue_joined failed", e));
 
     return new Response(JSON.stringify({ status: "queued" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -327,13 +327,13 @@ Deno.serve(async (req) => {
     event_type: "blitz_created",
     room_id: room.id,
     payload: { symbol, entry_fee, creator_id: user.id },
-  }).catch(() => {});
+  }).catch((e: unknown) => console.warn("[blitz-matchmake] match blitz_created insert failed", e));
 
   await admin.from("analytics_events_staging").insert({
     event_type: "blitz_started",
     room_id: room.id,
     payload: { symbol, participant_count: 2, starts_at: new Date().toISOString() },
-  }).catch(() => {});
+  }).catch((e: unknown) => console.warn("[blitz-matchmake] blitz_started insert failed", e));
 
   await admin.rpc("log_observability", {
     p_service: "blitz_matchmake",
@@ -341,7 +341,7 @@ Deno.serve(async (req) => {
     p_level: "info",
     p_room_id: room.id,
     p_metadata: { symbol, opponent_id: opponent, caller_id: user.id },
-  }).catch(() => {});
+  }).catch((e: unknown) => console.warn("[blitz-matchmake] log match_found failed", e));
 
   // Redis odası
   await redis.hsetAll(`blitz:room:${room.id}`, {

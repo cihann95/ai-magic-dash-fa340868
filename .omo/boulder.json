@@ -353,13 +353,15 @@
       "elapsed_ms": 265580
     }
   },
-  "active_plan": "",
-  "plan_name": "",
-  "session_ids": [],
-  "session_origins": {},
+  "active_plan": "/home/user/projects/ai-magic-dash-fa340868/.omo/plans/production-hardening.md",
+  "plan_name": "production-hardening",
+  "session_ids": ["opencode:ses_1346aaddcffeIkEoLMJDfsKVvg"],
+  "session_origins": {
+    "opencode:ses_1346aaddcffeIkEoLMJDfsKVvg": "direct"
+  },
   "agent": "atlas",
-  "status": "idle",
-  "started_at": "",
-  "updated_at": "2026-06-10T17:15:00.000Z",
+  "status": "active",
+  "started_at": "2026-06-15T14:05:00.000Z",
+  "updated_at": "2026-06-15T14:05:00.000Z",
   "task_sessions": {}
 }

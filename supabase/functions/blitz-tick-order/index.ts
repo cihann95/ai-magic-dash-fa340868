@@ -159,7 +159,7 @@ Deno.serve(async (req) => {
         room_id,
         user_id: user.id,
         payload: { error: oErr?.message, side, amount },
-      }).catch(() => {});
+      }).catch((e: unknown) => console.warn("[blitz-tick-order] payout_failed insert failed", e));
       return jsonResp({ error: oErr?.message ?? "Order failed" }, 500);
     }
 
@@ -170,14 +170,14 @@ Deno.serve(async (req) => {
       p_room_id: room_id,
       p_user_id: user.id,
       p_metadata: { side, amount, entry_price: price, symbol: room.symbol },
-    }).catch(() => {});
+    }).catch((e: unknown) => console.warn("[blitz-tick-order] log order_open failed", e));
 
     await admin.from("analytics_events_staging").insert({
       event_type: "blitz_joined",
       room_id,
       user_id: user.id,
       payload: { side, amount, entry_price: price },
-    }).catch(() => {});
+    }).catch((e: unknown) => console.warn("[blitz-tick-order] blitz_joined insert failed", e));
 
     return jsonResp({ ok: true, order });
   }
@@ -222,7 +222,7 @@ Deno.serve(async (req) => {
     p_room_id: room_id,
     p_user_id: user.id,
     p_metadata: { pnl, exit_price: price },
-  }).catch(() => {});
+  }).catch((e: unknown) => console.warn("[blitz-tick-order] log order_close failed", e));
 
   return jsonResp({ ok: true, pnl, exit_price: price });
 });
