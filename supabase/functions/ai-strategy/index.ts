@@ -61,16 +61,21 @@ Deno.serve(async (req) => {
       total_value: total,
     };
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
     const sys = language === "tr"
       ? "Sen risk yönetimi uzmanısın. Verilen portföy dağılımına göre 3 somut, kısa ve aksiyona yönelik strateji önerisi ver. Markdown bullet liste, max 200 kelime. Sonda yatırım tavsiyesi değil notu ekle."
       : "You are a risk management expert. Given the portfolio allocation, give 3 concrete, short, actionable strategy suggestions. Markdown bullets, max 200 words. End with not-investment-advice note.";
 
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      headers: {
+        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://lumen.trade",
+        "X-Title": "Lumen Trade",
+      },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "openai/gpt-4o-mini",
         messages: [
           { role: "system", content: sys },
           { role: "user", content: `Portföy: ${JSON.stringify(ctx)}` },

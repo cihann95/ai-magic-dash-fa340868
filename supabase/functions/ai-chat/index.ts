@@ -47,9 +47,9 @@ Deno.serve(async (req) => {
     const safeSymbol = context_symbol;
     const lang = language;
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      console.error("ai-chat: LOVABLE_API_KEY missing");
+    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+    if (!OPENROUTER_API_KEY) {
+      console.error("ai-chat: OPENROUTER_API_KEY missing");
       return new Response(JSON.stringify({ error: "Servis geçici olarak kullanılamıyor" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -57,11 +57,16 @@ Deno.serve(async (req) => {
       ? `Sen yardımcı bir finans/yatırım asistanısın. Net, kısa cevaplar ver. Markdown kullan. ${safeSymbol ? `Aktif sembol: ${safeSymbol}.` : ""} Yatırım tavsiyesi vermediğini hatırlat.`
       : `You are a helpful financial assistant. Be clear and concise. Use markdown. ${safeSymbol ? `Active symbol: ${safeSymbol}.` : ""} Remind users this is not investment advice.`;
 
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const resp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      headers: {
+        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://lumen.trade",
+        "X-Title": "Lumen Trade",
+      },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "openai/gpt-4o-mini",
         messages: [{ role: "system", content: sys }, ...cleanMessages],
         stream: true,
       }),

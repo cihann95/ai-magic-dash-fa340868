@@ -52,8 +52,8 @@ export interface Config {
   readonly supabaseServiceRoleKey: string;
   /** Supabase anon/public key — used by user-facing edge functions. Required. */
   readonly supabaseAnonKey: string;
-  /** Lovable AI API key — powers all AI features. Required. */
-  readonly lovableApiKey: string;
+  /** OpenRouter AI API key — powers all AI features. Required. */
+  readonly openrouterApiKey: string;
   /** Upstash Redis REST URL — missing → Redis disabled (fail-open). Optional. */
   readonly upstashRedisRestUrl: string | undefined;
   /** Upstash Redis REST token — missing → Redis disabled (fail-open). Optional. */
@@ -98,7 +98,7 @@ function loadConfig(): Config {
     supabaseUrl: getRequired("SUPABASE_URL"),
     supabaseServiceRoleKey: getRequired("SUPABASE_SERVICE_ROLE_KEY"),
     supabaseAnonKey: getRequired("SUPABASE_ANON_KEY"),
-    lovableApiKey: getRequired("LOVABLE_API_KEY"),
+    openrouterApiKey: getRequired("OPENROUTER_API_KEY"),
     upstashRedisRestUrl: getOptional("UPSTASH_REDIS_REST_URL"),
     upstashRedisRestToken: getOptional("UPSTASH_REDIS_REST_TOKEN"),
     vapidPublicKey: getOptional("VAPID_PUBLIC_KEY"),

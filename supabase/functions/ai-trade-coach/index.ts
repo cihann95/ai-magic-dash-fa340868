@@ -102,7 +102,7 @@ function analyzeBehavior(trades: TradeRow[]) {
 }
 
 async function generateInsight(stats: BehaviorStats): Promise<{ category: string; severity: string; title: string; body: string } | null> {
-  const apiKey = Deno.env.get("LOVABLE_API_KEY");
+  const apiKey = Deno.env.get("OPENROUTER_API_KEY");
   if (!apiKey) return null;
 
   const prompt = `Sen bir profesyonel trading koçusun. Kullanıcının son 30 gündeki işlem istatistikleri:
@@ -127,11 +127,16 @@ En önemli 1 davranışsal içgörüyü çıkar. JSON formatında yanıt ver:
 }`;
 
   try {
-    const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
-      headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://lumen.trade",
+        "X-Title": "Lumen Trade",
+      },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "openai/gpt-4o-mini",
         messages: [{ role: "user", content: prompt }],
         response_format: { type: "json_object" },
       }),

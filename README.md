@@ -124,7 +124,7 @@ VITE_ANA_SAHNE_ENABLED=true
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 SUPABASE_ANON_KEY=your_anon_key
-LOVABLE_API_KEY=your_lovable_api_key
+OPENROUTER_API_KEY=your_openrouter_api_key
 ```
 
 ### Upstash Redis (isteğe bağlı, fail-open)

@@ -44,18 +44,23 @@ Deno.serve(async (req) => {
     const safeAsset = asset_class ?? null;
     const lang = language;
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY yapılandırılmamış");
+    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+    if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY yapılandırılmamış");
 
     const sys = lang === "tr"
       ? "Sen profesyonel bir piyasa analistisin. Sembol için kısa, eyleme dönük teknik+temel analiz yap. Markdown kullan. Bölümler: **Genel Görünüm**, **Teknik (trend, destek/direnç)**, **Temel Etkenler**, **Sinyal: AL / SAT / BEKLE** (kalın). 200 kelimeyi geçme. Yatırım tavsiyesi olmadığını sonda kısaca belirt."
       : "You are a professional market analyst. Provide a concise, actionable technical+fundamental analysis. Use markdown sections: **Overview**, **Technical (trend, S/R)**, **Fundamentals**, **Signal: BUY / SELL / HOLD** (bold). Under 200 words. Add brief disclaimer.";
 
-    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const resp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      headers: {
+        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://lumen.trade",
+        "X-Title": "Lumen Trade",
+      },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "openai/gpt-4o-mini",
         messages: [
           { role: "system", content: sys },
           { role: "user", content: `Sembol: ${symbol} (${safeAsset || "—"}). Güncel piyasa koşullarına göre analiz et.` },
