@@ -116,7 +116,7 @@ async function executeOne(admin: Admin, userId: string, body: TradeRequest, opts
     .from("price_cache")
     .select("price, updated_at")
     .eq("symbol", symbol)
-    .single();
+    .maybeSingle();
 
   if (priceErr || !priceRow) {
     return { ok: false as const, error: "Fiyat verisi bulunamadı, lütfen birkaç saniye sonra tekrar deneyin." };
@@ -131,7 +131,7 @@ async function executeOne(admin: Admin, userId: string, body: TradeRequest, opts
   const total = Number((quantity * price).toFixed(2));
 
   const { data: profile, error: profileErr } = await admin.from("profiles")
-    .select("demo_balance").eq("id", userId).single();
+    .select("demo_balance").eq("id", userId).maybeSingle();
   if (profileErr || !profile) return { ok: false as const, error: "Profil bulunamadı" };
 
   let pnl: number | null = null;
@@ -141,7 +141,7 @@ async function executeOne(admin: Admin, userId: string, body: TradeRequest, opts
   let openTrade: OpenTrade | null = null;
 
   if (position_id) {
-    const { data: pos } = await admin.from("positions").select("*").eq("id", position_id).eq("user_id", userId).single();
+    const { data: pos } = await admin.from("positions").select("*").eq("id", position_id).eq("user_id", userId).maybeSingle();
     if (!pos) return { ok: false as const, error: "Pozisyon bulunamadı" };
     if (pos.closed_at !== null) return { ok: false as const, error: "Pozisyon zaten kapatılmış" };
 

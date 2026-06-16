@@ -80,7 +80,7 @@ export function useAnaSahne(): AnaSahneState {
         const { data, error: fetchErr } = await (supabase as unknown as UnregisteredTableClient)
           .from("ana_sahne_view")
           .select("*")
-          .single();
+          .maybeSingle();
 
         if (cancelled) return;
 

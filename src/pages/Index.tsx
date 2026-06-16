@@ -18,6 +18,7 @@ function AnaSahneSection() {
   const { lang } = useApp();
   const tr = t(lang);
   const state = useAnaSahne();
+  if (!state.isLoading && !state.room) return null;
   return (
     <div className="mb-8">
       <h2 className="text-lg font-semibold mb-3">{tr.live_now}</h2>

@@ -31,7 +31,7 @@ Set via: `npx supabase secrets set --project-ref wufhbvshqhiiwjrvfzey`
 | `SUPABASE_URL` | `https://wufhbvshqhiiwjrvfzey.supabase.co` | Same as above |
 | `SUPABASE_SERVICE_ROLE_KEY` | `eyJ...` | Supabase Dashboard → API → Project API keys → Service role key (**NEVER expose to browser**) |
 | `SUPABASE_ANON_KEY` | `eyJ...` | Same as VITE_SUPABASE_PUBLISHABLE_KEY |
-| `LOVABLE_API_KEY` | `lov-...` | Lovable platform API key |
+| `OPENROUTER_API_KEY` | `sk-or-...` | OpenRouter platform API key (powers AI features) |
 
 ### Optional (graceful degradation when missing)
 
@@ -88,11 +88,11 @@ Private Key: xxxxxxxx...
 3. Settings → Projects → Client Keys (DSN)
 4. Copy DSN → `VITE_SENTRY_DSN` + `SENTRY_DSN`
 
-### 3.5 Lovable API Key
+### 3.5 OpenRouter API Key
 
-1. Go to [lovable.dev](https://lovable.dev) → Dashboard
-2. API Keys → Copy key
-3. → `LOVABLE_API_KEY`
+1. Go to [openrouter.ai](https://openrouter.ai) → Sign up / Log in
+2. Dashboard → Keys → Create new key
+3. Copy key → `OPENROUTER_API_KEY`
 
 ---
 
@@ -109,7 +109,7 @@ npx supabase secrets set \
   SUPABASE_URL="https://wufhbvshqhiiwjrvfzey.supabase.co" \
   SUPABASE_SERVICE_ROLE_KEY="YOUR_SERVICE_ROLE_KEY" \
   SUPABASE_ANON_KEY="YOUR_ANON_KEY" \
-  LOVABLE_API_KEY="YOUR_LOVABLE_KEY" \
+  OPENROUTER_API_KEY="YOUR_OPENROUTER_KEY" \
   --project-ref wufhbvshqhiiwjrvfzey
 
 # Step 3: Set optional secrets
@@ -170,7 +170,7 @@ npx tsx scripts/audit/_run_all.ts
 - ✅ `SUPABASE_SERVICE_ROLE_KEY` — **NEVER in frontend, NEVER commit**
 - ✅ `VAPID_PRIVATE_KEY` — **NEVER in frontend, NEVER commit**
 - ✅ `UPSTASH_REDIS_REST_TOKEN` — **NEVER in frontend, NEVER commit**
-- ✅ `LOVABLE_API_KEY` — **NEVER in frontend, NEVER commit**
+- ✅ `OPENROUTER_API_KEY` — **NEVER in frontend, NEVER commit**
 - ✅ `VAPID_PUBLIC_KEY` — Safe for frontend (it's public by design)
 - ✅ `SUPABASE_ANON_KEY` — Safe for frontend (it's public by design)
 - ✅ `.env` is in `.gitignore` — won't be committed
@@ -184,14 +184,14 @@ npx tsx scripts/audit/_run_all.ts
 | 1 | Supabase URL | Supabase Dashboard | ✅ Public | Required |
 | 2 | Supabase Anon Key | Supabase Dashboard | ✅ Public | Required |
 | 3 | Supabase Service Role | Supabase Dashboard | ❌ Secret | Required |
-| 4 | Lovable API Key | Lovable Dashboard | ❌ Secret | Required |
+| 4 | OpenRouter API Key | OpenRouter Dashboard | ❌ Secret | Required |
 | 5 | VAPID Public | CLI (web-push) | ✅ Public | Optional |
 | 6 | VAPID Private | CLI (web-push) | ❌ Secret | Optional |
 | 7 | Upstash URL | Upstash Dashboard | ❌ Secret | Optional |
 | 8 | Upstash Token | Upstash Dashboard | ❌ Secret | Optional |
 | 9 | Sentry DSN | Sentry Dashboard | ✅ Public | Optional |
 
-**Required for launch:** 4 keys (Supabase URL, Anon, Service Role, Lovable)
+**Required for launch:** 4 keys (Supabase URL, Anon, Service Role, OpenRouter)
 **Optional for launch:** 5 keys (VAPID, Upstash, Sentry)
 
 ---

@@ -19,7 +19,7 @@ Lumen Trade, yapay zeka destekli kripto para yatırım platformudur. Platform, A
 
 - Node.js v18 veya üzeri
 - npm veya yarn
-- Supabase hesabı (tercihen wufhbvshqhiiwjrvfzey)
+- Supabase hesabı (tercihen xynpcusbbjfoyphtfcgz)
 
 ### Adım Adım Kurulum
 

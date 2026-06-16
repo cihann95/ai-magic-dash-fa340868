@@ -88,10 +88,7 @@ export default function PersonaOnboarding() {
         const { data: profile } = await supabase.from("profiles")
           .select("trader_persona").eq("id", user.id).maybeSingle();
         if (cancelled) return;
-        // Sadece veri kesin olarak "persona yok" dediğinde aç.
-        // Hata (500) veya belirsiz durumda popup'ı AÇMA — aksi halde her
-        // sayfa navigation'ında sonsuz loop oluşurdu.
-        const personaMissing = !profile?.error && !profile?.trader_persona;
+        const personaMissing = profile !== null && !profile.trader_persona;
         if (stats?.onboarding_completed && personaMissing) setOpen(true);
       } catch {
         // Sessizce yut — bir sonraki mount'ta tekrar denenecek
@@ -108,9 +105,15 @@ export default function PersonaOnboarding() {
   const finish = async (full: Persona) => {
     if (!user) return;
     setSaving(true);
-    await supabase.from("profiles").update({ trader_persona: full as unknown as Json }).eq("id", user.id);
-    setSaving(false);
-    setOpen(false);
+    try {
+      const { error } = await supabase.from("profiles").update({ trader_persona: full as unknown as Json }).eq("id", user.id);
+      if (error) throw error;
+      setOpen(false);
+    } catch (e) {
+      console.error("Failed to save persona", e);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSelect = (v: string) => {
