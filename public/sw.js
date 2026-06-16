@@ -1,19 +1,32 @@
 // Lumen Trade Service Worker
-// - PWA cache-first shell
+// - Network-first for ALL requests (static + HTML) so new deploys always work
+// - Cache used only as offline fallback
 // - Web Push: tickle alındığında en güncel bildirimi DB'den çekip gösterir
-const CACHE = "lumen-v1";
-const SHELL = ["/", "/manifest.webmanifest"];
+//
+// FIX 2026-06-16: Bumped to v2 — old v1 caches were serving stale hashed
+// assets (e.g. /assets/index-OLDHASH.js) that no longer exist on the
+// origin after a new Vite build. The previous cache-first strategy for
+// /assets/*.js caused a hard MIME-type mismatch loop on the next deploy.
+// Strategy is now network-first for everything; cache is offline-only.
+const CACHE = "lumen-v2";
+const SHELL = ["/manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).catch(() => null));
+  e.waitUntil(
+    caches.open(CACHE).then((c) => c.addAll(SHELL)).catch(() => null)
+  );
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (e) => {
   e.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
-    ).then(() => self.clients.claim())
+    caches.keys()
+      .then((keys) =>
+        Promise.all(
+          keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))
+        )
+      )
+      .then(() => self.clients.claim())
   );
 });
 
@@ -22,18 +35,30 @@ self.addEventListener("fetch", (e) => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (url.origin !== location.origin) return;
-  // Network-first for API/Supabase calls
-  if (url.pathname.startsWith("/functions/") || url.pathname.startsWith("/rest/") || url.pathname.startsWith("/auth/")) return;
-  // Cache-first for static
-  if (/\.(js|css|woff2?|png|jpg|svg|webp|ico)$/.test(url.pathname)) {
-    e.respondWith(
-      caches.match(req).then((hit) => hit || fetch(req).then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => null);
+
+  // Always go to network first. Cache only as offline fallback.
+  // This guarantees new hashed assets from fresh Vite builds are picked up
+  // immediately, instead of serving stale /assets/* files that no longer
+  // exist on the origin (which used to cause text/html MIME errors).
+  e.respondWith(
+    fetch(req)
+      .then((res) => {
+        // Cache successful same-origin responses for offline support.
+        // Skip API/Supabase endpoints — those are always live.
+        if (
+          res &&
+          res.ok &&
+          !url.pathname.startsWith("/functions/") &&
+          !url.pathname.startsWith("/rest/") &&
+          !url.pathname.startsWith("/auth/")
+        ) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => null);
+        }
         return res;
-      }).catch(() => hit))
-    );
-  }
+      })
+      .catch(() => caches.match(req))
+  );
 });
 
 self.addEventListener("push", (e) => {
