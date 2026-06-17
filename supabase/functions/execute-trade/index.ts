@@ -264,20 +264,30 @@ async function executeOne(admin: Admin, userId: string, body: TradeRequest, opts
     metadata: { symbol, side, action, qty: quantity, price, pnl, copied_from, plan_adherence: planAdherence },
   });
 
-  // Gamification (sadece kullanıcının kendi trade'i için, copy-trade'ler de sayılır)
+  // Gamification
   const grantedAchievements: string[] = [];
+  let newTotalTrades = 0;
+  let newProfitable = 0;
+  let ac: Set<string> = new Set();
+  let statsData: Record<string, unknown> | null = null;
   try {
-    await admin.rpc("touch_streak", { _user_id: userId });
-    await admin.rpc("award_xp", { _user_id: userId, _amount: 25 });
+    // RPC'ler ayrı try-catch'te — başarısız olursa sadece XP/streak eklenmez, trade istatistikleri yine güncellenir
+    try {
+      await admin.rpc("touch_streak", { _user_id: userId });
+      await admin.rpc("award_xp", { _user_id: userId, _amount: 25 });
+    } catch (rpcErr) {
+      console.error("xp/streak rpc error", rpcErr);
+    }
 
     const { data: stats } = await admin.from("user_stats").select("*").eq("user_id", userId).maybeSingle();
-    const newTotalTrades = (stats?.total_trades ?? 0) + 1;
+    statsData = stats;
+    newTotalTrades = (stats?.total_trades ?? 0) + 1;
     const isProfitable = pnl !== null && pnl > 0;
     const prevProfitable = stats?.profitable_trades ?? 0;
-    const newProfitable = prevProfitable + (isProfitable ? 1 : 0);
+    newProfitable = prevProfitable + (isProfitable ? 1 : 0);
     const newTotalPnl = Number(stats?.total_pnl ?? 0) + (pnl ?? 0);
     const newBest = Math.max(Number(stats?.best_trade_pnl ?? 0), pnl ?? 0);
-    const ac = new Set<string>(stats?.asset_classes_traded ?? []);
+    ac = new Set<string>(stats?.asset_classes_traded ?? []);
     ac.add(asset_class);
     await admin.from("user_stats").upsert({
       user_id: userId,
@@ -288,33 +298,33 @@ async function executeOne(admin: Admin, userId: string, body: TradeRequest, opts
       asset_classes_traded: Array.from(ac),
     }, { onConflict: "user_id" });
 
-    await admin.from("user_stats").update({
-      updated_at: new Date().toISOString(),
-    }).eq("user_id", userId);
+    try {
+      const tryGrant = async (code: string) => {
+        const { data } = await admin.rpc("grant_achievement", { _user_id: userId, _code: code });
+        if (data === true) grantedAchievements.push(code);
+      };
 
-    const tryGrant = async (code: string) => {
-      const { data } = await admin.rpc("grant_achievement", { _user_id: userId, _code: code });
-      if (data === true) grantedAchievements.push(code);
-    };
+      if (newTotalTrades === 1) await tryGrant("first_trade");
+      if (pnl !== null && pnl > 0 && newProfitable === 1) await tryGrant("first_profit");
+      if (newProfitable >= 10) await tryGrant("ten_profits");
+      if (ac.size >= 5) await tryGrant("diversified");
+      if (pnl !== null && pnl >= 1000) await tryGrant("big_winner");
+      if (total >= 50000) await tryGrant("whale");
+      const hour = new Date().getUTCHours();
+      if (hour >= 2 && hour < 5) await tryGrant("night_owl");
 
-    if (newTotalTrades === 1) await tryGrant("first_trade");
-    if (pnl !== null && pnl > 0 && newProfitable === 1) await tryGrant("first_profit");
-    if (newProfitable >= 10) await tryGrant("ten_profits");
-    if (ac.size >= 5) await tryGrant("diversified");
-    if (pnl !== null && pnl >= 1000) await tryGrant("big_winner");
-    if (total >= 50000) await tryGrant("whale");
-    const hour = new Date().getUTCHours();
-    if (hour >= 2 && hour < 5) await tryGrant("night_owl");
-
-    for (const code of grantedAchievements) {
-      await admin.from("notifications").insert({
-        user_id: userId, type: "achievement",
-        title: `🏆 Yeni rozet kazandın!`, body: code,
-        link: `/achievements`, metadata: { code },
-      });
+      for (const code of grantedAchievements) {
+        await admin.from("notifications").insert({
+          user_id: userId, type: "achievement",
+          title: `🏆 Yeni rozet kazandın!`, body: code,
+          link: `/achievements`, metadata: { code },
+        });
+      }
+    } catch (achErr) {
+      console.error("achievement error", achErr);
     }
   } catch (gErr) {
-    console.error("gamification error", gErr);
+    console.error("gamification stats upsert error", gErr);
   }
 
   // ===== AI MIRROR - kapanan trade'ler için davranış aynası =====
