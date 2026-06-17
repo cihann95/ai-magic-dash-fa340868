@@ -31,6 +31,7 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
   const [balance, setBalance] = useState(0);
   const [initial, setInitial] = useState(100000);
   const [positions, setPositions] = useState<Position[]>([]);
+  const [allTrades, setAllTrades] = useState<{ pnl: number | null }[]>([]);
   const [analysis, setAnalysis] = useState("");
   const [loadingA, setLoadingA] = useState(false);
   const [strategy, setStrategy] = useState("");
@@ -47,12 +48,14 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
 
   const loadAcct = async () => {
     if (!user) return;
-    const [{ data: prof }, { data: pos }] = await Promise.all([
+    const [{ data: prof }, { data: pos }, { data: trades }] = await Promise.all([
       supabase.from("profiles").select("demo_balance, initial_balance").eq("id", user.id).maybeSingle(),
       supabase.from("positions").select("*").eq("user_id", user.id).order("opened_at", { ascending: false }),
+      supabase.from("trades").select("pnl").eq("user_id", user.id),
     ]);
     if (prof) { setBalance(Number(prof.demo_balance)); setInitial(Number(prof.initial_balance)); }
     if (pos) setPositions(pos as Position[]);
+    if (trades) setAllTrades(trades as { pnl: number | null }[]);
   };
 
   useEffect(() => { loadAcct(); }, [user, refreshKey]);
@@ -81,7 +84,8 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
     return acc + v;
   }, 0);
 
-  const totalEquity = balance + positions.reduce((acc, p) => acc + Number(p.entry_price) * Number(p.quantity), 0) + livePnl;
+  const realizedPnl = allTrades.reduce((sum, t) => sum + Number(t.pnl ?? 0), 0);
+  const totalEquity = initial + realizedPnl + livePnl;
   const totalChange = ((totalEquity - initial) / initial) * 100;
 
   const runAnalysis = async () => {

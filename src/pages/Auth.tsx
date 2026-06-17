@@ -27,7 +27,7 @@ export default function Auth() {
     setLoading(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email, password,
           options: {
             data: { display_name: displayName || email.split("@")[0] },
@@ -35,8 +35,18 @@ export default function Auth() {
           },
         });
         if (error) throw error;
-        toast({ title: tr.success, description: lang === "tr" ? "Hesabınız oluşturuldu." : "Account created." });
-        navigate("/");
+        if (!data.session) {
+          toast({
+            title: tr.success,
+            description: lang === "tr"
+              ? "Hesabınız oluşturuldu. Lütfen e-postanızdaki doğrulama bağlantısına tıklayın, ardından giriş yapın."
+              : "Account created. Please click the verification link in your email, then sign in.",
+          });
+          setMode("signin");
+        } else {
+          toast({ title: tr.success, description: lang === "tr" ? "Hesabınız oluşturuldu." : "Account created." });
+          navigate("/");
+        }
       } else if (mode === "signin") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;

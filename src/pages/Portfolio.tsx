@@ -48,7 +48,8 @@ function PortfolioInner() {
                                 : (Number(p.entry_price) - cur) * Number(p.quantity);
     return acc + v;
   }, 0);
-  const equity = balance + positions.reduce((a, p) => a + Number(p.entry_price) * Number(p.quantity), 0) + livePnl;
+  const realizedPnl = trades.reduce((sum, t) => sum + Number(t.pnl ?? 0), 0);
+  const equity = initial + realizedPnl + livePnl;
 
   const alloc: Record<string, number> = {};
   positions.forEach((p) => {

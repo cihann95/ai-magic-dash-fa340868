@@ -78,8 +78,7 @@ export function isMarketOpen(s: SymbolDef): boolean {
   return utcHour >= 13 && utcHour < 21;
 }
 
-// Stale: 5 dakikadan eski fiyat verisi
-export const STALE_THRESHOLD_MS = 5 * 60 * 1000;
+export const STALE_THRESHOLD_MS = 30_000;
 
 export function isStale(updatedAt?: string | null): boolean {
   if (!updatedAt) return true;
