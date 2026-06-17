@@ -32,7 +32,7 @@ export default function ResetPassword() {
     try {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
-      toast({ title: tr.success, description: lang === "tr" ? "Şifreniz güncellendi." : "Password updated." });
+      toast({ title: tr.success, description: tr.password_updated });
       navigate("/");
     } catch (err) {
       toast({ title: tr.error, description: err instanceof Error ? err.message : "Unknown", variant: "destructive" });

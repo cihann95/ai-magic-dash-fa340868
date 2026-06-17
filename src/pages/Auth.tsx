@@ -44,7 +44,7 @@ export default function Auth() {
           });
           setMode("signin");
         } else {
-          toast({ title: tr.success, description: lang === "tr" ? "Hesabınız oluşturuldu." : "Account created." });
+          toast({ title: tr.success, description: tr.account_created });
           navigate("/");
         }
       } else if (mode === "signin") {
@@ -56,7 +56,7 @@ export default function Auth() {
           redirectTo: `${window.location.origin}/reset-password`,
         });
         if (error) throw error;
-        toast({ title: tr.success, description: lang === "tr" ? "Sıfırlama bağlantısı e-postanıza gönderildi." : "Reset link sent to your email." });
+        toast({ title: tr.success, description: tr.reset_link_sent });
         setMode("signin");
       }
     } catch (err) {

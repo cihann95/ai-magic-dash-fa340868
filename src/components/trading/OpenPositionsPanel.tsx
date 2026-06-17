@@ -159,7 +159,7 @@ export default function OpenPositionsPanel({ refreshKey, onTradeDone, onSelectSy
       try { recordTrade(p.entry * qty, true); } catch { /* noop */ }
       toast({
         title: tr.success,
-        description: `${fraction === 1 ? tr.close : (lang === "tr" ? "Kısmi kapatıldı" : "Partial close")} ${p.symbol}`,
+        description: `${fraction === 1 ? tr.close_success : tr.partial_close} ${p.symbol}`,
       });
       const ach = result?.achievements;
       if (ach?.length) celebrateAchievements(ach, lang);
