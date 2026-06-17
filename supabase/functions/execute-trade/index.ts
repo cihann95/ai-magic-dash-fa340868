@@ -44,7 +44,27 @@ interface OpenTrade {
   executed_at: string;
 }
 
-const STALE_MS = 5 * 60 * 1000;
+const BINANCE_PAIRS: Record<string, string> = {
+  BTCUSD: "BTCUSDT", ETHUSD: "ETHUSDT", SOLUSD: "SOLUSDT",
+  BNBUSD: "BNBUSDT", XRPUSD: "XRPUSDT", DOGEUSD: "DOGEUSDT",
+  ADAUSD: "ADAUSDT", AVAXUSD: "AVAXUSDT",
+};
+
+const STALE_MS = 30_000;
+const CRYPTO_CACHE_FRESH_MS = 10_000;
+
+async function fetchBinancePrice(symbol: string): Promise<number | null> {
+  const binanceSym = BINANCE_PAIRS[symbol];
+  if (!binanceSym) return null;
+  try {
+    const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${binanceSym}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return Number(data.price) || null;
+  } catch {
+    return null;
+  }
+}
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ALLOWED_ASSET_CLASSES = new Set(["crypto", "stocks", "forex", "commodities", "indices", "etf"]);
@@ -111,21 +131,31 @@ function parsePublicTradeRequest(payload: unknown): { ok: true; data: PublicTrad
 async function executeOne(admin: Admin, userId: string, body: TradeRequest, opts: { fanOut: boolean }) {
   const { symbol, asset_class, side, quantity, position_id, executor = "demo", copied_from, leader_user_id, intent_tag, intent_note, planned_tp, planned_sl } = body;
 
-  // ========== GERÇEK FİYAT - price_cache ==========
-  const { data: priceRow, error: priceErr } = await admin
+  // ========== GERÇEK FİYAT - price_cache + on-demand ==========
+  const { data: priceRow } = await admin
     .from("price_cache")
     .select("price, updated_at")
     .eq("symbol", symbol)
     .maybeSingle();
 
-  if (priceErr || !priceRow) {
-    return { ok: false as const, error: "Fiyat verisi bulunamadı, lütfen birkaç saniye sonra tekrar deneyin." };
+  let price: number;
+  const cacheAge = priceRow ? Date.now() - new Date(priceRow.updated_at).getTime() : Infinity;
+
+  if (asset_class === "crypto" && cacheAge > CRYPTO_CACHE_FRESH_MS) {
+    const fresh = await fetchBinancePrice(symbol);
+    if (fresh !== null && isFinite(fresh) && fresh > 0) {
+      price = fresh;
+    } else if (priceRow && cacheAge <= STALE_MS) {
+      price = Number(priceRow.price);
+    } else {
+      return { ok: false as const, error: "Fiyat alınamadı, lütfen tekrar deneyin." };
+    }
+  } else if (priceRow && cacheAge <= STALE_MS) {
+    price = Number(priceRow.price);
+  } else {
+    return { ok: false as const, error: `Fiyat verisi güncel değil (${Math.round(cacheAge / 1000)}s eski).` };
   }
-  const priceAge = Date.now() - new Date(priceRow.updated_at).getTime();
-  if (priceAge > STALE_MS) {
-    return { ok: false as const, error: `Fiyat verisi güncel değil (${Math.round(priceAge / 1000)}s eski).` };
-  }
-  const price = Number(priceRow.price);
+
   if (!isFinite(price) || price <= 0) return { ok: false as const, error: "Geçersiz fiyat verisi" };
 
   const total = Number((quantity * price).toFixed(2));
@@ -240,36 +270,41 @@ async function executeOne(admin: Admin, userId: string, body: TradeRequest, opts
     await admin.rpc("touch_streak", { _user_id: userId });
     await admin.rpc("award_xp", { _user_id: userId, _amount: 25 });
 
-    const { data: stats } = await admin.from("user_stats").select("*").eq("user_id", userId).single();
-    if (stats) {
-      const newTotalTrades = (stats.total_trades ?? 0) + 1;
-      const newProfitable = (stats.profitable_trades ?? 0) + (pnl !== null && pnl > 0 ? 1 : 0);
-      const newTotalPnl = Number(stats.total_pnl ?? 0) + (pnl ?? 0);
-      const newBest = Math.max(Number(stats.best_trade_pnl ?? 0), pnl ?? 0);
-      const ac = new Set<string>(stats.asset_classes_traded ?? []);
-      ac.add(asset_class);
-      await admin.from("user_stats").update({
-        total_trades: newTotalTrades,
-        profitable_trades: newProfitable,
-        total_pnl: +newTotalPnl.toFixed(2),
-        best_trade_pnl: +newBest.toFixed(2),
-        asset_classes_traded: Array.from(ac),
-      }).eq("user_id", userId);
+    const { data: stats } = await admin.from("user_stats").select("*").eq("user_id", userId).maybeSingle();
+    const newTotalTrades = (stats?.total_trades ?? 0) + 1;
+    const isProfitable = pnl !== null && pnl > 0;
+    const prevProfitable = stats?.profitable_trades ?? 0;
+    const newProfitable = prevProfitable + (isProfitable ? 1 : 0);
+    const newTotalPnl = Number(stats?.total_pnl ?? 0) + (pnl ?? 0);
+    const newBest = Math.max(Number(stats?.best_trade_pnl ?? 0), pnl ?? 0);
+    const ac = new Set<string>(stats?.asset_classes_traded ?? []);
+    ac.add(asset_class);
+    await admin.from("user_stats").upsert({
+      user_id: userId,
+      total_trades: newTotalTrades,
+      profitable_trades: newProfitable,
+      total_pnl: +newTotalPnl.toFixed(2),
+      best_trade_pnl: +newBest.toFixed(2),
+      asset_classes_traded: Array.from(ac),
+    }, { onConflict: "user_id" });
 
-      const tryGrant = async (code: string) => {
-        const { data } = await admin.rpc("grant_achievement", { _user_id: userId, _code: code });
-        if (data === true) grantedAchievements.push(code);
-      };
+    await admin.from("user_stats").update({
+      updated_at: new Date().toISOString(),
+    }).eq("user_id", userId);
 
-      if (newTotalTrades === 1) await tryGrant("first_trade");
-      if (pnl !== null && pnl > 0 && newProfitable === 1) await tryGrant("first_profit");
-      if (newProfitable >= 10) await tryGrant("ten_profits");
-      if (ac.size >= 5) await tryGrant("diversified");
-      if (pnl !== null && pnl >= 1000) await tryGrant("big_winner");
-      if (total >= 50000) await tryGrant("whale");
-      const hour = new Date().getUTCHours();
-      if (hour >= 2 && hour < 5) await tryGrant("night_owl");
-    }
+    const tryGrant = async (code: string) => {
+      const { data } = await admin.rpc("grant_achievement", { _user_id: userId, _code: code });
+      if (data === true) grantedAchievements.push(code);
+    };
+
+    if (newTotalTrades === 1) await tryGrant("first_trade");
+    if (pnl !== null && pnl > 0 && newProfitable === 1) await tryGrant("first_profit");
+    if (newProfitable >= 10) await tryGrant("ten_profits");
+    if (ac.size >= 5) await tryGrant("diversified");
+    if (pnl !== null && pnl >= 1000) await tryGrant("big_winner");
+    if (total >= 50000) await tryGrant("whale");
+    const hour = new Date().getUTCHours();
+    if (hour >= 2 && hour < 5) await tryGrant("night_owl");
 
     for (const code of grantedAchievements) {
       await admin.from("notifications").insert({
