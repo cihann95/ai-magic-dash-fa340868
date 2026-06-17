@@ -13,6 +13,7 @@ interface RateLimitResult {
   remaining: number;
   resetAt: number;
   limit: number;
+  windowMs: number;
 }
 
 export const RATE_LIMITS: Record<string, RateLimitConfig> = {
@@ -38,7 +39,7 @@ export async function checkRateLimit(
 ): Promise<RateLimitResult> {
   if (!redisEnabled) {
     const config = RATE_LIMITS[route] ?? DEFAULT_CONFIG;
-    return { allowed: true, remaining: config.maxRequests, resetAt: Date.now() + config.windowMs, limit: config.maxRequests };
+    return { allowed: true, remaining: config.maxRequests, resetAt: Date.now() + config.windowMs, limit: config.maxRequests, windowMs: config.windowMs };
   }
 
   const config = RATE_LIMITS[route] ?? DEFAULT_CONFIG;
@@ -54,17 +55,17 @@ export async function checkRateLimit(
       const oldest = await redis.zrange(key, 0, 0, { withScores: true }) as Array<{ score: number; member: string }>;
       const oldestScore = oldest.length > 0 ? oldest[0].score : now;
       const resetAt = oldestScore + config.windowMs;
-      return { allowed: false, remaining: 0, resetAt, limit: config.maxRequests };
+      return { allowed: false, remaining: 0, resetAt, limit: config.maxRequests, windowMs: config.windowMs };
     }
 
     const member = `${now}:${Math.random().toString(36).slice(2, 9)}`;
     await redis.zadd(key, now, member);
     await redis.expire(key, Math.ceil(config.windowMs / 1000) + 10);
 
-    return { allowed: true, remaining: config.maxRequests - count - 1, resetAt: now + config.windowMs, limit: config.maxRequests };
+    return { allowed: true, remaining: config.maxRequests - count - 1, resetAt: now + config.windowMs, limit: config.maxRequests, windowMs: config.windowMs };
   } catch (error) {
     console.error("Rate limit check failed (fail-open):", (error as Error).message);
-    return { allowed: true, remaining: config.maxRequests, resetAt: Date.now() + config.windowMs, limit: config.maxRequests };
+    return { allowed: true, remaining: config.maxRequests, resetAt: Date.now() + config.windowMs, limit: config.maxRequests, windowMs: config.windowMs };
   }
 }
 
@@ -90,6 +91,7 @@ export function createRateLimitResponse(result: RateLimitResult): Response {
         "X-RateLimit-Limit": String(result.limit),
         "X-RateLimit-Remaining": "0",
         "X-RateLimit-Reset": String(Math.ceil(result.resetAt / 1000)),
+        "X-RateLimit-Policy": JSON.stringify({ window: result.windowMs, max: result.limit }),
         "Retry-After": String(retryAfterSeconds),
       },
     },
@@ -101,11 +103,22 @@ export function addRateLimitHeaders(response: Response, result: RateLimitResult)
   newHeaders.set("X-RateLimit-Limit", String(result.limit));
   newHeaders.set("X-RateLimit-Remaining", String(result.remaining));
   newHeaders.set("X-RateLimit-Reset", String(Math.ceil(result.resetAt / 1000)));
+  newHeaders.set("X-RateLimit-Policy", JSON.stringify({ window: result.windowMs, max: result.limit }));
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers: newHeaders });
 }
 
 export async function rateLimit(userId: string, route: string): Promise<Response | null> {
   const result = await checkRateLimit(userId, route);
-  if (!result.allowed) return createRateLimitResponse(result);
+  if (!result.allowed) {
+    console.warn(JSON.stringify({
+      event: "rate_limit_exceeded",
+      userId,
+      route,
+      limit: result.limit,
+      remaining: result.remaining,
+      resetAt: new Date(result.resetAt).toISOString(),
+    }));
+    return createRateLimitResponse(result);
+  }
   return null;
 }

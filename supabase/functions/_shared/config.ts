@@ -1,9 +1,11 @@
 /**
  * Edge Function Configuration Module
  *
- * Validates ALL environment variables at module load time. Throws `ConfigError`
- * immediately if any required variable is missing, giving operators an
- * unambiguous startup error instead of a cryptic runtime failure mid-request.
+ * Validates ALL environment variables at module load time.
+ * In **development** (`NODE_ENV=development`): throws `ConfigError` immediately
+ * if any required variable is missing — fail-fast.
+ * In **production**: degrades gracefully (empty strings for missing required
+ * vars) and exports `isConfigValid()` so handlers can fail-open.
  *
  * ── Usage ───────────────────────────────────────────────────────────────────
  *
@@ -94,20 +96,41 @@ function getOptional(name: string): string | undefined {
  * @returns A frozen `Config` object.
  */
 function loadConfig(): Config {
-  const config = Object.freeze({
-    supabaseUrl: getRequired("SUPABASE_URL"),
-    supabaseServiceRoleKey: getRequired("SUPABASE_SERVICE_ROLE_KEY"),
-    supabaseAnonKey: getRequired("SUPABASE_ANON_KEY"),
-    openrouterApiKey: getRequired("OPENROUTER_API_KEY"),
-    upstashRedisRestUrl: getOptional("UPSTASH_REDIS_REST_URL"),
-    upstashRedisRestToken: getOptional("UPSTASH_REDIS_REST_TOKEN"),
-    vapidPublicKey: getOptional("VAPID_PUBLIC_KEY"),
-    vapidPrivateKey: getOptional("VAPID_PRIVATE_KEY"),
-    vapidSubject: getOptional("VAPID_SUBJECT") ?? "mailto:noreply@lumen.trade",
-    waitingRoomTtlSeconds: getOptional("WAITING_ROOM_TTL_SECONDS"),
-  }) satisfies Config;
+  try {
+    const config = Object.freeze({
+      supabaseUrl: getRequired("SUPABASE_URL"),
+      supabaseServiceRoleKey: getRequired("SUPABASE_SERVICE_ROLE_KEY"),
+      supabaseAnonKey: getRequired("SUPABASE_ANON_KEY"),
+      openrouterApiKey: getRequired("OPENROUTER_API_KEY"),
+      upstashRedisRestUrl: getOptional("UPSTASH_REDIS_REST_URL"),
+      upstashRedisRestToken: getOptional("UPSTASH_REDIS_REST_TOKEN"),
+      vapidPublicKey: getOptional("VAPID_PUBLIC_KEY"),
+      vapidPrivateKey: getOptional("VAPID_PRIVATE_KEY"),
+      vapidSubject: getOptional("VAPID_SUBJECT") ?? "mailto:noreply@lumen.trade",
+      waitingRoomTtlSeconds: getOptional("WAITING_ROOM_TTL_SECONDS"),
+    }) satisfies Config;
 
-  return config;
+    return config;
+  } catch (error) {
+    if (error instanceof ConfigError && Deno.env.get("NODE_ENV") !== "development") {
+      console.error(`[config] WARNING: ${error.message}. Using degraded config.`);
+
+      return Object.freeze({
+        supabaseUrl: "",
+        supabaseServiceRoleKey: "",
+        supabaseAnonKey: "",
+        openrouterApiKey: "",
+        upstashRedisRestUrl: getOptional("UPSTASH_REDIS_REST_URL"),
+        upstashRedisRestToken: getOptional("UPSTASH_REDIS_REST_TOKEN"),
+        vapidPublicKey: getOptional("VAPID_PUBLIC_KEY"),
+        vapidPrivateKey: getOptional("VAPID_PRIVATE_KEY"),
+        vapidSubject: getOptional("VAPID_SUBJECT") ?? "mailto:noreply@lumen.trade",
+        waitingRoomTtlSeconds: getOptional("WAITING_ROOM_TTL_SECONDS"),
+      }) satisfies Config;
+    }
+
+    throw error;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -117,7 +140,23 @@ function loadConfig(): Config {
 /**
  * Validated edge-function configuration singleton.
  *
- * Loaded on first import.  If any required variable is missing, the import
- * itself throws a `ConfigError` — fail fast, no silent degradation.
+ * Loaded on first import.
+ * - **Development**: throws `ConfigError` on missing required vars.
+ * - **Production**: degrades gracefully (empty strings); check
+ *   `isConfigValid()` before using required fields.
  */
 export const config: Config = loadConfig();
+
+/**
+ * Returns `true` if all required configuration variables are present
+ * (i.e. the config was not degraded). Useful for edge-function handlers
+ * that can fail-open with a user-facing message instead of crashing.
+ */
+export function isConfigValid(): boolean {
+  return (
+    config.supabaseUrl !== "" &&
+    config.supabaseServiceRoleKey !== "" &&
+    config.supabaseAnonKey !== "" &&
+    config.openrouterApiKey !== ""
+  );
+}
