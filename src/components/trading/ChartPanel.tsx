@@ -74,6 +74,9 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
       const fillPrice = result?.price ?? price;
       recordTrade(q * (fillPrice ?? 0), false);
       toast({ title: tr.trade_success, description: `${side.toUpperCase()} ${q} ${symbol.symbol} @ ${formatPrice(fillPrice)}` });
+      if (typeof result?.balance === 'number') {
+        window.dispatchEvent(new CustomEvent('balance-update', { detail: { balance: result.balance } }));
+      }
       const ach = result?.achievements;
       if (ach?.length) celebrateAchievements(ach, lang);
       setIntentOpen(null);

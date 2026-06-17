@@ -14,7 +14,7 @@ export default function GameBadge() {
 
   const load = async () => {
     if (!user) return;
-    const { data } = await supabase.from("user_stats").select("*").eq("user_id", user.id).single();
+    const { data } = await supabase.from("user_stats").select("*").eq("user_id", user.id).maybeSingle();
     if (data) setStats(data);
   };
 

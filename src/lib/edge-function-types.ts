@@ -37,6 +37,8 @@ export interface NewsFeedResponse {
 
 export interface ExecuteTradeResponse {
   price: number;
+  balance?: number;
+  pnl?: number;
   achievements?: string[];
   error?: string;
 }

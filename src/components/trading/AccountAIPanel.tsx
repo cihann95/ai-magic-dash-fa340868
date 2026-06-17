@@ -77,6 +77,15 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
     };
   }, []);
 
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { balance } = (e as CustomEvent<{ balance: number }>).detail;
+      if (typeof balance === 'number') setBalance(balance);
+    };
+    window.addEventListener('balance-update', handler);
+    return () => window.removeEventListener('balance-update', handler);
+  }, []);
+
   const livePnl = positions.reduce((acc, p) => {
     const cur = livePrices[p.symbol]?.price ?? Number(p.current_price ?? p.entry_price);
     const v = p.side === "long" ? (cur - Number(p.entry_price)) * Number(p.quantity)
