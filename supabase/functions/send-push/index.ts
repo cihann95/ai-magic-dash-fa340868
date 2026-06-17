@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
 
   const authHdr = req.headers.get("Authorization") ?? "";
   if (authHdr !== `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: "Yetkisiz erişim" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error("send-push error", e);
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
+    return new Response(JSON.stringify({ error: "Sunucu hatası oluştu" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

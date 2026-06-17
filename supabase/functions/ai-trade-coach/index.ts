@@ -209,14 +209,14 @@ Deno.serve(async (req) => {
     // Tek kullanıcı modu (UI'dan tetik) — auth kontrolü
     if (targetUserId) {
       const authHeader = req.headers.get("Authorization");
-      if (!authHeader) return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      if (!authHeader) return new Response(JSON.stringify({ error: "Yetkisiz erişim" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
       const auth = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!,
         { global: { headers: { Authorization: authHeader } } });
       const { data: userData } = await auth.auth.getUser(authHeader.replace("Bearer ", ""));
       if (userData.user?.id !== targetUserId) {
-        return new Response(JSON.stringify({ error: "Forbidden" }), {
+        return new Response(JSON.stringify({ error: "Yasak" }), {
           status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -233,7 +233,7 @@ Deno.serve(async (req) => {
     // Toplu mod (cron) — service-role bearer zorunlu
     const cronAuth = req.headers.get("Authorization") ?? "";
     if (cronAuth !== `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      return new Response(JSON.stringify({ error: "Yetkisiz erişim" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -253,7 +253,7 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error("ai-trade-coach error", e);
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
+    return new Response(JSON.stringify({ error: "Sunucu hatası oluştu" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

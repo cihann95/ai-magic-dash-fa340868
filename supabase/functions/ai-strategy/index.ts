@@ -16,13 +16,13 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    if (!authHeader) return new Response(JSON.stringify({ error: "Yetkisiz erişim" }), { status: 401, headers: corsHeaders });
 
     const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
       { global: { headers: { Authorization: authHeader } } });
     const { data: userData } = await sb.auth.getUser(authHeader.replace("Bearer ", ""));
     const user = userData.user;
-    if (!user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    if (!user) return new Response(JSON.stringify({ error: "Yetkisiz erişim" }), { status: 401, headers: corsHeaders });
 
     const rlResponse = await rateLimit(user.id, "ai-strategy");
     if (rlResponse) return rlResponse;
@@ -83,8 +83,8 @@ Deno.serve(async (req) => {
       }),
     });
 
-    if (aiResp.status === 429) return new Response(JSON.stringify({ error: "Rate limited" }), { status: 429, headers: corsHeaders });
-    if (aiResp.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted" }), { status: 402, headers: corsHeaders });
+    if (aiResp.status === 429) return new Response(JSON.stringify({ error: "Çok fazla istek, lütfen bekleyin" }), { status: 429, headers: corsHeaders });
+    if (aiResp.status === 402) return new Response(JSON.stringify({ error: "AI kredisi yetersiz" }), { status: 402, headers: corsHeaders });
     if (!aiResp.ok) throw new Error("AI error");
 
     const data = await aiResp.json();
@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("ai-strategy error", e);
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
+    return new Response(JSON.stringify({ error: "Sunucu hatası oluştu" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

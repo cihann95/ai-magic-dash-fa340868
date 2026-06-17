@@ -12,7 +12,7 @@ Deno.serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      return new Response(JSON.stringify({ error: "Yetkisiz erişim" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
     );
     const { data: userData } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
     const user = userData.user;
-    if (!user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    if (!user) return new Response(JSON.stringify({ error: "Yetkisiz erişim" }), { status: 401, headers: corsHeaders });
 
     const { language = "tr" } = await req.json().catch(() => ({}));
     const today = new Date().toISOString().slice(0, 10);
@@ -76,8 +76,8 @@ Deno.serve(async (req) => {
       }),
     });
 
-    if (aiResp.status === 429) return new Response(JSON.stringify({ error: "Rate limited" }), { status: 429, headers: corsHeaders });
-    if (aiResp.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted" }), { status: 402, headers: corsHeaders });
+    if (aiResp.status === 429) return new Response(JSON.stringify({ error: "Çok fazla istek, lütfen bekleyin" }), { status: 429, headers: corsHeaders });
+    if (aiResp.status === 402) return new Response(JSON.stringify({ error: "AI kredisi yetersiz" }), { status: 402, headers: corsHeaders });
     if (!aiResp.ok) throw new Error("AI error");
 
     const aiData = await aiResp.json();
@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify(brief), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("daily-brief error", e);
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
+    return new Response(JSON.stringify({ error: "Sunucu hatası oluştu" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

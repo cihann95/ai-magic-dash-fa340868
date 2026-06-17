@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
   const { data: userRes } = await admin.auth.getUser(token);
   const user = userRes?.user;
   if (!user) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+    return new Response(JSON.stringify({ error: "Yetkisiz erişim" }), {
       status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
@@ -116,13 +116,13 @@ Deno.serve(async (req) => {
 
   let body: Req;
   try { body = await req.json(); } catch {
-    return new Response(JSON.stringify({ error: "Invalid body" }), {
+    return new Response(JSON.stringify({ error: "Geçersiz veri" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
   const { mode, symbol, entry_fee } = body;
   if (!mode || !symbol || !(entry_fee > 0)) {
-    return new Response(JSON.stringify({ error: "Missing fields" }), {
+    return new Response(JSON.stringify({ error: "Eksik alanlar" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
@@ -164,13 +164,13 @@ Deno.serve(async (req) => {
     .from("profiles").select("real_balance, real_balance_locked")
     .eq("id", user.id).single();
   if (pErr || !profile) {
-    return new Response(JSON.stringify({ error: "Profile not found" }), {
+    return new Response(JSON.stringify({ error: "Profil bulunamadı" }), {
       status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
   const available = Number(profile.real_balance) - Number(profile.real_balance_locked);
   if (available < entry_fee) {
-    return new Response(JSON.stringify({ error: "Insufficient balance", available }), {
+    return new Response(JSON.stringify({ error: "Yetersiz bakiye", available }), {
       status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
@@ -183,7 +183,7 @@ Deno.serve(async (req) => {
       .eq("id", user.id)
       .eq("real_balance_locked", Number(profile.real_balance_locked));
     if (lockErr) {
-      return new Response(JSON.stringify({ error: "Balance lock failed (concurrent request?)" }), {
+      return new Response(JSON.stringify({ error: "Bakiye kilitleme başarısız (eş zamanlı istek olabilir)" }), {
         status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -198,7 +198,7 @@ Deno.serve(async (req) => {
       await admin.from("profiles")
         .update({ real_balance_locked: Number(profile.real_balance_locked) })
         .eq("id", user.id);
-      return new Response(JSON.stringify({ error: rErr?.message ?? "Room create failed" }), {
+      return new Response(JSON.stringify({ error: rErr?.message ?? "Oda oluşturulamadı" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -231,7 +231,7 @@ Deno.serve(async (req) => {
         .eq("id", user.id)
         .eq("real_balance_locked", Number(profile.real_balance_locked));
       if (lockErr) {
-        return new Response(JSON.stringify({ error: "Balance lock failed (concurrent request?)" }), {
+        return new Response(JSON.stringify({ error: "Bakiye kilitleme başarısız (eş zamanlı istek olabilir)" }), {
           status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -282,7 +282,7 @@ Deno.serve(async (req) => {
   if (callerLockErr) {
     // Kilitleme başarısız — rakibi geri kuyruğa koy
     await redis.rpush(queueKey, opponent);
-    return new Response(JSON.stringify({ error: "Balance lock failed (concurrent request?)" }), {
+    return new Response(JSON.stringify({ error: "Bakiye kilitleme başarısız (eş zamanlı istek olabilir)" }), {
       status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
@@ -295,7 +295,7 @@ Deno.serve(async (req) => {
   }
   const startPrice = startPriceRaw ? Number(startPriceRaw) : null;
   if (!startPrice || !isFinite(startPrice) || startPrice <= 0) {
-    return new Response(JSON.stringify({ error: "Price unavailable for symbol" }), {
+    return new Response(JSON.stringify({ error: "Sembol için fiyat bilgisi alınamadı" }), {
       status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
@@ -313,7 +313,7 @@ Deno.serve(async (req) => {
     created_by: user.id,
   }).select().single();
   if (rErr || !room) {
-    return new Response(JSON.stringify({ error: rErr?.message ?? "Room create failed" }), {
+    return new Response(JSON.stringify({ error: rErr?.message ?? "Oda oluşturulamadı" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

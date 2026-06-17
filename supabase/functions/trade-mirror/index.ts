@@ -21,13 +21,13 @@ Deno.serve(async (req) => {
   const auth = req.headers.get("Authorization") ?? "";
   const expected = `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`;
   if (auth !== expected) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: "Yetkisiz erişim" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
   try {
     const { user_id, trade_id } = (await req.json()) as MirrorRequest;
     if (!user_id || !trade_id) {
-      return new Response(JSON.stringify({ error: "Missing params" }), {
+      return new Response(JSON.stringify({ error: "Eksik parametreler" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -176,7 +176,7 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error("trade-mirror error", e);
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
+    return new Response(JSON.stringify({ error: "Sunucu hatası oluştu" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

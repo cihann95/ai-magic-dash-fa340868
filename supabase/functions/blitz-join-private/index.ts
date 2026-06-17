@@ -15,22 +15,22 @@ Deno.serve(async (req) => {
   const token = authHdr.startsWith("Bearer ") ? authHdr.slice(7) : "";
   const { data: userRes } = await admin.auth.getUser(token);
   const user = userRes?.user;
-  if (!user) return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  if (!user) return new Response(JSON.stringify({ error: "Yetkisiz erişim" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   let invite_code = "";
   try { invite_code = ((await req.json()).invite_code ?? "").toString().trim().toUpperCase(); } catch { /* noop */ }
-  if (!invite_code) return new Response(JSON.stringify({ error: "Missing invite_code" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  if (!invite_code) return new Response(JSON.stringify({ error: "Davet kodu eksik" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   const { data: room } = await admin.from("blitz_rooms").select("*").eq("invite_code", invite_code).maybeSingle();
-  if (!room) return new Response(JSON.stringify({ error: "Room not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-  if (room.status !== "waiting") return new Response(JSON.stringify({ error: "Room not available" }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  if (!room) return new Response(JSON.stringify({ error: "Oda bulunamadı" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  if (room.status !== "waiting") return new Response(JSON.stringify({ error: "Oda kullanılamıyor" }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   // Bakiye
   const { data: profile } = await admin.from("profiles").select("real_balance, real_balance_locked").eq("id", user.id).single();
-  if (!profile) return new Response(JSON.stringify({ error: "Profile not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  if (!profile) return new Response(JSON.stringify({ error: "Profil bulunamadı" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   const available = Number(profile.real_balance) - Number(profile.real_balance_locked);
   if (available < Number(room.entry_fee)) {
-    return new Response(JSON.stringify({ error: "Insufficient balance" }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: "Yetersiz bakiye" }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
   // Zaten katılımcı mı?

@@ -15,11 +15,11 @@ const AnalyzeRequestSchema = z.object({
 
 async function requireUser(req: Request): Promise<{ response: Response | null; userId: string | null }> {
   const authHeader = req.headers.get("Authorization");
-  if (!authHeader) return { response: new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }), userId: null };
+  if (!authHeader) return { response: new Response(JSON.stringify({ error: "Yetkisiz erişim" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }), userId: null };
   const token = authHeader.replace("Bearer ", "");
   const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!);
   const { data, error } = await sb.auth.getUser(token);
-  if (error || !data.user) return { response: new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }), userId: null };
+  if (error || !data.user) return { response: new Response(JSON.stringify({ error: "Yetkisiz erişim" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }), userId: null };
   return { response: null, userId: data.user.id };
 }
 
@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error("ai-analyze error", e);
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
+    return new Response(JSON.stringify({ error: "Sunucu hatası oluştu" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

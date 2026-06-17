@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
     isCron = ok === true;
   }
   if (!isServiceRole && !isCron) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+    return new Response(JSON.stringify({ error: "Yetkisiz erişim" }), {
       status: 401,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error("analytics-writer error", e);
-    return new Response(JSON.stringify({ error: "Internal" }), {
+    return new Response(JSON.stringify({ error: "Sunucu hatası oluştu" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

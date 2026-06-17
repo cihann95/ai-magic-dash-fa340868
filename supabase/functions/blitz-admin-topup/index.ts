@@ -20,21 +20,21 @@ Deno.serve(async (req) => {
   const { data: userRes } = await admin.auth.getUser(token);
   const caller = userRes?.user;
   if (!caller) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+    return new Response(JSON.stringify({ error: "Yetkisiz erişim" }), {
       status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
   const { data: isAdmin } = await admin.rpc("has_role", { _user_id: caller.id, _role: "admin" });
   if (!isAdmin) {
-    return new Response(JSON.stringify({ error: "Forbidden — admin only" }), {
+    return new Response(JSON.stringify({ error: "Yasak — sadece yönetici" }), {
       status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
   let body: { user_id?: string; amount?: number; reason?: string };
   try { body = await req.json(); } catch {
-    return new Response(JSON.stringify({ error: "Invalid body" }), {
+    return new Response(JSON.stringify({ error: "Geçersiz veri" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
@@ -49,19 +49,19 @@ Deno.serve(async (req) => {
     .from("profiles").select("real_balance, real_balance_locked")
     .eq("id", user_id).maybeSingle();
   if (pErr || !prof) {
-    return new Response(JSON.stringify({ error: "User profile not found" }), {
+    return new Response(JSON.stringify({ error: "Kullanıcı profili bulunamadı" }), {
       status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
   const newBalance = +(Number(prof.real_balance) + amount).toFixed(4);
   if (newBalance < Number(prof.real_balance_locked)) {
-    return new Response(JSON.stringify({ error: "Resulting balance would be less than locked funds" }), {
+    return new Response(JSON.stringify({ error: "Bakiye kilitli fondan az olamaz" }), {
       status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
   if (newBalance < 0) {
-    return new Response(JSON.stringify({ error: "Balance cannot go negative" }), {
+    return new Response(JSON.stringify({ error: "Bakiye negatif olamaz" }), {
       status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

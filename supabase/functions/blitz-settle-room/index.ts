@@ -29,7 +29,7 @@ async function settleRoom(admin: Admin, roomId: string): Promise<{ ok: boolean; 
     p_idempotency_key: idempotencyKey,
   });
   if (lockErr) return { ok: false, error: lockErr.message };
-  if (!lockResult) return { ok: false, error: "No response from lock_and_validate_room" };
+  if (!lockResult) return { ok: false, error: "Oda kilitleme yanıtsız" };
   if (lockResult.already_settled) return { ok: true, reason: "already_settled" };
   if (lockResult.error) return { ok: false, error: lockResult.error };
 
@@ -66,7 +66,7 @@ async function settleRoom(admin: Admin, roomId: string): Promise<{ ok: boolean; 
       .select("*").eq("room_id", roomId).is("closed_at", null);
     const { data: nowIso, error: tsErr } = await admin.rpc("order_timestamp");
     if (tsErr || !nowIso) {
-      return { ok: false, error: "Server timestamp unavailable" };
+      return { ok: false, error: "Sunucu zaman damgası alınamadı" };
     }
     for (const o of openOrders ?? []) {
       const dir = o.side === "long" ? 1 : -1;
@@ -227,7 +227,7 @@ Deno.serve(async (req) => {
     isUser = !!u?.user;
   }
   if (!isServiceRole && !isCron && !isUser) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: "Yetkisiz erişim" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
   let room_id: string | undefined;
@@ -251,6 +251,6 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ settled: results.length, results }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("blitz-settle-room error", e);
-    return new Response(JSON.stringify({ error: "Internal" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: "Sunucu hatası oluştu" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

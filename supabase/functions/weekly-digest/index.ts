@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return json({ error: "Unauthorized" }, 401);
+      return json({ error: "Yetkisiz erişim" }, 401);
     }
 
     const userClient = createClient(
@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
     );
     const { data: userData } = await userClient.auth.getUser(authHeader.replace("Bearer ", ""));
     const user = userData.user;
-    if (!user) return json({ error: "Unauthorized" }, 401);
+    if (!user) return json({ error: "Yetkisiz erişim" }, 401);
 
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -162,7 +162,7 @@ Deno.serve(async (req) => {
     return json({ success: true, closes: closes.length, total_pnl: +totalPnl.toFixed(2) });
   } catch (e) {
     console.error("weekly-digest error", e);
-    return json({ error: "Internal server error" }, 500);
+    return json({ error: "Sunucu hatası oluştu" }, 500);
   }
 });
 

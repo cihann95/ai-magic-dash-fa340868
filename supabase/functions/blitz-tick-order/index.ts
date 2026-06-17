@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
   const token = authHdr.startsWith("Bearer ") ? authHdr.slice(7) : "";
   const { data: userRes } = await admin.auth.getUser(token);
   const user = userRes?.user;
-  if (!user) return jsonResp({ error: "Unauthorized" }, 401);
+  if (!user) return jsonResp({ error: "Yetkisiz erişim" }, 401);
 
   const rlResponse = await rateLimit(user.id, "blitz-tick-order");
   if (rlResponse) return rlResponse;
@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
   if (sentAtHdr) {
     const sentAt = Number(sentAtHdr);
     if (!isFinite(sentAt) || Math.abs(Date.now() - sentAt) > 150) {
-      return jsonResp({ error: "Stale request (clock drift > 150ms)" }, 409);
+      return jsonResp({ error: "Eski istek (saat sapması > 150ms)" }, 409);
     }
   }
 
@@ -59,28 +59,28 @@ Deno.serve(async (req) => {
   try {
     body = await req.json();
   } catch {
-    return jsonResp({ error: "Invalid body" }, 400);
+    return jsonResp({ error: "Geçersiz veri" }, 400);
   }
   // Reject client-supplied price/time fields outright (defence-in-depth).
   if (
     body.entry_price !== undefined || body.price !== undefined ||
     body.timestamp !== undefined || body.client_time !== undefined
   ) {
-    return jsonResp({ error: "Forbidden field in body" }, 400);
+    return jsonResp({ error: "Yasaklı alan" }, 400);
   }
   const { room_id, action } = body;
-  if (!room_id || !action) return jsonResp({ error: "Missing fields" }, 400);
+  if (!room_id || !action) return jsonResp({ error: "Eksik alanlar" }, 400);
 
   // ── CRSH-003: idempotency guard ─────────────────────────────────────
   // Identical Idempotency-Key from the same user within 30s → 409.
   const idemKey = req.headers.get("idempotency-key");
   if (idemKey) {
     if (!/^[A-Za-z0-9_-]{8,128}$/.test(idemKey)) {
-      return jsonResp({ error: "Invalid Idempotency-Key" }, 400);
+      return jsonResp({ error: "Geçersiz tekillik anahtarı" }, 400);
     }
     const fresh = await redis.setNxEx(`blitz:idem:${user.id}:${idemKey}`, "1", 30);
     if (!fresh) {
-      return jsonResp({ error: "Duplicate request (idempotency replay)" }, 409);
+      return jsonResp({ error: "Tekrarlanan istek" }, 409);
     }
   }
 
@@ -91,7 +91,7 @@ Deno.serve(async (req) => {
     .eq("id", room_id)
     .maybeSingle();
 
-  if (!room) return jsonResp({ error: "Room not found" }, 404);
+  if (!room) return jsonResp({ error: "Oda bulunamadı" }, 404);
 
   let priceRaw: string | null = await redis.get(`blitz:price:${room.symbol}`);
   if (!priceRaw) {
@@ -104,7 +104,7 @@ Deno.serve(async (req) => {
   }
   const price = priceRaw ? Number(priceRaw) : null;
   if (!price || !isFinite(price) || price <= 0) {
-    return jsonResp({ error: "Price unavailable" }, 503);
+    return jsonResp({ error: "Fiyat bilgisi alınamadı" }, 503);
   }
 
   if (action === "open") {
@@ -138,7 +138,7 @@ Deno.serve(async (req) => {
       return jsonResp({ error: slErr.message }, 500);
     }
     if (!slippageOk) {
-      return jsonResp({ error: "Slippage too high. Order rejected." }, 409);
+      return jsonResp({ error: "Kayma çok yüksek. Emir reddedildi." }, 409);
     }
 
     const { data: order, error: oErr } = await admin
@@ -205,7 +205,7 @@ Deno.serve(async (req) => {
 
   const { data: closedAt, error: tsErr } = await admin.rpc("order_timestamp");
   if (tsErr || !closedAt) {
-    return jsonResp({ error: "Server timestamp unavailable" }, 500);
+    return jsonResp({ error: "Sunucu zaman damgası alınamadı" }, 500);
   }
 
   const { error: cErr } = await admin
