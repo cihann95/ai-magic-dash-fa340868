@@ -31,7 +31,30 @@ Deno.serve(async (req) => {
       });
     }
 
+    const start = Date.now();
+
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("is_admin, demo_balance")
+      .eq("id", user.id)
+      .single();
+
+    if (!profile || profile.is_admin !== true) {
+      console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+      return new Response(JSON.stringify({ error: "Bu işlem için yetkiniz yok", code: "NOT_ADMIN" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (profile.demo_balance === 100000) {
+      console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+      return new Response(JSON.stringify({ success: true, changes: 0 }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     await admin.from("positions").delete().eq("user_id", user.id);
     await admin.from("orders").update({ status: "cancelled" }).eq("user_id", user.id).eq("status", "open");
@@ -41,6 +64,14 @@ Deno.serve(async (req) => {
       .eq("id", user.id);
 
     if (error) throw error;
+
+    await admin.from("analytics_events_staging").insert({
+      event_type: "demo_reset",
+      user_id: user.id,
+      payload: { demo_balance: 100000 },
+    });
+
+    console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

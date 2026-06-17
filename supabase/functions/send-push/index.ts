@@ -53,7 +53,13 @@ async function sendPush(sub: { endpoint: string; p256dh: string; auth: string },
   try {
     const url = new URL(sub.endpoint);
     const audience = `${url.protocol}//${url.host}`;
-    const jwt = await buildVapidJWT(audience);
+    let jwt: string;
+    try {
+      jwt = await buildVapidJWT(audience);
+    } catch (e) {
+      console.error(JSON.stringify({event: "vapid_jwt_error", error: e.message}));
+      return -1;
+    }
     // Push servisleri body'siz "tickle" çağrıyı kabul eder; gerçek payload encryption için web-push şifrelemesi gerekir
     // Burada body'siz tetikleme yapıyoruz; service worker'da fetch ile son notification'ı çekiyoruz.
     const r = await fetch(sub.endpoint, {
@@ -79,9 +85,12 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: "Yetkisiz erişim" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
+  const start = Date.now();
+
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
-    return new Response(JSON.stringify({ skipped: true, reason: "VAPID not configured" }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    console.error(JSON.stringify({event: "request", duration_ms: Date.now() - start}));
+    return new Response(JSON.stringify({ error: "Push bildirim ayarları eksik", code: "VAPID_NOT_CONFIGURED" }), {
+      status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
@@ -89,9 +98,12 @@ Deno.serve(async (req) => {
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const body = await req.json();
     const { user_id, notification } = body;
-    if (!user_id) return new Response(JSON.stringify({ error: "user_id required" }), {
-      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    if (!user_id) {
+      console.error(JSON.stringify({event: "request", duration_ms: Date.now() - start}));
+      return new Response(JSON.stringify({ error: "user_id required" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const { data: subs } = await admin.from("push_subscriptions")
       .select("endpoint, p256dh, auth").eq("user_id", user_id);
@@ -105,11 +117,13 @@ Deno.serve(async (req) => {
         removed++;
       }
     }
+    console.error(JSON.stringify({event: "request", duration_ms: Date.now() - start}));
     return new Response(JSON.stringify({ success: true, sent, removed }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
     console.error("send-push error", e);
+    console.error(JSON.stringify({event: "request", duration_ms: Date.now() - start}));
     return new Response(JSON.stringify({ error: "Sunucu hatası oluştu" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

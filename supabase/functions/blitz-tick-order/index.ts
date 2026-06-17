@@ -7,6 +7,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { redis } from "../_shared/redis.ts";
 import { rateLimit } from "../_shared/rate-limit.ts";
+import { checkBodySize } from "../_shared/body-size-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -39,10 +40,23 @@ Deno.serve(async (req) => {
   const token = authHdr.startsWith("Bearer ") ? authHdr.slice(7) : "";
   const { data: userRes } = await admin.auth.getUser(token);
   const user = userRes?.user;
-  if (!user) return jsonResp({ error: "Yetkisiz erişim" }, 401);
+  if (!user) {
+    return jsonResp({ error: "Yetkisiz erişim", code: "UNAUTHORIZED" }, 401);
+  }
+
+  const start = Date.now();
 
   const rlResponse = await rateLimit(user.id, "blitz-tick-order");
-  if (rlResponse) return rlResponse;
+  if (rlResponse) {
+    console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+    return rlResponse;
+  }
+
+  const bodyError = await checkBodySize(req);
+  if (bodyError) {
+    console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+    return bodyError;
+  }
 
   // ── CRSH-003: server-time freshness guard ───────────────────────────
   // Reject requests whose client-sent timestamp drifts > 150 ms from
@@ -51,7 +65,8 @@ Deno.serve(async (req) => {
   if (sentAtHdr) {
     const sentAt = Number(sentAtHdr);
     if (!isFinite(sentAt) || Math.abs(Date.now() - sentAt) > 150) {
-      return jsonResp({ error: "Eski istek (saat sapması > 150ms)" }, 409);
+      console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+      return jsonResp({ error: "Eski istek (saat sapması > 150ms)", code: "CLOCK_DRIFT" }, 409);
     }
   }
 
@@ -59,28 +74,35 @@ Deno.serve(async (req) => {
   try {
     body = await req.json();
   } catch {
-    return jsonResp({ error: "Geçersiz veri" }, 400);
+    console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+    return jsonResp({ error: "Geçersiz veri", code: "INVALID_JSON" }, 400);
   }
   // Reject client-supplied price/time fields outright (defence-in-depth).
   if (
     body.entry_price !== undefined || body.price !== undefined ||
     body.timestamp !== undefined || body.client_time !== undefined
   ) {
-    return jsonResp({ error: "Yasaklı alan" }, 400);
+    console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+    return jsonResp({ error: "Yasaklı alan", code: "FORBIDDEN_FIELD" }, 400);
   }
   const { room_id, action } = body;
-  if (!room_id || !action) return jsonResp({ error: "Eksik alanlar" }, 400);
+  if (!room_id || !action) {
+    console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+    return jsonResp({ error: "Eksik alanlar", code: "MISSING_FIELDS" }, 400);
+  }
 
   // ── CRSH-003: idempotency guard ─────────────────────────────────────
   // Identical Idempotency-Key from the same user within 30s → 409.
   const idemKey = req.headers.get("idempotency-key");
   if (idemKey) {
     if (!/^[A-Za-z0-9_-]{8,128}$/.test(idemKey)) {
-      return jsonResp({ error: "Geçersiz tekillik anahtarı" }, 400);
+      console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+      return jsonResp({ error: "Geçersiz tekillik anahtarı", code: "INVALID_IDEMPOTENCY_KEY" }, 400);
     }
     const fresh = await redis.setNxEx(`blitz:idem:${user.id}:${idemKey}`, "1", 30);
     if (!fresh) {
-      return jsonResp({ error: "Tekrarlanan istek" }, 409);
+      console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+      return jsonResp({ error: "Tekrarlanan istek", code: "IDEMPOTENCY_CONFLICT" }, 409);
     }
   }
 
@@ -91,7 +113,10 @@ Deno.serve(async (req) => {
     .eq("id", room_id)
     .maybeSingle();
 
-  if (!room) return jsonResp({ error: "Oda bulunamadı" }, 404);
+  if (!room) {
+    console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+    return jsonResp({ error: "Oda bulunamadı", code: "ROOM_NOT_FOUND" }, 404);
+  }
 
   let priceRaw: string | null = await redis.get(`blitz:price:${room.symbol}`);
   if (!priceRaw) {
@@ -104,13 +129,15 @@ Deno.serve(async (req) => {
   }
   const price = priceRaw ? Number(priceRaw) : null;
   if (!price || !isFinite(price) || price <= 0) {
-    return jsonResp({ error: "Fiyat bilgisi alınamadı" }, 503);
+    console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+    return jsonResp({ error: "Fiyat bilgisi alınamadı", code: "PRICE_UNAVAILABLE" }, 503);
   }
 
   if (action === "open") {
     const { side, amount } = body;
     if (!side || !(amount && amount > 0)) {
-      return jsonResp({ error: "side and amount required" }, 400);
+      console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+      return jsonResp({ error: "side and amount required", code: "INVALID_PARAMS" }, 400);
     }
 
     const { data: validation, error: rpcErr } = await admin.rpc(
@@ -119,10 +146,12 @@ Deno.serve(async (req) => {
     );
 
     if (rpcErr) {
-      return jsonResp({ error: rpcErr.message }, 500);
+      console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+      return jsonResp({ error: rpcErr.message, code: "RPC_ERROR" }, 500);
     }
     if (validation?.error) {
-      return jsonResp({ error: validation.error }, 409);
+      console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+      return jsonResp({ error: validation.error, code: "VALIDATION_ERROR" }, 409);
     }
 
     const { data: slippageOk, error: slErr } = await admin.rpc(
@@ -135,10 +164,12 @@ Deno.serve(async (req) => {
     );
 
     if (slErr) {
-      return jsonResp({ error: slErr.message }, 500);
+      console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+      return jsonResp({ error: slErr.message, code: "RPC_ERROR" }, 500);
     }
     if (!slippageOk) {
-      return jsonResp({ error: "Kayma çok yüksek. Emir reddedildi." }, 409);
+      console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+      return jsonResp({ error: "Kayma çok yüksek. Emir reddedildi.", code: "SLIPPAGE_EXCEEDED" }, 409);
     }
 
     const { data: order, error: oErr } = await admin
@@ -160,7 +191,8 @@ Deno.serve(async (req) => {
         user_id: user.id,
         payload: { error: oErr?.message, side, amount },
       }).catch((e: unknown) => console.warn("[blitz-tick-order] payout_failed insert failed", e));
-      return jsonResp({ error: oErr?.message ?? "Order failed" }, 500);
+      console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+      return jsonResp({ error: oErr?.message ?? "Order failed", code: "ORDER_INSERT_FAILED" }, 500);
     }
 
     await admin.rpc("log_observability", {
@@ -179,6 +211,7 @@ Deno.serve(async (req) => {
       payload: { side, amount, entry_price: price },
     }).catch((e: unknown) => console.warn("[blitz-tick-order] blitz_joined insert failed", e));
 
+    console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
     return jsonResp({ ok: true, order });
   }
 
@@ -190,10 +223,12 @@ Deno.serve(async (req) => {
   );
 
   if (lockErr) {
-    return jsonResp({ error: lockErr.message }, 500);
+    console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+    return jsonResp({ error: lockErr.message, code: "LOCK_FAILED" }, 500);
   }
   if (lockResult?.error) {
-    return jsonResp({ error: lockResult.error }, 404);
+    console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+    return jsonResp({ error: lockResult.error, code: "ORDER_NOT_FOUND" }, 404);
   }
 
   const dir = lockResult.side === "long" ? 1 : -1;
@@ -205,7 +240,8 @@ Deno.serve(async (req) => {
 
   const { data: closedAt, error: tsErr } = await admin.rpc("order_timestamp");
   if (tsErr || !closedAt) {
-    return jsonResp({ error: "Sunucu zaman damgası alınamadı" }, 500);
+    console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+    return jsonResp({ error: "Sunucu zaman damgası alınamadı", code: "TIMESTAMP_FAILED" }, 500);
   }
 
   const { error: cErr } = await admin
@@ -213,7 +249,10 @@ Deno.serve(async (req) => {
     .update({ closed_at: closedAt, exit_price: price, pnl })
     .eq("id", lockResult.order_id);
 
-  if (cErr) return jsonResp({ error: cErr.message }, 500);
+  if (cErr) {
+    console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+    return jsonResp({ error: cErr.message, code: "CLOSE_FAILED" }, 500);
+  }
 
   await admin.rpc("log_observability", {
     p_service: "blitz-tick-order",
@@ -224,5 +263,6 @@ Deno.serve(async (req) => {
     p_metadata: { pnl, exit_price: price },
   }).catch((e: unknown) => console.warn("[blitz-tick-order] log order_close failed", e));
 
+  console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
   return jsonResp({ ok: true, pnl, exit_price: price });
 });

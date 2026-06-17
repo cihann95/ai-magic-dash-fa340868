@@ -63,78 +63,142 @@ interface PriceUpdate {
   updated_at: string;
 }
 
-async function fetchBinance(syms: SymRef[]): Promise<PriceUpdate[]> {
-  const out: PriceUpdate[] = [];
-  if (syms.length === 0) return out;
+async function fetchBinance(syms: SymRef[]): Promise<{ updates: PriceUpdate[]; failed: Array<{ symbol: string; error: string }> }> {
+  const updates: PriceUpdate[] = [];
+  const failed: Array<{ symbol: string; error: string }> = [];
+  if (syms.length === 0) return { updates, failed };
   try {
     const list = syms.map((s) => `"${s.binance}"`).join(",");
     const url = `https://api.binance.com/api/v3/ticker/24hr?symbols=[${list}]`;
-    const r = await fetch(url);
-    if (!r.ok) {
-      console.error("Binance HTTP", r.status);
-      return out;
-    }
-    const data = await r.json();
-    const now = new Date().toISOString();
-    for (const s of syms) {
-      const tick = data.find((d: any) => d.symbol === s.binance);
-      if (!tick) continue;
-      const price = parseFloat(tick.lastPrice);
-      if (!isFinite(price) || price <= 0) continue;
-      out.push({
-        symbol: s.symbol,
-        asset_class: s.asset_class,
-        price,
-        change_24h: parseFloat(tick.priceChange),
-        change_pct_24h: parseFloat(tick.priceChangePercent),
-        volume_24h: parseFloat(tick.quoteVolume),
-        updated_at: now,
-      });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    try {
+      const r = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (!r.ok) {
+        console.error("Binance HTTP", r.status);
+        for (const s of syms) {
+          failed.push({ symbol: s.symbol, error: `Binance HTTP ${r.status}` });
+        }
+        return { updates, failed };
+      }
+      const data = await r.json();
+      if (!Array.isArray(data) || data.length === 0) {
+        for (const s of syms) {
+          failed.push({ symbol: s.symbol, error: "Binance empty response" });
+        }
+        return { updates, failed };
+      }
+      const now = new Date().toISOString();
+      for (const s of syms) {
+        try {
+          const tick = data.find((d: any) => d.symbol === s.binance);
+          if (!tick) {
+            failed.push({ symbol: s.symbol, error: "Symbol not found in Binance response" });
+            continue;
+          }
+          const price = parseFloat(tick.lastPrice);
+          if (!isFinite(price) || price <= 0) {
+            failed.push({ symbol: s.symbol, error: "Invalid price from Binance" });
+            continue;
+          }
+          updates.push({
+            symbol: s.symbol,
+            asset_class: s.asset_class,
+            price,
+            change_24h: parseFloat(tick.priceChange),
+            change_pct_24h: parseFloat(tick.priceChangePercent),
+            volume_24h: parseFloat(tick.quoteVolume),
+            updated_at: now,
+          });
+        } catch (e) {
+          failed.push({ symbol: s.symbol, error: e instanceof Error ? e.message : String(e) });
+        }
+      }
+    } catch (e) {
+      clearTimeout(timeoutId);
+      if (e instanceof DOMException && e.name === "AbortError") {
+        for (const s of syms) {
+          failed.push({ symbol: s.symbol, error: "Binance request timeout (5s)" });
+        }
+      } else {
+        for (const s of syms) {
+          failed.push({ symbol: s.symbol, error: e instanceof Error ? e.message : String(e) });
+        }
+      }
     }
   } catch (e) {
     console.error("Binance fetch error", e);
+    for (const s of syms) {
+      failed.push({ symbol: s.symbol, error: e instanceof Error ? e.message : String(e) });
+    }
   }
-  return out;
+  return { updates, failed };
 }
 
-async function fetchYahoo(syms: SymRef[]): Promise<PriceUpdate[]> {
-  if (syms.length === 0) return [];
+async function fetchYahoo(syms: SymRef[]): Promise<{ updates: PriceUpdate[]; failed: Array<{ symbol: string; error: string }> }> {
+  const updates: PriceUpdate[] = [];
+  const failed: Array<{ symbol: string; error: string }> = [];
+  if (syms.length === 0) return { updates, failed };
   // Yahoo v7 quote endpoint sürekli 401 dönüyor; doğrudan chart endpoint'i paralel kullan.
   const results = await Promise.all(syms.map((s) => fetchYahooChart(s)));
-  return results.filter((x): x is PriceUpdate => x !== null);
+  for (let i = 0; i < syms.length; i++) {
+    const result = results[i];
+    const s = syms[i];
+    if (result) {
+      updates.push(result);
+    } else {
+      failed.push({ symbol: s.symbol, error: "Yahoo chart fetch failed or returned no data" });
+    }
+  }
+  return { updates, failed };
 }
 
 async function fetchYahooChart(s: SymRef): Promise<PriceUpdate | null> {
   try {
     // 1d / 1m intraday — en taze tick
     const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(s.yahoo!)}?range=1d&interval=1m&includePrePost=true`;
-    const r = await fetch(url, {
-      headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" },
-    });
-    if (!r.ok) return null;
-    const json = await r.json();
-    const result = json?.chart?.result?.[0];
-    const meta = result?.meta;
-    if (!meta) return null;
-    // En son non-null close intraday'den; yoksa meta.regularMarketPrice
-    const closes: (number | null)[] = result?.indicators?.quote?.[0]?.close ?? [];
-    let intraday: number | null = null;
-    for (let i = closes.length - 1; i >= 0; i--) {
-      if (typeof closes[i] === "number" && isFinite(closes[i] as number)) { intraday = closes[i]; break; }
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    try {
+      const r = await fetch(url, {
+        headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" },
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (!r.ok) return null;
+      const json = await r.json();
+      const result = json?.chart?.result?.[0];
+      const meta = result?.meta;
+      if (!meta) return null;
+      // En son non-null close intraday'den; yoksa meta.regularMarketPrice
+      const closes: (number | null)[] = result?.indicators?.quote?.[0]?.close ?? [];
+      let intraday: number | null = null;
+      for (let i = closes.length - 1; i >= 0; i--) {
+        if (typeof closes[i] === "number" && isFinite(closes[i] as number)) { intraday = closes[i]; break; }
+      }
+      const price = Number(intraday ?? meta?.regularMarketPrice ?? meta?.chartPreviousClose);
+      if (!isFinite(price) || price <= 0) return null;
+      const previous = Number(meta?.chartPreviousClose || meta?.previousClose || 0);
+      const change = previous > 0 ? price - previous : null;
+      return {
+        symbol: s.symbol,
+        asset_class: s.asset_class,
+        price,
+        change_24h: change,
+        change_pct_24h: change !== null && previous > 0 ? (change / previous) * 100 : null,
+        volume_24h: typeof meta?.regularMarketVolume === "number" ? meta.regularMarketVolume : null,
+        updated_at: new Date().toISOString(),
+      };
+    } catch (e) {
+      clearTimeout(timeoutId);
+      if (e instanceof DOMException && e.name === "AbortError") {
+        console.error("Yahoo chart fetch timeout", s.symbol);
+      } else {
+        console.error("Yahoo chart fetch error", s.symbol, e);
+      }
+      return null;
     }
-    const price = Number(intraday ?? meta?.regularMarketPrice ?? meta?.chartPreviousClose);
-    if (!isFinite(price) || price <= 0) return null;
-    const previous = Number(meta?.chartPreviousClose || meta?.previousClose || 0);
-    const change = previous > 0 ? price - previous : null;
-    return {
-      symbol: s.symbol,
-      asset_class: s.asset_class,
-      price,
-      change_24h: change,
-      change_pct_24h: change !== null && previous > 0 ? (change / previous) * 100 : null,
-      volume_24h: typeof meta?.regularMarketVolume === "number" ? meta.regularMarketVolume : null,
-      updated_at: new Date().toISOString(),
-    };
   } catch (e) {
     console.error("Yahoo chart fetch error", s.symbol, e);
     return null;
@@ -163,17 +227,24 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const start = Date.now();
 
     // 1) Fetch real prices in parallel
     const cryptoSyms = SYMBOLS.filter((s) => s.binance);
     const yahooSyms = SYMBOLS.filter((s) => s.yahoo);
-    const [cryptoUpdates, yahooUpdates] = await Promise.all([
+    const [cryptoResult, yahooResult] = await Promise.all([
       fetchBinance(cryptoSyms),
       fetchYahoo(yahooSyms),
     ]);
+    const cryptoUpdates = cryptoResult.updates;
+    const yahooUpdates = yahooResult.updates;
+    const failed = [...cryptoResult.failed, ...yahooResult.failed];
     const updates = [...cryptoUpdates, ...yahooUpdates];
 
     console.log(`price-feed: fetched ${cryptoUpdates.length} crypto + ${yahooUpdates.length} yahoo = ${updates.length} updates`);
+    if (failed.length > 0) {
+      console.error(JSON.stringify({ event: "price_fetch_failures", failed }));
+    }
 
     // 2) Upsert price_cache
     if (updates.length > 0) {
@@ -246,9 +317,13 @@ Deno.serve(async (req) => {
       }
     }
 
+    const durationMs = Date.now() - start;
+    console.error(JSON.stringify({ event: "request", duration_ms: durationMs }));
+
     return new Response(JSON.stringify({
       success: true, updated: updates.length,
       crypto: cryptoUpdates.length, yahoo: yahooUpdates.length,
+      failed,
       orders_checked: openOrders?.length ?? 0,
       alerts_checked: activeAlerts?.length ?? 0,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });

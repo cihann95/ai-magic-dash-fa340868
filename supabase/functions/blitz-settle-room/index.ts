@@ -14,16 +14,34 @@ const PLATFORM_FEE_PCT = 0.05; // FAZ 4 raporları için kayıt; ödül net dağ
 async function settleRoom(admin: Admin, roomId: string): Promise<{ ok: boolean; reason?: string; error?: string }> {
   const idempotencyKey = `${roomId}:edge_function`;
 
-  // Acquire advisory lock (same hash as DB trigger uses via make_advisory_lock_key())
+  // Phase: lock - acquire advisory lock with 5s timeout
+  console.error(JSON.stringify({ event: "settle_phase", phase: "lock", room_id: roomId }));
   const { data: lockKey } = await admin.rpc("make_advisory_lock_key", { p_room_id: roomId });
-  const { data: lockAcquired, error: lockErr1 } = await admin.rpc("try_advisory_lock", {
-    p_key: lockKey,
-  });
+  const lockController = new AbortController();
+  const lockTimeout = setTimeout(() => lockController.abort(), 5000);
+  let lockAcquired: boolean | null = null;
+  let lockErr1: Error | null = null;
+  try {
+    const result = await Promise.race([
+      admin.rpc("try_advisory_lock", { p_key: lockKey }),
+      new Promise<never>((_, reject) => {
+        lockController.signal.addEventListener("abort", () => reject(new Error("Lock timeout")));
+      }),
+    ]);
+    lockAcquired = result.data;
+    lockErr1 = result.error;
+  } catch (e) {
+    lockErr1 = e instanceof Error ? e : new Error("Lock timeout");
+  } finally {
+    clearTimeout(lockTimeout);
+  }
   if (lockErr1) return { ok: false, error: lockErr1.message };
   if (lockAcquired === false) {
-    return { ok: true, reason: "locked_by_other_session" };
+    return { ok: false, error: "Oda şu anda başka bir işlem tarafından kilitlenmiş", code: "LOCK_BUSY", retryable: true };
   }
 
+  // Phase: validate - lock and validate room
+  console.error(JSON.stringify({ event: "settle_phase", phase: "validate", room_id: roomId }));
   const { data: lockResult, error: lockErr } = await admin.rpc("lock_and_validate_room", {
     p_room_id: roomId,
     p_idempotency_key: idempotencyKey,
@@ -48,6 +66,8 @@ async function settleRoom(admin: Admin, roomId: string): Promise<{ ok: boolean; 
     p_metadata: { symbol: room.symbol },
   }).catch((e: unknown) => console.warn("[settlement] log_observability failed", e));
 
+  // Phase: settle - fetch participants, price, close orders, calculate PnL
+  console.error(JSON.stringify({ event: "settle_phase", phase: "settle", room_id: roomId }));
   try {
     const { data: participants } = await admin.from("blitz_participants").select("*").eq("room_id", roomId);
     if (!participants || participants.length === 0) {
@@ -89,33 +109,39 @@ async function settleRoom(admin: Admin, roomId: string): Promise<{ ok: boolean; 
     const fee = +(pot * PLATFORM_FEE_PCT).toFixed(4);
     const prize = +(pot - fee).toFixed(4);
 
+    // Phase: distribute - update participants, profiles, notifications (per-participant try-catch)
+    console.error(JSON.stringify({ event: "settle_phase", phase: "distribute", room_id: roomId }));
     for (let i = 0; i < ranking.length; i++) {
       const [uid, pnl] = ranking[i];
       const rank = i + 1;
-      await admin.from("blitz_participants").update({
-        final_pnl: pnl, rank, final_balance: 0,
-      }).eq("room_id", roomId).eq("user_id", uid);
+      try {
+        await admin.from("blitz_participants").update({
+          final_pnl: pnl, rank, final_balance: 0,
+        }).eq("room_id", roomId).eq("user_id", uid);
 
-      const { data: prof } = await admin.from("profiles").select("real_balance, real_balance_locked").eq("id", uid).single();
-      if (!prof) continue;
-      const newLocked = Math.max(0, Number(prof.real_balance_locked) - entryFee);
-      let newBalance = Number(prof.real_balance) - entryFee;
-      if (winnerId && uid === winnerId) {
-        newBalance += prize;
+        const { data: prof } = await admin.from("profiles").select("real_balance, real_balance_locked").eq("id", uid).single();
+        if (!prof) continue;
+        const newLocked = Math.max(0, Number(prof.real_balance_locked) - entryFee);
+        let newBalance = Number(prof.real_balance) - entryFee;
+        if (winnerId && uid === winnerId) {
+          newBalance += prize;
+        }
+        await admin.from("profiles").update({
+          real_balance: +newBalance.toFixed(4),
+          real_balance_locked: +newLocked.toFixed(4),
+        }).eq("id", uid);
+
+        await admin.from("notifications").insert({
+          user_id: uid,
+          type: "blitz_result",
+          title: winnerId === uid ? `🏆 Blitz Kazandın!` : (winnerId ? `Blitz: Kaybettin` : `Blitz: Berabere`),
+          body: winnerId === uid ? `+${prize.toFixed(2)}$ kazandın (${room.symbol})` : `${room.symbol} • PnL ${pnl >= 0 ? "+" : ""}${pnl.toFixed(4)}`,
+          link: `/blitz/${roomId}`,
+          metadata: { room_id: roomId, pnl, won: winnerId === uid },
+        });
+      } catch (e) {
+        console.error(JSON.stringify({ event: "settle_participant_error", room_id: roomId, user_id: uid, error: e instanceof Error ? e.message : String(e) }));
       }
-      await admin.from("profiles").update({
-        real_balance: +newBalance.toFixed(4),
-        real_balance_locked: +newLocked.toFixed(4),
-      }).eq("id", uid);
-
-      await admin.from("notifications").insert({
-        user_id: uid,
-        type: "blitz_result",
-        title: winnerId === uid ? `🏆 Blitz Kazandın!` : (winnerId ? `Blitz: Kaybettin` : `Blitz: Berabere`),
-        body: winnerId === uid ? `+${prize.toFixed(2)}$ kazandın (${room.symbol})` : `${room.symbol} • PnL ${pnl >= 0 ? "+" : ""}${pnl.toFixed(4)}`,
-        link: `/blitz/${roomId}`,
-        metadata: { room_id: roomId, pnl, won: winnerId === uid },
-      });
     }
 
     await admin.from("blitz_rooms").update({
@@ -168,6 +194,8 @@ async function settleRoom(admin: Admin, roomId: string): Promise<{ ok: boolean; 
       }).catch((e: unknown) => console.warn("[settlement] payout_completed insert failed", e));
     }
 
+    // Phase: cleanup - remove Redis keys
+    console.error(JSON.stringify({ event: "settle_phase", phase: "cleanup", room_id: roomId }));
     await redis.del(`blitz:room:${roomId}`, `blitz:room:${roomId}:users`, `blitz:room:${roomId}:positions`);
 
     await admin.rpc("log_observability", {
@@ -208,6 +236,7 @@ async function settleRoom(admin: Admin, roomId: string): Promise<{ ok: boolean; 
 
 
 Deno.serve(async (req) => {
+  const start = Date.now();
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -227,6 +256,7 @@ Deno.serve(async (req) => {
     isUser = !!u?.user;
   }
   if (!isServiceRole && !isCron && !isUser) {
+    console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
     return new Response(JSON.stringify({ error: "Yetkisiz erişim" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
@@ -238,6 +268,7 @@ Deno.serve(async (req) => {
   try {
     if (room_id) {
       const r = await settleRoom(admin, room_id);
+      console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
       return new Response(JSON.stringify(r), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -248,9 +279,11 @@ Deno.serve(async (req) => {
     for (const r of due ?? []) {
       results.push({ id: r.id, ...(await settleRoom(admin, r.id)) });
     }
+    console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
     return new Response(JSON.stringify({ settled: results.length, results }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("blitz-settle-room error", e);
+    console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
     return new Response(JSON.stringify({ error: "Sunucu hatası oluştu" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

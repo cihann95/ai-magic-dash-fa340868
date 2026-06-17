@@ -4,6 +4,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import type { Admin } from "../_shared/blitz-types.ts";
 import { rateLimit } from "../_shared/rate-limit.ts";
+import { checkBodySize } from "../_shared/body-size-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -56,13 +57,19 @@ const CRYPTO_CACHE_FRESH_MS = 10_000;
 async function fetchBinancePrice(symbol: string): Promise<number | null> {
   const binanceSym = BINANCE_PAIRS[symbol];
   if (!binanceSym) return null;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
   try {
-    const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${binanceSym}`);
+    const res = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${binanceSym}`, {
+      signal: controller.signal,
+    });
     if (!res.ok) return null;
     const data = await res.json();
     return Number(data.price) || null;
   } catch {
     return null;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
@@ -148,15 +155,15 @@ async function executeOne(admin: Admin, userId: string, body: TradeRequest, opts
     } else if (priceRow && cacheAge <= STALE_MS) {
       price = Number(priceRow.price);
     } else {
-      return { ok: false as const, error: "Fiyat alınamadı, lütfen tekrar deneyin." };
+      return { ok: false as const, error: "Fiyat alınamadı, lütfen tekrar deneyin.", code: "PRICE_UNAVAILABLE", retryable: true };
     }
   } else if (priceRow && cacheAge <= STALE_MS) {
     price = Number(priceRow.price);
   } else {
-    return { ok: false as const, error: `Fiyat verisi güncel değil (${Math.round(cacheAge / 1000)}s eski).` };
+    return { ok: false as const, error: `Fiyat verisi güncel değil (${Math.round(cacheAge / 1000)}s eski).`, code: "PRICE_STALE", retryable: true };
   }
 
-  if (!isFinite(price) || price <= 0) return { ok: false as const, error: "Geçersiz fiyat verisi" };
+  if (!isFinite(price) || price <= 0) return { ok: false as const, error: "Geçersiz fiyat verisi", code: "INVALID_PRICE" };
 
   const total = Number((quantity * price).toFixed(2));
 
@@ -166,10 +173,10 @@ async function executeOne(admin: Admin, userId: string, body: TradeRequest, opts
     const utcHour = now.getUTCHours();
     const day = now.getUTCDay();
     if (day === 0 || day === 6) {
-      return { ok: false as const, error: "Piyasalar hafta sonu kapalı. Sadece kripto, forex ve emtia işlemi yapabilirsiniz." };
+      return { ok: false as const, error: "Piyasalar hafta sonu kapalı. Sadece kripto, forex ve emtia işlemi yapabilirsiniz.", code: "MARKET_CLOSED" };
     }
     if (utcHour < 13 || utcHour >= 21) {
-      return { ok: false as const, error: "Piyasalar şu anda kapalı (NYSE: 09:30-16:00 ET). Sadece kripto, forex ve emtia işlemi yapabilirsiniz." };
+      return { ok: false as const, error: "Piyasalar şu anda kapalı (NYSE: 09:30-16:00 ET). Sadece kripto, forex ve emtia işlemi yapabilirsiniz.", code: "MARKET_CLOSED" };
     }
   }
 
@@ -181,8 +188,8 @@ async function executeOne(admin: Admin, userId: string, body: TradeRequest, opts
 
   if (position_id) {
     const { data: pos } = await admin.from("positions").select("*").eq("id", position_id).eq("user_id", userId).maybeSingle();
-    if (!pos) return { ok: false as const, error: "Pozisyon bulunamadı" };
-    if (pos.closed_at !== null) return { ok: false as const, error: "Pozisyon zaten kapatılmış" };
+    if (!pos) return { ok: false as const, error: "Pozisyon bulunamadı", code: "POSITION_NOT_FOUND" };
+    if (pos.closed_at !== null) return { ok: false as const, error: "Pozisyon zaten kapatılmış", code: "POSITION_ALREADY_CLOSED" };
 
     // Atomik optimistic lock via closed_at: birden fazla eş zamanlı istekten sadece biri başarılı olur
     const { error: lockErr } = await admin.from("positions")
@@ -190,7 +197,7 @@ async function executeOne(admin: Admin, userId: string, body: TradeRequest, opts
       .eq("id", position_id)
       .eq("user_id", userId)
       .is("closed_at", null);
-    if (lockErr) return { ok: false as const, error: "Pozisyon kapatılamadı (race condition)" };
+    if (lockErr) return { ok: false as const, error: "Pozisyon kapatılamadı (race condition)", code: "LOCK_FAILED" };
 
     action = "close";
     const entry = Number(pos.entry_price);
@@ -203,7 +210,7 @@ async function executeOne(admin: Admin, userId: string, body: TradeRequest, opts
       p_user_id: userId, p_amount: -closeAmount,
     });
     if (closeUpdated == null) {
-      return { ok: false as const, error: "Bakiye güncellenemedi" };
+      return { ok: false as const, error: "Bakiye güncellenemedi", code: "BALANCE_UPDATE_FAILED" };
     }
     newBalance = Number(closeUpdated);
 
@@ -243,7 +250,7 @@ async function executeOne(admin: Admin, userId: string, body: TradeRequest, opts
       p_user_id: userId, p_amount: total,
     });
     if (deducted == null) {
-      return { ok: false as const, error: "Yetersiz bakiye" };
+      return { ok: false as const, error: "Yetersiz bakiye", code: "INSUFFICIENT_BALANCE" };
     }
     newBalance = Number(deducted);
     await admin.from("positions").insert({
@@ -402,12 +409,13 @@ async function executeOne(admin: Admin, userId: string, body: TradeRequest, opts
 }
 
 Deno.serve(async (req) => {
+  const start = Date.now();
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Yetkisiz erişim" }), {
+      return new Response(JSON.stringify({ error: "Yetkisiz erişim", code: "UNAUTHORIZED" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -419,7 +427,7 @@ Deno.serve(async (req) => {
     const { data: userData } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
     const user = userData.user;
     if (!user) {
-      return new Response(JSON.stringify({ error: "Yetkisiz erişim" }), {
+      return new Response(JSON.stringify({ error: "Yetkisiz erişim", code: "UNAUTHORIZED" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -427,9 +435,12 @@ Deno.serve(async (req) => {
     const rlResponse = await rateLimit(user.id, "execute-trade");
     if (rlResponse) return rlResponse;
 
+    const bodySizeError = await checkBodySize(req);
+    if (bodySizeError) return bodySizeError;
+
     const parsedBody = parsePublicTradeRequest(await req.json().catch(() => null));
     if (!parsedBody.ok) {
-      return new Response(JSON.stringify({ error: parsedBody.error }), {
+      return new Response(JSON.stringify({ error: parsedBody.error, code: "INVALID_REQUEST" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -441,17 +452,22 @@ Deno.serve(async (req) => {
 
     const result = await executeOne(admin, user.id, body, { fanOut: true });
     if (!result.ok) {
-      return new Response(JSON.stringify({ error: result.error }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      const status = result.code === "PRICE_UNAVAILABLE" || result.code === "PRICE_STALE" ? 429 : 400;
+      return new Response(JSON.stringify({ error: result.error, code: result.code, retryable: result.retryable }), {
+        status, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    return new Response(JSON.stringify({ success: true, ...result }), {
+    const response = new Response(JSON.stringify({ success: true, ...result }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+    console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+    return response;
   } catch (e) {
     console.error("execute-trade error", e);
-    return new Response(JSON.stringify({ error: "Sunucu hatası oluştu" }), {
+    const response = new Response(JSON.stringify({ error: "Sunucu hatası oluştu", code: "INTERNAL_ERROR" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+    console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+    return response;
   }
 });
