@@ -160,13 +160,22 @@ async function executeOne(admin: Admin, userId: string, body: TradeRequest, opts
 
   const total = Number((quantity * price).toFixed(2));
 
-  const { data: profile, error: profileErr } = await admin.from("profiles")
-    .select("demo_balance").eq("id", userId).maybeSingle();
-  if (profileErr || !profile) return { ok: false as const, error: "Profil bulunamadı" };
+  // Piyasa saati kontrolü: crypto/forex/emtia 7/24, hisse/endeks/ETF sadece NYSE saatlerinde
+  if (asset_class !== "crypto" && asset_class !== "forex" && asset_class !== "commodities") {
+    const now = new Date();
+    const utcHour = now.getUTCHours();
+    const day = now.getUTCDay();
+    if (day === 0 || day === 6) {
+      return { ok: false as const, error: "Piyasalar hafta sonu kapalı. Sadece kripto, forex ve emtia işlemi yapabilirsiniz." };
+    }
+    if (utcHour < 13 || utcHour >= 21) {
+      return { ok: false as const, error: "Piyasalar şu anda kapalı (NYSE: 09:30-16:00 ET). Sadece kripto, forex ve emtia işlemi yapabilirsiniz." };
+    }
+  }
 
   let pnl: number | null = null;
   let action: "open" | "close" = "open";
-  let newBalance = Number(profile.demo_balance);
+  let newBalance: number;
   let planAdherence: number | null = null;
   let openTrade: OpenTrade | null = null;
 
@@ -175,9 +184,7 @@ async function executeOne(admin: Admin, userId: string, body: TradeRequest, opts
     if (!pos) return { ok: false as const, error: "Pozisyon bulunamadı" };
     if (pos.closed_at !== null) return { ok: false as const, error: "Pozisyon zaten kapatılmış" };
 
-    // Race condition fix: atomik optimistic lock via closed_at
-    // Birden fazla eş zamanlı istek.closed_at'i aynı anda set edemez —
-    // sadece biri başarılı olur, diğerleri 0 satır etkilenir.
+    // Atomik optimistic lock via closed_at: birden fazla eş zamanlı istekten sadece biri başarılı olur
     const { error: lockErr } = await admin.from("positions")
       .update({ closed_at: new Date().toISOString() })
       .eq("id", position_id)
@@ -190,7 +197,15 @@ async function executeOne(admin: Admin, userId: string, body: TradeRequest, opts
     const qty = Number(pos.quantity);
     pnl = pos.side === "long" ? (price - entry) * qty : (entry - price) * qty;
     pnl = Number(pnl.toFixed(2));
-    newBalance = Number((newBalance + Number((entry * qty).toFixed(2)) + pnl).toFixed(2));
+    const closeAmount = Number((entry * qty + pnl).toFixed(2));
+
+    const { data: closeUpdated } = await admin.rpc("deduct_balance", {
+      p_user_id: userId, p_amount: -closeAmount,
+    });
+    if (closeUpdated == null) {
+      return { ok: false as const, error: "Bakiye güncellenemedi" };
+    }
+    newBalance = Number(closeUpdated);
 
     // Plan uyumu: bu pozisyonun OPEN trade'inde planned_tp/sl varsa skor üret
     const { data: opens } = await admin.from("trades")
@@ -202,14 +217,12 @@ async function executeOne(admin: Admin, userId: string, body: TradeRequest, opts
       const tp = openTrade.planned_tp ? Number(openTrade.planned_tp) : null;
       const sl = openTrade.planned_sl ? Number(openTrade.planned_sl) : null;
       const isLong = pos.side === "long";
-      // Hedef vurulmuş mu?
       const scoreParts: number[] = [];
       if (tp != null) {
         const reachedTP = isLong ? price >= tp : price <= tp;
         if (reachedTP) {
           scoreParts.push(100);
         } else {
-          // Hedefe yakınlık: 0 -> entry, 100 -> tp
           const moved = Math.abs(price - entry);
           const distance = Math.abs(tp - entry);
           scoreParts.push(distance > 0 ? Math.max(0, Math.min(100, Math.round((moved / distance) * 100))) : 0);
@@ -217,7 +230,6 @@ async function executeOne(admin: Admin, userId: string, body: TradeRequest, opts
       }
       if (sl != null) {
         const breachedSL = isLong ? price <= sl : price >= sl;
-        // SL'e gelmeden çıkmak iyi (100), SL'i geçmek kötü
         scoreParts.push(breachedSL ? 0 : 100);
       }
       planAdherence = scoreParts.length
@@ -226,16 +238,20 @@ async function executeOne(admin: Admin, userId: string, body: TradeRequest, opts
     }
     await admin.from("positions").delete().eq("id", position_id);
   } else {
-    if (newBalance < total) return { ok: false as const, error: "Yetersiz bakiye" };
-    newBalance = Number((newBalance - total).toFixed(2));
+    // Atomik balance düşüşü: RACE CONDITION yok, PostgreSQL atomik UPDATE yapar
+    const { data: deducted } = await admin.rpc("deduct_balance", {
+      p_user_id: userId, p_amount: total,
+    });
+    if (deducted == null) {
+      return { ok: false as const, error: "Yetersiz bakiye" };
+    }
+    newBalance = Number(deducted);
     await admin.from("positions").insert({
       user_id: userId, symbol, asset_class,
       side: side === "buy" ? "long" : "short",
       quantity, entry_price: price, current_price: price,
     });
   }
-
-  await admin.from("profiles").update({ demo_balance: newBalance }).eq("id", userId);
 
   const { data: tradeRow } = await admin.from("trades").insert({
     user_id: userId, symbol, asset_class, side, action, quantity, price, total, pnl, executor,

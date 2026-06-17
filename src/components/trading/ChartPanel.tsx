@@ -90,7 +90,7 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
   const open = isMarketOpen(symbol);
   const total = (parseFloat(qty || "0") * (price ?? 0));
   const change = lp?.change_pct_24h ?? null;
-  const tradeDisabled = !!submitting || noPrice || stale;
+  const tradeDisabled = !!submitting || noPrice || stale || !open;
 
   return (
     <div className="flex flex-col h-full">
