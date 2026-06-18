@@ -1,5 +1,6 @@
 -- Fix: Allow anon (public) reads on price_cache for execute-trade to work
 -- The frontend uses anon key to read prices; RLS policy must permit this
+
 CREATE POLICY IF NOT EXISTS "price_cache_read_public" ON public.price_cache FOR SELECT TO anon USING (true);
 
 -- Ensure price_cache has real trading hours prices (crypto always works, stocks only during NY hours)
@@ -37,3 +38,9 @@ ON CONFLICT (symbol) DO UPDATE SET
   change_pct_24h = EXCLUDED.change_pct_24h,
   volume_24h = EXCLUDED.volume_24h,
   updated_at = now();
+=======
+CREATE POLICY "price_cache_read_public" ON public.price_cache FOR SELECT TO anon USING (true);
+
+-- Also fix realtime subscription for anon users on price_cache
+-- This allows the frontend to receive price updates without auth
+ALTER TABLE public.price_cache REPLICA IDENTITY FULL;
