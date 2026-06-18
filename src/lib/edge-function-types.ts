@@ -36,11 +36,13 @@ export interface NewsFeedResponse {
 // ─── Execute Trade (ChartPanel + OpenPositionsPanel) ───
 
 export interface ExecuteTradeResponse {
+  success?: boolean;
   price: number;
   balance?: number;
   pnl?: number;
   achievements?: string[];
   error?: string;
+  trade_id?: string;
 }
 
 // ─── Position Types (align custom with generated) ───

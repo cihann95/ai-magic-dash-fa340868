@@ -19,6 +19,23 @@ import { celebrateAchievements } from "@/lib/achievements";
 import { recordTrade } from "@/hooks/useEmotionalSignal";
 import type { ExecuteTradeResponse } from "../../lib/edge-function-types";
 
+function getTradeErrorMessage(error: unknown): string {
+  if (error && typeof error === "object" && "context" in error) {
+    const ctx = (error as { context?: { body?: string } }).context;
+    if (ctx?.body) {
+      try {
+        const parsed = JSON.parse(ctx.body);
+        if (parsed.error) return parsed.error;
+      } catch { /* not json */ }
+    }
+  }
+  if (error && typeof error === "object" && "message" in error) {
+    const msg = (error as { message?: string }).message;
+    if (msg) return msg;
+  }
+  return "Unknown error";
+}
+
 interface DbPosition {
   id: string;
   symbol: string;
@@ -166,9 +183,9 @@ export default function OpenPositionsPanel({ refreshKey, onTradeDone, onSelectSy
       const ach = result?.achievements;
       if (ach?.length) celebrateAchievements(ach, lang);
       onTradeDone();
-    } catch (e) {
-      toast({ title: tr.error, description: e instanceof Error ? e.message : "Unknown", variant: "destructive" });
-    } finally {
+} catch (e) {
+       toast({ title: tr.error, description: getTradeErrorMessage(e), variant: "destructive" });
+     } finally {
       setClosing((c) => ({ ...c, [p.id]: false }));
     }
   };
