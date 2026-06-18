@@ -6,7 +6,7 @@
  *
  * 1. **Fast path** – If the `Content-Length` header exceeds the limit, return
  *    413 immediately without reading the body.
- * 2. **Fallback** – Clone the request and read the body as text with a 500 ms
+ * 2. **Fallback** – Clone the request and read the body as text with a 500 ms
  *    timeout (via `AbortController` + `Promise.race`). If the resulting
  *    string is longer than the limit, return 413.
  *
@@ -37,7 +37,7 @@ const CORS_HEADERS: Record<string, string> = {
  * @param req          - The incoming request. On the fallback path the body is
  *                       consumed, but `req.clone()` is used so the original
  *                       stream is preserved for downstream handlers.
- * @param maxSizeBytes - Maximum allowed body size in bytes (default 1 MB).
+ * @param maxSizeBytes - Maximum allowed body size in bytes (default 1 MB).
  *
  * @returns A 413 `Response` if the payload is too large, or `null` if OK.
  */

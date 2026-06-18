@@ -4,13 +4,13 @@
 // sites do not change.
 //
 // == Timeout ==
-// All operations carry a hard 3 s deadline via AbortController + Promise.race.
+// All operations carry a hard 3 s deadline via AbortController + Promise.race.
 // When the deadline fires the caller receives the configured fallback value
 // (fail-open) and the underlying request is abandoned.
 //
 // == Error classes ==
 // RedisConnectionError — Redis unavailable / network failure.
-// RedisTimeoutError   — Operation did not complete within 3 s.
+// RedisTimeoutError   — Operation did not complete within 3 s.
 // RedisCommandError   — Command reached Redis but was rejected.
 
 import { Redis, errors } from "https://esm.sh/@upstash/redis@1.34.3";
@@ -58,7 +58,7 @@ const client: Redis | null = redisEnabled
 // ─── Safe wrapper ───────────────────────────────────────────────────────────
 // Every public method drains through `safe()` so that:
 //   • A disabled / missing Redis client returns the fallback immediately.
-//   • Every operation has a hard 3 s deadline via AbortController.
+//   • Every operation has a hard 3 s deadline via AbortController.
 //   • Errors are categorised and logged as structured JSON.
 //   • The fallback value is always returned → fail-open.
 

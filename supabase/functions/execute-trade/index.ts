@@ -292,7 +292,7 @@ async function executeOne(admin: Admin, userId: string, body: TradeRequest, opts
   let newTotalTrades = 0;
   let newProfitable = 0;
   let ac: Set<string> = new Set();
-  let statsData: Record<string, unknown> | null = null;
+  let _statsData: Record<string, unknown> | null = null;
   try {
     // RPC'ler ayrı try-catch'te — başarısız olursa sadece XP/streak eklenmez, trade istatistikleri yine güncellenir
     try {
@@ -303,7 +303,7 @@ async function executeOne(admin: Admin, userId: string, body: TradeRequest, opts
     }
 
     const { data: stats } = await admin.from("user_stats").select("*").eq("user_id", userId).maybeSingle();
-    statsData = stats;
+    _statsData = stats;
     newTotalTrades = (stats?.total_trades ?? 0) + 1;
     const isProfitable = pnl !== null && pnl > 0;
     const prevProfitable = stats?.profitable_trades ?? 0;
