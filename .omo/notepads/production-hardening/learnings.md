@@ -148,6 +148,14 @@
 - **Lesson**: ESLint `no-unused-vars` rule requires `_` prefix for intentionally unused params — applies to mock component props and destructured defaults in test wrappers
 - **Lesson**: `.env` is gitignored; only `.env.example` is committed. Local dev placeholders go in `.env` for developer convenience but won't be pushed.
 
+### T4.4 — OpenRouter Error Mapping & Timeout
+- **30s AbortController timeout** on OpenRouter fetch in `ai-strategy/index.ts`
+- **Error mapping**: 429→429(RATE_LIMITED), 402→503(QUOTA_EXCEEDED), 5xx→503(AI_UNAVAILABLE), timeout→504(AI_TIMEOUT), other !ok→502(AI_ERROR)
+- **Structured timing**: `{event: "request", duration_ms: N}` logged at every exit path after start
+- **Pattern**: `const start = Date.now()` declared in function scope (before try block) so catch block can also log timing
+- **AbortController pattern**: Inner try/catch around fetch to handle AbortError specifically, re-throw other errors to outer catch
+- `clearTimeout(timeoutId)` called on every path (catch + after success)
+
 ### Decisions
 - Use Upstash Redis for rate limiting (serverless, pay-per-request)
 - Sliding window over fixed window for better UX

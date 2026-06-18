@@ -1,0 +1,19 @@
+=== QA Scenario 3: rate-limit.ts - Structured 429 Headers ===
+Date: 2026-06-18
+
+Test 1: 429 response headers
+  - [PASS] Status = 429
+  - [PASS] X-RateLimit-Limit = 20
+  - [PASS] X-RateLimit-Remaining = 0
+  - [PASS] X-RateLimit-Reset = <valid epoch timestamp>
+  - [PASS] Retry-After = <seconds>
+  - [PASS] X-RateLimit-Policy = {"window":60000,"max":20}
+  - [PASS] CORS: Access-Control-Allow-Origin: *
+  - [PASS] Body: {"error":"İstek limiti aşıldı","retry_after":N,"limit":20,"remaining":0}
+
+Test 2: Structured log when rate limit triggered
+  - [PASS] rateLimit() logs: console.warn(JSON.stringify({event, userId, route, limit, remaining, resetAt}))
+  - [PASS] Structured format includes all expected fields
+  - [PASS] Log level is console.warn
+
+Result: 2/2 PASS

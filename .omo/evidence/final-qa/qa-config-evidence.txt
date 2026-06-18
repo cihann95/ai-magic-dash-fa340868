@@ -1,0 +1,17 @@
+=== QA Scenario 1: config.ts - ConfigError Graceful Degradation ===
+Date: 2026-06-18
+
+Test 1: Production mode with empty env vars
+  - [PASS] No crash on import with empty required vars
+  - [PASS] supabaseUrl = "" (degraded)
+  - [PASS] supabaseServiceRoleKey = "" (degraded)
+  - [PASS] supabaseAnonKey = "" (degraded)
+  - [PASS] openrouterApiKey = "" (degraded)
+
+Test 2: isConfigValid() returns false
+  - [PASS] isConfigValid() = false when required vars are empty
+
+Test 3: Development mode throws ConfigError
+  - [PASS] ConfigError thrown: "SUPABASE_URL is required but not set"
+
+Result: 3/3 PASS

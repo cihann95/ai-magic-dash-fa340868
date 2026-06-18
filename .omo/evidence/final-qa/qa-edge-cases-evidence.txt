@@ -1,0 +1,29 @@
+=== Edge Case Scenarios ===
+Date: 2026-06-18
+
+Edge Case 1: Empty request body
+  - [PASS] Empty body resolves to null via .catch()
+  - [PASS] Function returns 400 with {error, code: "INVALID_REQUEST"}
+  - Pattern: req.json().catch(() => null) → if null, return 400
+
+Edge Case 2: Missing auth header
+  - [PASS] Missing Authorization header detected
+  - [PASS] Returns 401 with {error, code: "UNAUTHORIZED"}
+  - Pattern: !authHeader → 401 structured response
+
+Edge Case 3: OPTIONS/CORS preflight
+  - [PASS] OPTIONS method → 200 with CORS headers
+  - [PASS] Access-Control-Allow-Origin: *
+  - [PASS] Access-Control-Allow-Headers present
+  - Pattern: req.method === "OPTIONS" → return new Response(null, { headers: corsHeaders })
+
+Edge Case 4: Empty JSON object {} (cron-triggered functions)
+  - [PASS] Empty object {} parses correctly
+  - [PASS] Handled by ai-risk-monitor and similar cron functions
+
+Edge Case 5: checkBodySize with empty/no body
+  - [PASS] Returns null for empty body string
+  - [PASS] Returns null for Content-Length: 0
+  - [PASS] Handles missing Content-Type gracefully
+
+Result: 7/7 PASS

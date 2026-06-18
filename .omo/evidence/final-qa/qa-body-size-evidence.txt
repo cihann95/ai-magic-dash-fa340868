@@ -1,0 +1,24 @@
+=== QA Scenario 4: body-size-limit.ts - checkBodySize ===
+Date: 2026-06-18
+
+Test 1: Small payload with Content-Length (42 bytes)
+  - [PASS] checkBodySize() returns null
+
+Test 2: Oversized payload via Content-Length (2MB header)
+  - [PASS] Returns 413 Response
+  - [PASS] body.code === "PAYLOAD_TOO_LARGE"
+  - [PASS] body.max_size_bytes === 1048576
+  - [PASS] body.error === "İstek çok büyük"
+
+Test 3: Missing Content-Length header, small body
+  - [PASS] Returns null (body read fallback, within limit)
+
+Test 4: Oversized body via read fallback (2MB body, no Content-Length)
+  - [PASS] Returns 413 Response
+  - [PASS] body.code === "PAYLOAD_TOO_LARGE"
+
+Test 5: Custom maxSizeBytes parameter (100 bytes limit)
+  - [PASS] Returns 413 for 5000-byte payload
+  - [PASS] body.max_size_bytes === 100
+
+Result: 5/5 PASS

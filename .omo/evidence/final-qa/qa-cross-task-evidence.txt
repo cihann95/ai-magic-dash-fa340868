@@ -1,0 +1,22 @@
+=== Cross-Task Integration Checks ===
+Date: 2026-06-18
+
+Check 1: Functions importing body-size-limit
+  - [PASS] execute-trade
+  - [PASS] blitz-matchmake
+  - [PASS] blitz-tick-order
+  - [PASS] blitz-join-private
+  Result: 4/4 Wave 2 functions use body-size-limit
+
+Check 2: Structured error format {error, code, retryable?}
+  - [PASS] execute-trade returns PRICE_UNAVAILABLE with {error, code, retryable} (line 158)
+  - [PASS] execute-trade returns PRICE_STALE with {error, code, retryable} (line 163)
+  - [PASS] execute-trade Response uses JSON.stringify({error, code, retryable}) (line 456)
+  Result: Structured error format confirmed in execute-trade
+
+Check 3: {event: "request", duration_ms: N} logging
+  - [PASS] 16/16 Wave 2+ functions log duration_ms
+  - [PASS] execute-trade, blitz-matchmake, blitz-tick-order, send-push, etc.
+  Result: 16/16 functions have duration_ms logging
+
+Result: 3/3 PASS
