@@ -78,7 +78,7 @@ export function createRateLimitResponse(result: RateLimitResult): Response {
   const retryAfterSeconds = Math.max(1, Math.ceil((result.resetAt - Date.now()) / 1000));
   return new Response(
     JSON.stringify({
-      error: "İstek limiti aşıldı",
+      error: "Rate limit exceeded",
       retry_after: retryAfterSeconds,
       limit: result.limit,
       remaining: result.remaining,
