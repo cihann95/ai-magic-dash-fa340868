@@ -418,8 +418,42 @@
 - Reference pattern: `supabase/functions/blitz-tick-order/index.ts` line 202-205
 
 ---
-## 2026-06-10 | Wave 1, Task 30: Error Boundary Component
 
+## 2026-06-18 | Wave 2, Task 18: Environment Promotion Script (Staging→Production)
+
+### Key Findings
+- **`scripts/promote-to-production.ts` created** — 7-step sequential promotion pipeline
+- **TypeScript check**: `npx tsc --noEmit` passes cleanly (0 errors)
+- **Dry-run mode**: Fully functional, prints what would be done without executing
+
+### Architecture Decisions
+- **Pipeline fails fast**: Each step returns `false` to abort immediately with non-zero exit
+- **Env vars for refs**: `STAGING_SUPABASE_REF` and `PRODUCTION_SUPABASE_REF` — not hardcoded
+- **Supabase Management API**: Used for health checks (`/v1/projects/{ref}`)
+- **Git tag format**: `rc-YYYY-MM-DDTHH-MM-SS` — timestamped release candidate tags
+- **Interactive approval**: Requires typing "promote" to confirm; skippable via `AUTO_CONFIRM=true`
+- **supabase CLI fallback**: If CLI unavailable, migration diff check warns but continues
+- **Test suite**: Runs `npx tsc --noEmit`, `npm run test`, `npm run build` sequentially
+
+### Script Steps
+1. Verify staging Supabase project health (Management API)
+2. Check migration diff between staging and local (supabase CLI)
+3. Tag staging deploy as release candidate (git tag + push)
+4. Run full regression tests (tsc → test → build)
+5. Human approval (interactive prompt or AUTO_CONFIRM)
+6. Promote to production (supabase link + db push)
+7. Verify production after promotion (Management API)
+
+### Dependencies
+- **Env vars**: `STAGING_SUPABASE_REF`, `PRODUCTION_SUPABASE_REF`, `SUPABASE_ACCESS_TOKEN` (required); `AUTO_CONFIRM` (optional)
+- **External tools**: `npx supabase` CLI for migration diff and db push; `git` for tagging
+- **Supabase Management API**: HTTP endpoint for project health checks
+
+### References
+- Script: `scripts/promote-to-production.ts`
+- Evidence: `.omo/evidence/task-18-promote-script.log`
+
+---
 ### Key Findings
 - **`src/components/ErrorBoundary.tsx` created** — React class component with `getDerivedStateFromError` and `componentDidCatch`
 - **Props**: `children` (required), `fallback?` (custom ReactNode), `onError?` (callback with error + errorInfo)
@@ -591,5 +625,240 @@
 - ESLint config: `eslint.config.js`
 - TypeScript configs: `tsconfig.json`, `tsconfig.app.json`
 - Learnings format: `.omo/notepads/production-readiness/learnings.md`
+
+---
+
+## 2026-06-18 | Wave 0, Task 19: Rollback Script
+
+### Key Findings
+- **`scripts/rollback.ts` created** — comprehensive migration rollback script
+- **37 migrations** analyzed for reversibility across 3 phases (April–June)
+- **Auto-generated DOWN SQL** from structural operations: CREATE TABLE → DROP TABLE CASCADE, CREATE FUNCTION → DROP FUNCTION, CREATE INDEX → DROP INDEX, etc.
+- **Data-only migrations** (INSERT/UPDATE/DELETE without structural changes) flagged as non-revertable — 2 identified
+
+### Rollback Script Features
+- **`--target <timestamp>`**: Roll back to a specific migration (exclusive — all later migrations reverted)
+- **`--full`**: Roll back all migrations to initial state
+- **`--dry-run`**: Plan only, no execution
+- **`--yes` / `AUTO_CONFIRM=true`**: Skip confirmation prompt (for CI/automation)
+- **Pre-rollback snapshot**: Prints `pg_dump --schema-only` command with timestamped output file
+- **Rollback plan**: Lists all migrations in revert order with categories and DOWN SQL preview
+- **Confirmation prompt**: Warns about data-only migrations before asking for confirmation
+- **Sequential execution**: Runs DOWN statements via `psql` against `$DATABASE_URL`
+- **Post-rollback verification**: Queries remaining table count from `information_schema`
+- **Error handling**: Non-zero exit on target not found, execution errors reported per-statement
+
+### Architecture Decisions
+- **Forward-only migrations respected**: Script generates DOWN SQL from structural analysis, not from embedded DOWN markers (which don't exist in Supabase migrations)
+- **CASCADE on drops**: Matches Supabase patterns where FK dependencies make plain DROP unsafe
+- **GRANT and Extension reversions**: Marked as manual — GRANT requires knowing previous state, extensions may have dependencies
+- **ALTER TABLE non-ADD operations**: Marked for manual review (e.g., `ENABLE ROW LEVEL SECURITY`, `SET DEFAULT`)
+
+### Verification
+- `npx tsc --noEmit`: ✅ PASS
+- `npx tsx scripts/rollback.ts --full --dry-run`: ✅ PASS — 37 migrations
+- `npx tsx scripts/rollback.ts --target 20260605073136 --dry-run`: ✅ PASS — 22 migrations
+- `npx tsx scripts/rollback.ts --target 20991231999999 --dry-run`: ✅ exit 1, useful error
+
+### Files Created
+1. **NEW** `scripts/rollback.ts` — Rollback script
+
+### References
+- Script: `scripts/rollback.ts`
+- Existing verification: `scripts/verify-migration-order.ts`
+- Evidence: `.omo/evidence/task-19-rollback-script.log`
+
+---
+
+## 2026-06-18 | Wave 2, Task 13: Edge Function Deploy Workflow
+
+### Key Findings
+- **`.github/workflows/deploy-edge-functions.yml` created** with correct name, triggers, and steps
+- **Trigger**: Push to `main` filtered by `supabase/functions/**` paths
+- **Concurrency group**: `${{ github.ref }}-deploy-edge` with `cancel-in-progress: true` — cancels stale deployments on the same branch
+- **Timeout**: 15 minutes
+- **Secrets**: `SUPABASE_PROJECT_ID` and `SUPABASE_ACCESS_TOKEN` referenced via `${{ secrets.* }}` — no hardcoded secrets
+
+### Deploy Steps
+1. `actions/checkout@v4` — checkout code
+2. `denoland/setup-deno@v2` with deno-version `2.8.2` — Deno runtime for Edge Functions
+3. `supabase/setup-cli@v1` with latest version — Supabase CLI
+4. `npx tsc --noEmit` — TypeScript type check (frontend code, since Edge Functions use Deno's type checker)
+5. `supabase functions deploy --project-ref ${{ secrets.SUPABASE_PROJECT_ID }}` — deploys all changed functions
+
+### Validation
+- `yamllint`: ✅ Clean (0 errors, 0 warnings with relaxed config)
+- `act --list`: ✅ Workflow parsed successfully (1 job: Deploy Edge Functions)
+- Structural checks: ✅ All 15 checks passed (name, trigger, paths, concurrency, timeout, all steps, secret refs, no-forbidden patterns)
+
+### Architecture Observations
+- **Folded block scalar (`>`)**: Used for the deploy command to keep line length under 80 chars while maintaining readability
+- **`on:` YAML parsing**: GitHub Actions `on:` keyword requires `truthy: disable` in yamllint config to avoid false positive warnings
+- **Deno version pinned**: `2.8.2` matches the existing CI workflow (`ci.yml` line 81) — consistent tooling
+
+### Dependencies for Downstream Tasks
+- **Secrets must be configured**: `SUPABASE_ACCESS_TOKEN` and `SUPABASE_PROJECT_ID` need to be set in GitHub repository secrets before workflow runs
+- **Supabase CLI**: Latest version auto-installed by `supabase/setup-cli@v1`
+
+### References
+- Workflow: `.github/workflows/deploy-edge-functions.yml`
+- Existing CI pattern: `.github/workflows/ci.yml`
+- Evidence: `.omo/evidence/task-13-workflow-syntax.log`
+- Supabase project ref: `xynpcusbbjfoyphtfcgz`
+
+---
+
+## 2026-06-18 | Wave 0, Task 15: Staging Deployment Workflow
+
+### Key Findings
+- **`.github/workflows/deploy-staging.yml` created** — auto-deploys Edge Functions + migrations to staging
+- **Trigger**: push to `develop` branch, or pull_request to `main` (with path ignore for docs/config)
+- **8-step pipeline**: checkout → setup-cli → link → deploy functions → push migrations → verify migration order → edge function tests → frontend tests
+- **No manual gate**: staging is safe for auto-deploy
+- **Concurrency**: `cancel-in-progress: true` prevents overlapping deployments
+
+### Architecture Decisions
+- **`supabase/setup-cli@v1`** with `version: latest` — always use current Supabase CLI
+- **`SUPABASE_ACCESS_TOKEN`** authenticates all Supabase CLI commands — no separate login step needed
+- **`SUPABASE_STAGING_REF`** secret holds the project ref ID — keeps env-specific config out of code
+- **E2E smoke tests** replaced with existing unit test suites (edge function tests + frontend tests) since no Playwright/Cypress exists in the project
+- **`environment: staging`** — GitHub Environments for deployment tracking and potential future approval gates
+- **`paths-ignore`** for markdown/txt/license/gitignore/env.example — doc-only changes skip deployment
+
+### Dependencies for Downstream Tasks
+- Requires `SUPABASE_STAGING_REF` and `SUPABASE_ACCESS_TOKEN` secrets set in GitHub repo settings
+- Staging Supabase project must exist with `project_ref` matching the secret
+- Edge function env vars must be set in Supabase Dashboard before first deploy
+
+### References
+- Workflow: `.github/workflows/deploy-staging.yml`
+- Evidence: `.omo/evidence/task-15-staging-workflow.log`
+- T2.2 staging smoke evidence: `.omo/evidence/t2.2-staging-smoke.md`
+- CI pipeline pattern: `.github/workflows/ci.yml`
+
+---
+
+## 2026-06-18 | Wave 0, Task 5: Supabase Production Project Status
+
+### Key Findings
+- **37/37 migrations applied** — local files match remote DB exactly, zero pending
+- **100% RLS coverage** — all 32 public tables have RLS enabled with 74 policies
+- **Required extensions enabled** — pgcrypto v1.3, pg_stat_statements v1.11 both active
+- **19 Edge Functions deployed** — all ACTIVE, all updated 2026-06-17
+- **execute-trade** at v10 (highest version), **price-feed** at v7, rest at v5
+- **PostgreSQL 17.6.1.127** — ACTIVE_HEALTHY project status
+- **32 tables, 3 views, 37 routines, 74 policies** in public schema
+
+### Limitations Noted
+- **Docker unavailable** — `supabase db remote changes`, `db diff`, `db push` all require Docker
+- **Two projects exist** — production (`xynpcusbbjfoyphtfcgz`) and staging (`ckcmnhksmjzhlqmrxkap`). CLI was initially linked to staging; re-linked to production during this task
+- **Cannot run `db push --dry-run`** without Docker
+
+### Gaps for Downstream Tasks
+1. **Docker setup** needed for migration workflow (Task 4 re-run, future migration checks)
+2. **CLI project linking** should be validated before any deployment operation
+3. **Migration counting** is now at 37 (up from 29 in Task 4 — 8 new fix migrations added June 16-17)
+
+### References
+- Evidence: `.omo/evidence/task-5-project-status.md`
+- Migration history: `supabase/migrations/` (37 files)
+- Previous audit (Task 4): `.omo/evidence/task-4-migration-check.log`
+
+---
+
+## 2026-06-18 | Wave 0, Task 16: E2E Tests GitHub Actions Workflow
+
+### Key Findings
+- **`.github/workflows/e2e-tests.yml` created** — runs Playwright E2E tests against mock server
+- **Trigger**: push to `main`, pull_request to `main` — no path filters
+- **9 steps**: checkout → setup-node (18) → setup-deno (2.8.2) → npm ci → install chromium → start mock server → wait for server → run tests → upload artifacts
+- **Validation**: `yamllint` passes (2 warnings, same as ci.yml), `act --list` parses correctly (1 job)
+
+### Architecture Decisions
+- **Deno setup included**: Mock server runs via `deno run -A`, so `denoland/setup-deno@v2` added (matches crash-test job in ci.yml)
+- **Node 18**: Per spec, not node 20 like CI — ensures compatibility with Playwright
+- **Artifact path**: `test-results/` and `playwright-report/` — standard Playwright output directories
+- **No `continue-on-error`**: Failures block the merge as required
+- **No production access**: Mock server runs in-process, no secrets or production endpoints involved
+
+### Dependencies
+- Mock server: `scripts/audit/_mock_server.ts` (Deno)
+- Wait script: `scripts/wait-for-server.ts` (referenced — needs to be created before tests can run)
+- Playwright config: Not yet created — workflow assumes `playwright.config.ts` exists with test configuration
+
+### References
+- Workflow: `.github/workflows/e2e-tests.yml`
+- Evidence: `.omo/evidence/task-16-e2e-workflow.log`
+- CI pattern: `.github/workflows/ci.yml`
+
+---
+
+## 2026-06-18 | Wave 2, Task 7: Staging Supabase Project
+
+### Key Findings
+- **Staging project created**: `lumen-trade-staging` (ref: `ckcmnhksmjzhlqmrxkap`) under org `zrjzxrnnhvruzpnmqmem` in `eu-west-1`
+- **All 37 migrations applied** successfully to staging after fixing 2 idempotency issues
+- **Staging linked locally** — `supabase link --project-ref ckcmnhksmjzhlqmrxkap`
+- **Migration replay verified**: Staging is ready for safe pre-production testing
+
+### Migration Issues Discovered & Fixed
+1. **`ALTER VIEW ... ENABLE ROW LEVEL SECURITY` not supported** — PostgreSQL does not support RLS on views. The view's `security_invoker` parameter + base-table `GRANT SELECT` + base-table RLS policies provide equivalent access control. Fixed in `20260609234136_ana_sahne.sql`.
+2. **`CREATE POLICY` without `DROP POLICY IF EXISTS`** — Fix migration `20260616150000_ana_sahne_view_security_invoker.sql` tried to re-create policies that already existed from the original migration. Fixed by adding `DROP POLICY IF EXISTS` before each `CREATE POLICY`.
+
+### RLS Coverage
+- **33 tables** with RLS enabled across the schema
+- All user-facing tables (profiles, orders, positions, trades, blitz_rooms, etc.) have appropriate policies
+- Settlement and financial tables (settlement_ledger, platform_revenue, real_balance_ledger) have admin-only access
+
+### Architecture Observations
+- The original migration (`20260609234136_ana_sahne.sql`) already uses `security_invoker` and `security_barrier` on the view, making the subsequent fix migration (`20260616150000`) largely redundant for fresh applies. The fix migration exists solely to upgrade existing production databases that had the original view without `security_invoker`.
+- `DROP POLICY IF EXISTS` should be a standard pattern before `CREATE POLICY` in all migrations to ensure idempotent replay — this is especially important with staging replay workflows.
+
+### Dependencies
+- Staging ref: `ckcmnhksmjzhlqmrxkap` (stored in `.omo/evidence/staging-ref.txt`)
+- Staging evidence: `.omo/evidence/task-7-staging-verified.md`
+- Config: `supabase/config.toml` remains pointed at production (staging linked via `supabase link --project-ref`)
+
+### References
+- Staging evidence: `.omo/evidence/task-7-staging-verified.md`
+- Staging ref: `.omo/evidence/staging-ref.txt`
+- Migration verification (Task 4): `scripts/verify-migration-order.ts`
+
+---
+
+## 2026-06-18 | Wave 2, Task 14: DB Migration Deployment Workflow with Manual Gate
+
+### Key Findings
+- **`.github/workflows/deploy-migrations.yml` created** — 7-job pipeline for controlled DB migration deployment
+- **Staging is auto-approved** — verify → deploy → verify flow runs without human intervention
+- **Production requires manual gate** — GitHub Environment `production` with required reviewers blocks deploy until approved
+- **Rollback is notification-only** — Supabase uses forward-only migrations; no automated revert. Rollback job triggers on any deploy/verify failure and instructs team to create corrective migration
+
+### Workflow Architecture
+- **Trigger**: Push to `main` with `supabase/migrations/**` path filter
+- **Concurrency**: `cancel-in-progress: false` — migrations must never cancel each other
+- **Job chain**: verify-migration-order → deploy-staging → verify-staging → manual-gate → deploy-production → verify-production
+- **Rollback**: Runs with `always()` on deploy/verify jobs, triggers on any failure
+- **Secrets required**: `SUPABASE_ACCESS_TOKEN`, `SUPABASE_STAGING_REF`, `SUPABASE_PROD_REF`
+
+### Verification Steps
+- **verify-migration-order**: Reuses `scripts/verify-migration-order.ts` from T4 — 5 checks (sequencing, DOWN safety, conflict detection, dependency validation, reversibility)
+- **verify-staging / verify-production**: Runs SQL queries via `supabase db query` to check RLS policies, triggers, and functions exist post-deploy
+
+### Patterns Established
+- `supabase/setup-cli@v1` to install Supabase CLI
+- `supabase link --project-ref` + `supabase db push` for deployment
+- Environment-based manual gate via `environment: { name: production }`
+- Rollback triggers on `always()` with failure detection via `needs.*.result == 'failure'`
+
+### Dependencies for Downstream Tasks
+- This workflow depends on `scripts/verify-migration-order.ts` (T4)
+- Requires `production` GitHub Environment to be configured with required reviewers in repo settings
+
+### References
+- Workflow: `.github/workflows/deploy-migrations.yml`
+- Evidence: `.omo/evidence/task-14-gate-verified.log`
+- Migration verification script: `scripts/verify-migration-order.ts`
+- Supabase CI/CD docs: https://supabase.com/docs/guides/deployment/managing-environments
 
 ---

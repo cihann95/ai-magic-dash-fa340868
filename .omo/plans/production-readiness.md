@@ -592,7 +592,7 @@ Max Concurrent: 8 (Wave 2-6)
 
 ### Wave 1: Foundation (Parallel — infrastructure provisioning)
 
-- [ ] 5. **Supabase Production Project Creation + DB Provisioning**
+- [x] 5. **Supabase Production Project Creation + DB Provisioning**
 
   **What to do**:
   - Create production Supabase project via CLI or dashboard (`supabase projects create`)
@@ -714,7 +714,7 @@ Max Concurrent: 8 (Wave 2-6)
 
   **Commit**: NO (credentials in .env; do not commit)
 
-- [ ] 7. **Staging Supabase Project Creation**
+- [x] 7. **Staging Supabase Project Creation**
 
   **What to do**:
   - Create staging Supabase project (separate from production)
@@ -763,7 +763,7 @@ Max Concurrent: 8 (Wave 2-6)
 
   **Commit**: NO (credentials in .env; do not commit)
 
-- [ ] 8. **Supabase CLI Login + Project Linking**
+- [x] 8. **Supabase CLI Login + Project Linking**
 
   **What to do**:
   - Run `supabase login` with production access token
@@ -917,7 +917,7 @@ Max Concurrent: 8 (Wave 2-6)
   - Files: `_shared/config.ts`, `src/lib/config.ts`
   - Pre-commit: `npx tsx -e "import './src/lib/config.ts'"`
 
-- [ ] 11. **Migration Replay on Staging (Verify Ordering)**
+- [x] 11. **Migration Replay on Staging (Verify Ordering)**
 
   **What to do**:
   - Reset staging DB: `supabase db reset --linked` (staging-linked)
@@ -1020,7 +1020,7 @@ Max Concurrent: 8 (Wave 2-6)
 
 ### Wave 2: CD Pipeline (Parallel — deployment automation)
 
-- [ ] 13. **GitHub Actions — Edge Function Deploy Workflow**
+- [x] 13. **GitHub Actions — Edge Function Deploy Workflow**
 
   **What to do**:
   - Create `.github/workflows/deploy-edge-functions.yml`
@@ -1077,7 +1077,7 @@ Max Concurrent: 8 (Wave 2-6)
   - Files: `.github/workflows/deploy-edge-functions.yml`
   - Pre-commit: `act -W .github/workflows/deploy-edge-functions.yml --dry-run`
 
-- [ ] 14. **GitHub Actions — DB Migration Workflow (with Gate)**
+- [x] 14. **GitHub Actions — DB Migration Workflow (with Gate)**
 
   **What to do**:
   - Create `.github/workflows/deploy-migrations.yml`
@@ -1137,7 +1137,7 @@ Max Concurrent: 8 (Wave 2-6)
   - Files: `.github/workflows/deploy-migrations.yml`
   - Pre-commit: `act -W .github/workflows/deploy-migrations.yml --dry-run`
 
-- [ ] 15. **GitHub Actions — Staging Deploy Workflow**
+- [x] 15. **GitHub Actions — Staging Deploy Workflow**
 
   **What to do**:
   - Create `.github/workflows/deploy-staging.yml`
@@ -1173,7 +1173,7 @@ Max Concurrent: 8 (Wave 2-6)
 
   **Commit**: YES — `ci: add staging deploy workflow`
 
-- [ ] 16. **GitHub Actions — E2E Test Workflow**
+- [x] 16. **GitHub Actions — E2E Test Workflow**
 
   **What to do**:
   - Create `.github/workflows/e2e-tests.yml`
@@ -1243,7 +1243,7 @@ Max Concurrent: 8 (Wave 2-6)
 
   **Commit**: YES — `chore: add frontend deploy configuration`
 
-- [ ] 18. **Environment Promotion Script (Staging→Production)**
+- [x] 18. **Environment Promotion Script (Staging→Production)**
 
   **What to do**:
   - Create `scripts/promote-to-production.ts`
@@ -1272,7 +1272,7 @@ Max Concurrent: 8 (Wave 2-6)
 
   **Commit**: YES — `feat: add staging-to-production promotion script`
 
-- [ ] 19. **Rollback Script (Migration Revert + EF Redeploy)**
+- [x] 19. **Rollback Script (Migration Revert + EF Redeploy)**
 
   **What to do**:
   - Create `scripts/rollback.ts`

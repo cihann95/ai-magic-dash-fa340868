@@ -1,0 +1,6 @@
+STAGING_PROJECT_REF=ckcmnhksmjzhlqmrxkap
+STAGING_PROJECT_NAME=lumen-trade-staging
+STAGING_ORG_ID=zrjzxrnnhvruzpnmqmem
+STAGING_REGION=eu-west-1
+STAGING_CREATED_AT=2026-06-18T08:30:51Z
+STAGING_DB_PASSWORD=<set during creation>

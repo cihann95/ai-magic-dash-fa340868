@@ -1,0 +1,65 @@
+---
+name: deploy-staging
+
+on:
+  push:
+    branches: [develop]
+    paths-ignore:
+      - "*.md"
+      - "*.txt"
+      - LICENSE
+      - .gitignore
+      - .env.example
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - "*.md"
+      - "*.txt"
+      - LICENSE
+      - .gitignore
+      - .env.example
+
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link to Staging Project
+        run: supabase link --project-ref ${{ secrets.SUPABASE_STAGING_REF }}
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Deploy All Edge Functions
+        run: supabase functions deploy
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Push Database Migrations
+        run: supabase db push
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Verify Migration Order
+        run: npx tsx scripts/verify-migration-order.ts
+
+      - name: Run Edge Function Tests (Smoke)
+        run: npx vitest run -c supabase/functions/__tests__/vitest.config.ts
+
+      - name: Run Frontend Tests (Smoke)
+        run: npm run test

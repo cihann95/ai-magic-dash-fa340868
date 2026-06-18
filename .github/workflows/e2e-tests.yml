@@ -1,0 +1,58 @@
+name: e2e-tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.ref }}-e2e
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: "2.8.2"
+
+      - run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium
+
+      - name: Start mock server
+        run: |
+          deno run -A scripts/audit/_mock_server.ts &
+          echo "MOCK_PID=$!"
+
+      - name: Wait for mock server health
+        run: npx tsx scripts/wait-for-server.ts
+
+      - name: Run Playwright tests
+        run: npx playwright test
+
+      - name: Upload artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-test-artifacts
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
