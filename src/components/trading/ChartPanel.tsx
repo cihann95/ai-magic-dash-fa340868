@@ -19,6 +19,23 @@ import AnimatedNumber from "@/components/AnimatedNumber";
 import IntentDialog from "./IntentDialog";
 import { detectSignal, recordTrade, type EmotionalSignal } from "@/hooks/useEmotionalSignal";
 
+function getTradeErrorMessage(error: unknown): string {
+  if (error && typeof error === "object" && "context" in error) {
+    const ctx = (error as { context?: { body?: string } }).context;
+    if (ctx?.body) {
+      try {
+        const parsed = JSON.parse(ctx.body);
+        if (parsed.error) return parsed.error;
+      } catch { /* not json */ }
+    }
+  }
+  if (error && typeof error === "object" && "message" in error) {
+    const msg = (error as { message?: string }).message;
+    if (msg) return msg;
+  }
+  return "Unknown error";
+}
+
 interface Props { symbol: SymbolDef; onTradeDone: () => void; }
 
 export default function ChartPanel({ symbol, onTradeDone }: Props) {
@@ -81,10 +98,10 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
       if (ach?.length) celebrateAchievements(ach, lang);
       setIntentOpen(null);
       onTradeDone();
-    } catch (e) {
-      window.dispatchEvent(new CustomEvent("optimistic-position-rollback", { detail: { id: optimisticId } }));
-      toast({ title: tr.error, description: e instanceof Error ? e.message : "Unknown", variant: "destructive" });
-    } finally { setSubmitting(null); }
+} catch (e) {
+       window.dispatchEvent(new CustomEvent("optimistic-position-rollback", { detail: { id: optimisticId } }));
+       toast({ title: tr.error, description: getTradeErrorMessage(e), variant: "destructive" });
+     } finally { setSubmitting(null); }
   };
 
   const open = isMarketOpen(symbol);
