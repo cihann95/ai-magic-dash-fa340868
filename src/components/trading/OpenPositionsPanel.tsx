@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/contexts/AppContext";
 import { t } from "@/lib/i18n";
@@ -55,7 +55,7 @@ export default function OpenPositionsPanel({ refreshKey, onTradeDone, onSelectSy
   const [sort, setSort] = useState<SortKey>("pnl");
   const [loading, setLoading] = useState(true);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     const { data } = await supabase.from("positions").select("*").eq("user_id", user.id).order("opened_at", { ascending: false });
@@ -76,9 +76,11 @@ export default function OpenPositionsPanel({ refreshKey, onTradeDone, onSelectSy
     });
     setTradeMeta(meta);
     setLoading(false);
-  };
+  }, [user]);
 
-  useEffect(() => { load(); }, [user, refreshKey]);
+// eslint-disable-next-line react-hooks/exhaustive-deps
+   useEffect(() => { load(); }, [user, refreshKey]);
+   
 
   // optimistic events from chart
   useEffect(() => {
@@ -98,15 +100,15 @@ export default function OpenPositionsPanel({ refreshKey, onTradeDone, onSelectSy
     };
   }, []);
 
-  // realtime sync
-  useEffect(() => {
+// realtime sync
+   useEffect(() => {
     if (!user) return;
     const ch = supabase
       .channel(`positions-panel-${user.id}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "positions", filter: `user_id=eq.${user.id}` }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "positions", filter: `user_id=eq.${user.id}` }, load)
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [user]);
+  }, [user, load]);
 
   const livePrices = useLivePrices(positions.map((p) => p.symbol));
 

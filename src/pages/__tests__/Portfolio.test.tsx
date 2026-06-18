@@ -95,7 +95,7 @@ describe("Portfolio", () => {
         const chain: Record<string, unknown> = {};
         chain.select = vi.fn().mockReturnValue(chain);
         chain.eq = vi.fn().mockReturnValue(chain);
-        chain.single = vi.fn().mockResolvedValue({
+        chain.maybeSingle = vi.fn().mockResolvedValue({
           data: { demo_balance: 100000, initial_balance: 100000, preferred_view: "pnl" },
           error: null,
         });

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { ReactNode } from "react";
 import { render, RenderOptions } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
