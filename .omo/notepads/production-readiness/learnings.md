@@ -862,3 +862,115 @@
 - Supabase CI/CD docs: https://supabase.com/docs/guides/deployment/managing-environments
 
 ---
+
+## 2026-06-18 | Wave 2, Task 21: Test Utility Library + Mock Server Health Check
+
+### Key Findings
+- **`src/test-utils/` created** with 6 files: setup.ts, factories.ts, mocks.ts, health-check.ts, index.ts, __tests__/test-utils.test.ts
+- **31 smoke tests pass** — verifying all factories, mocks, and health check compile and produce correct shapes
+- **Zero regressions** from existing test suite (pre-existing Portfolio test failures unrelated)
+- **Mock server health check** — `waitForServer()` polls until responsive, used by global setup
+- **No faker dependency** — manual uid() generation avoids adding `@faker-js/faker`
+
+### Files Created
+1. **`src/test-utils/setup.ts`** — Vitest global setup: spawns mock server (Deno), health checks, teardown with SIGTERM/SIGKILL fallback
+2. **`src/test-utils/factories.ts`** — 18 factory functions: rooms (3 variants), participants, orders, profiles, users, auth tokens, edge function responses, Redis responses, spectator events, batch factories
+3. **`src/test-utils/mocks.ts`** — Mock builders: `createSupabaseMocks()` (chainable from/channel/rpc/auth), `createRedisMocks()` (matching `_shared/redis.ts` API with 17 methods), `createEdgeFunctionMocks()` (fetch interceptor), `createConsoleSpy()`, `setupFakeTimers()`
+4. **`src/test-utils/health-check.ts`** — `waitForServer()` (polling with timeout), `isServerHealthy()` (non-throwing), `pingEndpoint()` (specific path check), CLI mode for standalone use
+5. **`src/test-utils/index.ts`** — Barrel export for all utilities
+6. **`src/test-utils/__tests__/test-utils.test.ts`** — 31 smoke tests verifying all exports compile and produce correct shapes
+
+### Architecture Decisions
+- **`createSupabaseMocks()` returns full chainable object** — `.from().select().single()` works out of the box, matching real Supabase client API
+- **Factories use `uid()` with counter + timestamp** — unique across test runs, reset via `resetCounter()` in beforeEach
+- **Redis mocks match `_shared/redis.ts` API surface** — all 17 methods mocked with correct return types
+- **Health check defaults to 404 status** — mock server returns 404 for unmatched paths, so this is the correct "server is alive" signal
+- **Global setup uses Deno spawn** — spawns `scripts/audit/_mock_server.ts` as a child process, reads PORT= from stdout
+
+### Wiring Required
+- `vitest.config.ts` needs `globalSetup: ["./src/test-utils/setup.ts"]` added to `test` section to activate mock server lifecycle
+- Existing `setupFiles: ["./src/test/setup.ts"]` (matchMedia mock) is unaffected — runs per-test-file, global setup runs once
+
+### Dependencies for Downstream Tasks
+- **T22-T28**: All test tasks can now `import { createSupabaseMocks, createMockRoom, ... } from "@/test-utils"`
+- **T26 (Blitz integration tests)**: `createActiveRoom()`, `createParticipants()`, `createOrders()` ready
+- **T27 (Edge Function unit tests)**: `createEdgeFunctionMocks()` and response factories ready
+- **T28 (Security tests)**: `createRedisMocks()`, `createConsoleSpy()` ready
+
+### References
+- Test utilities: `src/test-utils/`
+- Mock server: `scripts/audit/_mock_server.ts`
+- Evidence: `.omo/evidence/task-21-test-utils.log`
+
+---
+
+## 2026-06-18 | Wave 2, Task 30: ErrorBoundary Component + Tests
+
+### Key Findings
+- **`ErrorBoundary.tsx` already existed** — was scaffolded with `children`, `fallback`, `onError` props, and integrated into `App.tsx`
+- **`fallbackRender` prop added** — optional `(error: Error) => ReactNode` render function that receives the caught error
+- **Vitest tests already existed** (4 tests) — added 5th test for `fallbackRender`
+- **E2E Playwright test created** at `e2e-tests/error-boundary.spec.ts`
+- **Playwright not installed** as dependency — test file created spec-only; requires `@playwright/test` setup to run
+
+### Props
+| Prop           | Type                        | Required | Description                              |
+|----------------|-----------------------------|----------|------------------------------------------|
+| children       | ReactNode                   | Yes      | Child component tree                     |
+| fallback       | ReactNode                   | No       | Static fallback UI                       |
+| fallbackRender | (error: Error) => ReactNode | No       | Render function fallback (receives error)|
+| onError        | (error, info) => void       | No       | Error callback                           |
+
+### Test Results
+- **5/5 vitest tests pass** for ErrorBoundary (children, error catch, custom fallback, onError, fallbackRender)
+- **`npx tsc --noEmit`** — clean (0 errors)
+- **6 pre-existing failures** unrelated (useAnaSahne + Portfolio tests)
+
+### Production Safety
+- Stack traces only shown in `import.meta.env.DEV` (dev mode)
+- Production builds show generic "Something went wrong" message
+- No sensitive information leaked to production users
+
+### References
+- Component: `src/components/ErrorBoundary.tsx`
+- Vitest tests: `src/components/__tests__/ErrorBoundary.test.tsx`
+- E2E tests: `e2e-tests/error-boundary.spec.ts`
+- Evidence: `.omo/evidence/task-30-error-boundary.log`
+
+---
+
+## 2026-06-18 | Wave 2, Task 20: CD Pipeline Crash Test
+
+### Key Findings
+- **All 4 deploy workflows pass structural validation** — 52/52 checks passed
+- **yamllint**: 0 errors, 6 warnings (all line-length in deploy-migrations.yml SQL blocks — expected)
+- **act --list**: All workflows parse correctly with correct job/event structure
+- **Secrets**: All referenced via `${{ secrets.* }}` — no hardcoded credentials found
+- **Forbidden patterns**: No `continue-on-error: true`, no hardcoded tokens/passwords
+- **e2e-tests.yml correctly has no secrets** — runs against mock server only
+
+### Workflow Validation Summary
+
+| Workflow | Jobs | Triggers | Secrets | Status |
+|----------|------|----------|---------|--------|
+| deploy-edge-functions.yml | 1 (deploy) | push → main (functions/**) | ACCESS_TOKEN, PROJECT_ID | ✅ |
+| deploy-migrations.yml | 7 (verify→staging→verify→gate→prod→verify→rollback) | push → main (migrations/**) | ACCESS_TOKEN, STAGING_REF, PROD_REF | ✅ |
+| deploy-staging.yml | 1 (deploy-staging) | push (develop) + PR (main) | ACCESS_TOKEN, STAGING_REF | ✅ |
+| e2e-tests.yml | 1 (e2e-tests) | push + PR (main) | None (mock server) | ✅ |
+
+### Architecture Observations
+- **deploy-migrations.yml has 7 jobs** — most complex pipeline with verify→deploy→verify→gate→deploy→verify→rollback chain
+- **Manual gate uses GitHub Environments** — `environment: { name: production }` with required reviewers
+- **deploy-migrations.yml concurrency is `cancel-in-progress: false`** — migrations must never cancel each other (correct)
+- **Other workflows use `cancel-in-progress: true`** — stale deploys cancelled on new pushes (correct)
+- **All 4 unique secrets across workflows**: `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROJECT_ID`, `SUPABASE_STAGING_REF`, `SUPABASE_PROD_REF`
+
+### No Fixes Required
+- All workflows passed all checks — no modifications were needed
+
+### References
+- Evidence: `.omo/evidence/task-20-cd-crash-test.log`
+- Workflows: `.github/workflows/deploy-{edge-functions,migrations,staging}.yml`, `.github/workflows/e2e-tests.yml`
+- Validation tools: yamllint (relaxed), bin/act, Python 3 + PyYAML
+
+---

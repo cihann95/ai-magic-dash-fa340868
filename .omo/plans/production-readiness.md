@@ -1306,7 +1306,7 @@ Max Concurrent: 8 (Wave 2-6)
 
   **Commit**: YES — `feat: add rollback script with DB snapshot`
 
-- [ ] 20. **CD Pipeline Crash Test (Dry-Run)**
+- [x] 20. **CD Pipeline Crash Test (Dry-Run)**
 
   **What to do**:
   - Run all CD workflows in dry-run mode
@@ -1359,7 +1359,7 @@ Max Concurrent: 8 (Wave 2-6)
 
 ### Wave 3: Tests (Parallel — comprehensive test expansion)
 
-- [ ] 21. **Mock Server Health Check + Test Utility Library**
+- [x] 21. **Mock Server Health Check + Test Utility Library**
 
   **What to do**:
   - Create `src/test-utils/` directory with shared test helpers
@@ -1733,7 +1733,7 @@ Max Concurrent: 8 (Wave 2-6)
   - Files: `vitest.config.ts`, `package.json`
   - Pre-commit: `npx vitest run --coverage`
 
-- [ ] 30. **ErrorBoundary Component + Test**
+- [x] 30. **ErrorBoundary Component + Test**
 
   **What to do**:
   - Create `src/components/ErrorBoundary.tsx`:

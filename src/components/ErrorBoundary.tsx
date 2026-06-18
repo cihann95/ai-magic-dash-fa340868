@@ -4,6 +4,8 @@ interface ErrorBoundaryProps {
   children: ReactNode;
   /** Custom fallback UI to show instead of the default error state */
   fallback?: ReactNode;
+  /** Render function that receives the error and returns a fallback UI */
+  fallbackRender?: (error: Error) => ReactNode;
   /** Callback invoked with the caught error and error info */
   onError?: (error: Error, errorInfo: ErrorInfo) => void;
 }
@@ -45,6 +47,11 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   render(): ReactNode {
     if (this.state.hasError) {
+      // If a fallbackRender function is provided, call it with the error
+      if (this.props.fallbackRender && this.state.error) {
+        return this.props.fallbackRender(this.state.error);
+      }
+
       // If a custom fallback is provided, render it instead of the default UI
       if (this.props.fallback !== undefined) {
         return this.props.fallback;

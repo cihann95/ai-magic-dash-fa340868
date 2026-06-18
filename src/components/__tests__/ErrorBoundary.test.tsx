@@ -84,4 +84,23 @@ describe("ErrorBoundary", () => {
 
     consoleSpy.mockRestore();
   });
+
+  it("renders fallbackRender function with the error", () => {
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    render(
+      <ErrorBoundary
+        fallbackRender={(error) => <div data-testid="fn-fallback">Render fn: {error.message}</div>}
+      >
+        <Bomb shouldThrow message="fallback-render-test" />
+      </ErrorBoundary>,
+    );
+
+    expect(screen.getByTestId("fn-fallback")).toBeInTheDocument();
+    expect(screen.getByText("Render fn: fallback-render-test")).toBeInTheDocument();
+    // Default UI should NOT appear
+    expect(screen.queryByText("Something went wrong")).not.toBeInTheDocument();
+
+    consoleSpy.mockRestore();
+  });
 });
