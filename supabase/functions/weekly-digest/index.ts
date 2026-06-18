@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return json({ error: "Yetkisiz erişim" }, 401);
+      return json({ error: "Yetkisiz erişim", code: "UNAUTHORIZED" }, 401);
     }
 
     const userClient = createClient(
@@ -38,7 +38,9 @@ Deno.serve(async (req) => {
     );
     const { data: userData } = await userClient.auth.getUser(authHeader.replace("Bearer ", ""));
     const user = userData.user;
-    if (!user) return json({ error: "Yetkisiz erişim" }, 401);
+    if (!user) return json({ error: "Yetkisiz erişim", code: "UNAUTHORIZED" }, 401);
+
+    const start = Date.now();
 
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -52,6 +54,7 @@ Deno.serve(async (req) => {
 
     const lastAt = profile?.last_weekly_digest_at ? new Date(profile.last_weekly_digest_at) : null;
     if (lastAt && Date.now() - lastAt.getTime() < 6 * 24 * 60 * 60 * 1000) {
+      console.log(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
       return json({ skipped: true, reason: "already_sent_this_week", next_in_hours: Math.round((6 * 24 * 60 * 60 * 1000 - (Date.now() - lastAt.getTime())) / 3600000) });
     }
 
@@ -68,6 +71,7 @@ Deno.serve(async (req) => {
     const closes = trades.filter((t) => t.action === "close");
 
     if (closes.length < 2) {
+      console.log(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
       return json({ skipped: true, reason: "not_enough_trades", count: closes.length });
     }
 
@@ -88,13 +92,13 @@ Deno.serve(async (req) => {
     }
     const bestIntent = Object.entries(intentAgg)
       .filter(([k]) => k !== "untagged")
-      .sort((a, b) => (b[1].pnl / b[1].count) - (a[1].pnl / a[1].count))[0];
+      .sort((a, b) => (b[1].pnl / b[1].count) - (a[1].pnl / a[1].count))[0] ?? null;
 
     // Mood
     const moods = (emoRes.data ?? []).filter((e: EmotionalLog) => e.mood);
     const moodCounts: Record<string, number> = {};
     for (const m of moods) moodCounts[m.mood] = (moodCounts[m.mood] ?? 0) + 1;
-    const dominantMood = Object.entries(moodCounts).sort((a, b) => b[1] - a[1])[0];
+    const dominantMood = Object.entries(moodCounts).sort((a, b) => b[1] - a[1])[0] ?? null;
 
     // Plan adherence ortalaması
     const planScores = closes.map((t) => Number(t.plan_adherence)).filter((n: number) => isFinite(n) && n > 0);
@@ -159,10 +163,12 @@ Deno.serve(async (req) => {
 
     await admin.from("profiles").update({ last_weekly_digest_at: new Date().toISOString() }).eq("id", user.id);
 
+    console.log(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
     return json({ success: true, closes: closes.length, total_pnl: +totalPnl.toFixed(2) });
   } catch (e) {
     console.error("weekly-digest error", e);
-    return json({ error: "Sunucu hatası oluştu" }, 500);
+    console.log(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+    return json({ error: "Sunucu hatası oluştu", code: "DIGEST_ERROR" }, 500);
   }
 });
 

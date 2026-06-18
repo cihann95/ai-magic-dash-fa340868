@@ -24,6 +24,8 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: "Yetkisiz erişim" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
+  const start = Date.now();
+
   try {
     const { user_id, trade_id } = (await req.json()) as MirrorRequest;
     if (!user_id || !trade_id) {
@@ -77,61 +79,82 @@ Deno.serve(async (req) => {
       sym: current.symbol, side: current.side, pnl: current.pnl, intent: current.intent_tag,
     })}\n\nSon 30 işlem (en yeni önce):\n${JSON.stringify(compact)}`;
 
-    const aiResp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://lumen.trade",
-        "X-Title": "Lumen Trade",
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-4o-mini",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "emit_mirror",
-              description: "Emit a behavioral mirror observation",
-              parameters: {
-                type: "object",
-                properties: {
-                  observation: { type: "string", description: "1-2 sentence observation in Turkish" },
-                  pattern_type: {
-                    type: "string",
-                    enum: ["timing", "intent", "size", "symbol", "frequency", "other"],
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30_000);
+
+    let aiResp: Response;
+    try {
+      aiResp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "https://lumen.trade",
+          "X-Title": "Lumen Trade",
+        },
+        body: JSON.stringify({
+          model: "openai/gpt-4o-mini",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "emit_mirror",
+                description: "Emit a behavioral mirror observation",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    observation: { type: "string", description: "1-2 sentence observation in Turkish" },
+                    pattern_type: {
+                      type: "string",
+                      enum: ["timing", "intent", "size", "symbol", "frequency", "other"],
+                    },
+                    severity: { type: "string", enum: ["info", "warning"] },
                   },
-                  severity: { type: "string", enum: ["info", "warning"] },
+                  required: ["observation", "pattern_type", "severity"],
+                  additionalProperties: false,
                 },
-                required: ["observation", "pattern_type", "severity"],
-                additionalProperties: false,
               },
             },
-          },
-        ],
-        tool_choice: { type: "function", function: { name: "emit_mirror" } },
-      }),
-    });
+          ],
+          tool_choice: { type: "function", function: { name: "emit_mirror" } },
+        }),
+        signal: controller.signal,
+      });
+    } catch (e) {
+      clearTimeout(timeout);
+      const elapsed = Date.now() - start;
+      if (e instanceof DOMException && e.name === "AbortError") {
+        return new Response(JSON.stringify({ error: "AI zaman aşımı", code: "AI_TIMEOUT", event: "request", duration_ms: elapsed }), {
+          status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      throw e;
+    }
+    clearTimeout(timeout);
 
     if (!aiResp.ok) {
+      const elapsed = Date.now() - start;
       const txt = await aiResp.text();
       console.error("AI error", aiResp.status, txt);
       if (aiResp.status === 429 || aiResp.status === 402) {
-        return new Response(JSON.stringify({ skipped: true, reason: aiResp.status === 429 ? "rate_limit" : "credits" }), {
+        return new Response(JSON.stringify({ skipped: true, reason: aiResp.status === 429 ? "rate_limit" : "credits", event: "request", duration_ms: elapsed }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      throw new Error(`AI gateway ${aiResp.status}`);
+      return new Response(JSON.stringify({ skipped: true, reason: "ai_error", code: `AI_${aiResp.status}`, event: "request", duration_ms: elapsed }), {
+        status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const aiJson = await aiResp.json();
     const toolCall = aiJson.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall) {
-      return new Response(JSON.stringify({ skipped: true, reason: "no_tool_call" }), {
+      const elapsed = Date.now() - start;
+      return new Response(JSON.stringify({ skipped: true, reason: "no_tool_call", event: "request", duration_ms: elapsed }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -171,12 +194,14 @@ Deno.serve(async (req) => {
       metadata: { trade_id, pattern_type: patternType },
     });
 
-    return new Response(JSON.stringify({ ok: true, observation, pattern_type: patternType }), {
+    const elapsed = Date.now() - start;
+    return new Response(JSON.stringify({ ok: true, observation, pattern_type: patternType, event: "request", duration_ms: elapsed }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
+    const elapsed = Date.now() - start;
     console.error("trade-mirror error", e);
-    return new Response(JSON.stringify({ error: "Sunucu hatası oluştu" }), {
+    return new Response(JSON.stringify({ error: "Sunucu hatası oluştu", event: "request", duration_ms: elapsed }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

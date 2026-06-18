@@ -12,6 +12,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+/** Module-level holder for the last AI error code, read by the handler for HTTP mapping. */
+let _lastAiError: string | null = null;
+
 const TradeCoachRequestSchema = z.object({
   user_id: z.string().uuid().optional(),
 });
@@ -127,6 +130,8 @@ En önemli 1 davranışsal içgörüyü çıkar. JSON formatında yanıt ver:
 }`;
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
     const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -140,9 +145,16 @@ En önemli 1 davranışsal içgörüyü çıkar. JSON formatında yanıt ver:
         messages: [{ role: "user", content: prompt }],
         response_format: { type: "json_object" },
       }),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
     if (!r.ok) {
-      console.error("AI gateway", r.status, await r.text());
+      const errText = await r.text();
+      _lastAiError = r.status === 429 ? "RATE_LIMITED"
+        : r.status === 402 ? "QUOTA_EXCEEDED"
+        : r.status >= 500 ? "AI_UNAVAILABLE"
+        : "AI_ERROR";
+      console.error("AI gateway", r.status, _lastAiError, errText);
       return null;
     }
     const json = await r.json();
@@ -150,6 +162,12 @@ En önemli 1 davranışsal içgörüyü çıkar. JSON formatında yanıt ver:
     if (!content) return null;
     return JSON.parse(content);
   } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") {
+      _lastAiError = "AI_TIMEOUT";
+      console.error("AI timeout mapped to 504 AI_TIMEOUT");
+      return null;
+    }
+    _lastAiError = "AI_PARSE_ERROR";
     console.error("AI parse error", e);
     return null;
   }
@@ -195,12 +213,13 @@ async function processUser(admin: Admin, userId: string) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
+    const start = Date.now();
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
     const parseResult = TradeCoachRequestSchema.safeParse(body);
     if (!parseResult.success) {
-      return new Response(JSON.stringify({ error: parseResult.error.errors[0].message }), {
+      return new Response(JSON.stringify({ error: parseResult.error.errors[0].message, event: "request", duration_ms: Date.now() - start }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -209,14 +228,14 @@ Deno.serve(async (req) => {
     // Tek kullanıcı modu (UI'dan tetik) — auth kontrolü
     if (targetUserId) {
       const authHeader = req.headers.get("Authorization");
-      if (!authHeader) return new Response(JSON.stringify({ error: "Yetkisiz erişim" }), {
+      if (!authHeader) return new Response(JSON.stringify({ error: "Yetkisiz erişim", event: "request", duration_ms: Date.now() - start }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
       const auth = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!,
         { global: { headers: { Authorization: authHeader } } });
       const { data: userData } = await auth.auth.getUser(authHeader.replace("Bearer ", ""));
       if (userData.user?.id !== targetUserId) {
-        return new Response(JSON.stringify({ error: "Yasak" }), {
+        return new Response(JSON.stringify({ error: "Yasak", event: "request", duration_ms: Date.now() - start }), {
           status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -225,7 +244,25 @@ Deno.serve(async (req) => {
       if (rlResponse) return rlResponse;
 
       const result = await processUser(admin, targetUserId);
-      return new Response(JSON.stringify({ success: true, ...result }), {
+      const elapsed = Date.now() - start;
+      if (result.skipped && result.reason === "ai_failed" && _lastAiError) {
+        const code = _lastAiError;
+        _lastAiError = null;
+        const status = code === "RATE_LIMITED" ? 429
+          : code === "QUOTA_EXCEEDED" ? 503
+          : code === "AI_TIMEOUT" ? 504
+          : code === "AI_UNAVAILABLE" ? 503
+          : 502;
+        const message = code === "RATE_LIMITED" ? "Çok fazla istek, lütfen bekleyin"
+          : code === "QUOTA_EXCEEDED" ? "AI servis kotası aşıldı"
+          : code === "AI_TIMEOUT" ? "AI servisi zaman aşımı"
+          : code === "AI_UNAVAILABLE" ? "AI servisi geçici olarak kullanılamıyor"
+          : "AI servisi hatası";
+        return new Response(JSON.stringify({ error: message, code, event: "request", duration_ms: elapsed }), {
+          status, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ success: true, ...result, event: "request", duration_ms: elapsed }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -233,7 +270,7 @@ Deno.serve(async (req) => {
     // Toplu mod (cron) — service-role bearer zorunlu
     const cronAuth = req.headers.get("Authorization") ?? "";
     if (cronAuth !== `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`) {
-      return new Response(JSON.stringify({ error: "Yetkisiz erişim" }), {
+      return new Response(JSON.stringify({ error: "Yetkisiz erişim", event: "request", duration_ms: Date.now() - start }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -248,12 +285,12 @@ Deno.serve(async (req) => {
       const r = await processUser(admin, id);
       if (r.ok) processed++;
     }
-    return new Response(JSON.stringify({ success: true, users: ids.length, processed }), {
+    return new Response(JSON.stringify({ success: true, users: ids.length, processed, event: "request", duration_ms: Date.now() - start }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
     console.error("ai-trade-coach error", e);
-    return new Response(JSON.stringify({ error: "Sunucu hatası oluştu" }), {
+    return new Response(JSON.stringify({ error: "Sunucu hatası oluştu", event: "request", duration_ms: Date.now() - start }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

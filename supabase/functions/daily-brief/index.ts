@@ -9,10 +9,11 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  let start = 0;
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Yetkisiz erişim" }), {
+      return new Response(JSON.stringify({ error: "Yetkisiz erişim", code: "UNAUTHORIZED" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -24,7 +25,9 @@ Deno.serve(async (req) => {
     );
     const { data: userData } = await supabase.auth.getUser(authHeader.replace("Bearer ", ""));
     const user = userData.user;
-    if (!user) return new Response(JSON.stringify({ error: "Yetkisiz erişim" }), { status: 401, headers: corsHeaders });
+    if (!user) return new Response(JSON.stringify({ error: "Yetkisiz erişim", code: "UNAUTHORIZED" }), { status: 401, headers: corsHeaders });
+
+    start = Date.now();
 
     const { language = "tr" } = await req.json().catch(() => ({}));
     const today = new Date().toISOString().slice(0, 10);
@@ -35,6 +38,7 @@ Deno.serve(async (req) => {
     const { data: existing } = await admin
       .from("daily_briefs").select("*").eq("user_id", user.id).eq("brief_date", today).maybeSingle();
     if (existing) {
+      console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
       return new Response(JSON.stringify(existing), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
@@ -59,25 +63,43 @@ Deno.serve(async (req) => {
       ? "Sen profesyonel bir piyasa analistisin. Markdown ile kısa (max 250 kelime), aksiyona yönelik bir günlük brifing yaz. Bölümler: 📊 Genel Piyasa | 💼 Pozisyonların | 👀 İzleme Listen | ⚡ Bugünün Aksiyonu. Yatırım tavsiyesi olmadığını sonda küçük punto ile belirt."
       : "You are a professional market analyst. Write a concise (max 250 words) actionable daily brief in markdown. Sections: 📊 Market Overview | 💼 Your Positions | 👀 Watchlist | ⚡ Today's Action. End with small disclaimer that this is not investment advice.";
 
-    const aiResp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://lumen.trade",
-        "X-Title": "Lumen Trade",
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-4o-mini",
-        messages: [
-          { role: "system", content: sys },
-          { role: "user", content: `Context JSON:\n${JSON.stringify(ctx, null, 2)}\n\nLütfen ${language === "tr" ? "Türkçe" : "English"} brifingi oluştur.` },
-        ],
-      }),
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30_000);
+    let aiResp: Response;
+    try {
+      aiResp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "https://lumen.trade",
+          "X-Title": "Lumen Trade",
+        },
+        body: JSON.stringify({
+          model: "openai/gpt-4o-mini",
+          messages: [
+            { role: "system", content: sys },
+            { role: "user", content: `Context JSON:\n${JSON.stringify(ctx, null, 2)}\n\nLütfen ${language === "tr" ? "Türkçe" : "English"} brifingi oluştur.` },
+          ],
+        }),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
 
-    if (aiResp.status === 429) return new Response(JSON.stringify({ error: "Çok fazla istek, lütfen bekleyin" }), { status: 429, headers: corsHeaders });
-    if (aiResp.status === 402) return new Response(JSON.stringify({ error: "AI kredisi yetersiz" }), { status: 402, headers: corsHeaders });
+    if (aiResp.status === 429) {
+      console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+      return new Response(JSON.stringify({ error: "Çok fazla istek, lütfen bekleyin", code: "RATE_LIMITED", retryable: true }), { status: 429, headers: corsHeaders });
+    }
+    if (aiResp.status === 402) {
+      console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+      return new Response(JSON.stringify({ error: "AI kredisi yetersiz", code: "QUOTA_EXCEEDED" }), { status: 503, headers: corsHeaders });
+    }
+    if (aiResp.status >= 500) {
+      console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+      return new Response(JSON.stringify({ error: "AI servisi geçici olarak kullanılamıyor", code: "AI_UNAVAILABLE" }), { status: 503, headers: corsHeaders });
+    }
     if (!aiResp.ok) throw new Error("AI error");
 
     const aiData = await aiResp.json();
@@ -91,10 +113,19 @@ Deno.serve(async (req) => {
       user_id: user.id, brief_date: today, content, sentiment,
     }).select().single();
 
+    console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
     return new Response(JSON.stringify(brief), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
+    const elapsed = Date.now() - start;
+    if ((e as Error)?.name === "AbortError") {
+      console.error(JSON.stringify({ event: "request", duration_ms: elapsed }));
+      return new Response(JSON.stringify({ error: "AI isteği zaman aşımına uğradı", code: "AI_TIMEOUT" }), {
+        status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    console.error(JSON.stringify({ event: "request", duration_ms: elapsed }));
     console.error("daily-brief error", e);
-    return new Response(JSON.stringify({ error: "Sunucu hatası oluştu" }), {
+    return new Response(JSON.stringify({ error: "Sunucu hatası oluştu", code: "INTERNAL_ERROR" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

@@ -41,14 +41,16 @@ Deno.serve(async (req) => {
     isCron = ok === true;
   }
   if (!isServiceRole && !isCron) {
-    return new Response(JSON.stringify({ error: "Yetkisiz erişim" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ error: "Yetkisiz erişim", code: "UNAUTHORIZED" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
+
+  const start = Date.now();
 
   // Validate request body (should be empty for cron jobs)
   const body = await req.json().catch(() => ({}));
   const parseResult = RiskMonitorRequestSchema.safeParse(body);
   if (!parseResult.success) {
-    return new Response(JSON.stringify({ error: parseResult.error.errors[0].message }), {
+    return new Response(JSON.stringify({ error: parseResult.error.errors[0].message, code: "INVALID_BODY" }), {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
@@ -71,6 +73,9 @@ Deno.serve(async (req) => {
 
     const cutoff = new Date(Date.now() - COOLDOWN_HOURS * 3600 * 1000).toISOString();
     let alertsCreated = 0;
+    let concentrationAlerts = 0;
+    let lossAlerts = 0;
+    let disciplineAlerts = 0;
 
     for (const [userId, userPositions] of Object.entries(byUser)) {
       // Son uyarıları çek (cooldown için)
@@ -109,6 +114,7 @@ Deno.serve(async (req) => {
               metadata: { signal: sig, symbol: p.symbol, weight },
             });
             alertsCreated++;
+            concentrationAlerts++;
           }
         }
 
@@ -129,6 +135,7 @@ Deno.serve(async (req) => {
               metadata: { signal: sig, symbol: p.symbol, pnl_pct: pnlPct },
             });
             alertsCreated++;
+            lossAlerts++;
           }
         }
       }
@@ -157,17 +164,23 @@ Deno.serve(async (req) => {
               metadata: { signal: sig, portfolio_pct: portfolioPct },
             });
             alertsCreated++;
+            disciplineAlerts++;
           }
         }
       }
     }
 
+    console.error(JSON.stringify({event: "risk_check", check: "concentration", alerts_created: concentrationAlerts}));
+    console.error(JSON.stringify({event: "risk_check", check: "loss", alerts_created: lossAlerts}));
+    console.error(JSON.stringify({event: "risk_check", check: "discipline", alerts_created: disciplineAlerts}));
+    console.error(JSON.stringify({event: "request", duration_ms: Date.now() - start}));
+
     return new Response(JSON.stringify({
       success: true, users_scanned: Object.keys(byUser).length, alerts: alertsCreated,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
-    console.error("ai-risk-monitor error", e);
-    return new Response(JSON.stringify({ error: "Sunucu hatası oluştu" }), {
+    console.error(JSON.stringify({event: "ai_risk_monitor_error", error: e instanceof Error ? e.message : String(e)}));
+    return new Response(JSON.stringify({ error: "Sunucu hatası oluştu", code: "RISK_MONITOR_ERROR" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

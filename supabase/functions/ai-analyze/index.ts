@@ -26,9 +26,12 @@ async function requireUser(req: Request): Promise<{ response: Response | null; u
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  let start = 0;
   try {
     const { response: unauthorized, userId } = await requireUser(req);
     if (unauthorized) return unauthorized;
+
+    start = Date.now();
 
     const rlResponse = await rateLimit(userId!, "ai-analyze");
     if (rlResponse) return rlResponse;
@@ -51,6 +54,9 @@ Deno.serve(async (req) => {
       ? "Sen profesyonel bir piyasa analistisin. Sembol için kısa, eyleme dönük teknik+temel analiz yap. Markdown kullan. Bölümler: **Genel Görünüm**, **Teknik (trend, destek/direnç)**, **Temel Etkenler**, **Sinyal: AL / SAT / BEKLE** (kalın). 200 kelimeyi geçme. Yatırım tavsiyesi olmadığını sonda kısaca belirt."
       : "You are a professional market analyst. Provide a concise, actionable technical+fundamental analysis. Use markdown sections: **Overview**, **Technical (trend, S/R)**, **Fundamentals**, **Signal: BUY / SELL / HOLD** (bold). Under 200 words. Add brief disclaimer.";
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
     const resp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -66,23 +72,44 @@ Deno.serve(async (req) => {
           { role: "user", content: `Sembol: ${symbol} (${safeAsset || "—"}). Güncel piyasa koşullarına göre analiz et.` },
         ],
       }),
+      signal: controller.signal,
     });
 
-    if (resp.status === 429) return new Response(JSON.stringify({ error: "AI istek limiti doldu, biraz sonra deneyin." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    if (resp.status === 402) return new Response(JSON.stringify({ error: "AI kredisi yetersiz. Lütfen workspace'inize kredi ekleyin." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    clearTimeout(timeoutId);
+
+    if (resp.status === 429) {
+      console.error(JSON.stringify({event: "request", duration_ms: Date.now() - start}));
+      return new Response(JSON.stringify({ error: "AI istek limiti doldu", code: "AI_RATE_LIMITED", retryable: true }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (resp.status === 402) {
+      console.error(JSON.stringify({event: "request", duration_ms: Date.now() - start}));
+      return new Response(JSON.stringify({ error: "AI kredisi yetersiz", code: "QUOTA_EXCEEDED" }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (resp.status === 500 || resp.status === 502 || resp.status === 503) {
+      const t = await resp.text(); console.error("AI gateway:", resp.status, t);
+      console.error(JSON.stringify({event: "request", duration_ms: Date.now() - start}));
+      return new Response(JSON.stringify({ error: "AI servisi kullanılamıyor", code: "AI_UNAVAILABLE" }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
     if (!resp.ok) {
       const t = await resp.text(); console.error("AI gateway:", resp.status, t);
+      console.error(JSON.stringify({event: "request", duration_ms: Date.now() - start}));
       return new Response(JSON.stringify({ error: "AI servisi hatası" }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const data = await resp.json();
     const content = data.choices?.[0]?.message?.content || "Analiz oluşturulamadı.";
 
+    console.error(JSON.stringify({event: "request", duration_ms: Date.now() - start}));
     return new Response(JSON.stringify({ analysis: content }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
     console.error("ai-analyze error", e);
+    if (e instanceof DOMException && e.name === "AbortError") {
+      console.error(JSON.stringify({event: "request", duration_ms: Date.now() - start}));
+      return new Response(JSON.stringify({ error: "AI zaman aşımı", code: "AI_TIMEOUT" }), { status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    console.error(JSON.stringify({event: "request", duration_ms: Date.now() - start}));
     return new Response(JSON.stringify({ error: "Sunucu hatası oluştu" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

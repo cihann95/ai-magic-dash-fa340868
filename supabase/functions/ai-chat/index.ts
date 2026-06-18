@@ -25,6 +25,7 @@ const ChatRequestSchema = z.object({
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  let start = 0;
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) return new Response(JSON.stringify({ error: "Yetkisiz erişim" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -32,12 +33,15 @@ Deno.serve(async (req) => {
     const { data: u, error: ue } = await sb.auth.getUser(authHeader.replace("Bearer ", ""));
     if (ue || !u.user) return new Response(JSON.stringify({ error: "Yetkisiz erişim" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
+    start = Date.now();
+
     const rlResponse = await rateLimit(u.user.id, "ai-chat");
-    if (rlResponse) return rlResponse;
+    if (rlResponse) { console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start })); return rlResponse; }
 
     const body = await req.json().catch(() => ({}));
     const parseResult = ChatRequestSchema.safeParse(body);
     if (!parseResult.success) {
+      console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
       return new Response(JSON.stringify({ error: parseResult.error.errors[0].message }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -50,12 +54,16 @@ Deno.serve(async (req) => {
     const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
     if (!OPENROUTER_API_KEY) {
       console.error("ai-chat: OPENROUTER_API_KEY missing");
+      console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
       return new Response(JSON.stringify({ error: "Servis geçici olarak kullanılamıyor" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const sys = lang === "tr"
       ? `Sen yardımcı bir finans/yatırım asistanısın. Net, kısa cevaplar ver. Markdown kullan. ${safeSymbol ? `Aktif sembol: ${safeSymbol}.` : ""} Yatırım tavsiyesi vermediğini hatırlat.`
       : `You are a helpful financial assistant. Be clear and concise. Use markdown. ${safeSymbol ? `Active symbol: ${safeSymbol}.` : ""} Remind users this is not investment advice.`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
 
     const resp = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -70,18 +78,41 @@ Deno.serve(async (req) => {
         messages: [{ role: "system", content: sys }, ...cleanMessages],
         stream: true,
       }),
-    });
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timeoutId));
 
-    if (resp.status === 429) return new Response(JSON.stringify({ error: "Çok fazla istek, lütfen bekleyin." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    if (resp.status === 402) return new Response(JSON.stringify({ error: "AI kredisi yetersiz." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (resp.status === 429) {
+      console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+      return new Response(JSON.stringify({ error: "Çok fazla istek, lütfen bekleyin.", code: "RATE_LIMITED" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    if (resp.status === 402) {
+      console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+      return new Response(JSON.stringify({ error: "AI kredisi yetersiz.", code: "QUOTA_EXCEEDED" }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
     if (!resp.ok) {
       const t = await resp.text(); console.error("AI gateway:", resp.status, t);
-      return new Response(JSON.stringify({ error: "AI servisi hatası" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+      return new Response(JSON.stringify({ error: "AI servisi hatası", code: "AI_UNAVAILABLE" }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    return new Response(resp.body, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
+    // Pass through stream with error logging
+    const { readable, writable } = new TransformStream();
+    resp.body!.pipeTo(writable).catch((err) => {
+      console.error("Stream error:", err);
+    });
+
+    console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+    return new Response(readable, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
   } catch (e) {
+    if (e instanceof DOMException && e.name === "AbortError") {
+      console.error("ai-chat timeout");
+      console.error(JSON.stringify({ event: "request", duration_ms: start ? Date.now() - start : 0 }));
+      return new Response(JSON.stringify({ error: "AI servisi zaman aşımı", code: "AI_TIMEOUT" }), {
+        status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     console.error("ai-chat error", e);
+    console.error(JSON.stringify({ event: "request", duration_ms: start ? Date.now() - start : 0 }));
     return new Response(JSON.stringify({ error: "Sunucu hatası oluştu" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
