@@ -94,9 +94,8 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
     return acc + v;
   }, 0);
 
-  const realizedPnl = allTrades.reduce((sum, t) => sum + Number(t.pnl ?? 0), 0);
-  const totalEquity = initial + realizedPnl + livePnl;
-  const totalChange = ((totalEquity - initial) / initial) * 100;
+  const totalEquity = balance + livePnl;
+  const totalChange = initial > 0 ? ((totalEquity - initial) / initial) * 100 : 0;
 
   const runAnalysis = async () => {
     setLoadingA(true); setAnalysis("");
