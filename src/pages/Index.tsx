@@ -13,6 +13,7 @@ import { AnaSahne } from "@/components/AnaSahne";
 import { useAnaSahne } from "@/hooks/useAnaSahne";
 import { hasFeature } from "@/lib/feature-flags";
 import { ArrowRight, BarChart3, Brain, Globe } from "lucide-react";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 function AnaSahneSection() {
   const { lang } = useApp();
@@ -92,7 +93,17 @@ export default function Index() {
           <SymbolList active={active} onSelect={setActive} />
         </aside>
         <section className="rounded-2xl glass border border-border/40 shadow-card overflow-hidden order-1 lg:order-2 min-h-[600px] lg:min-h-0">
-          <ChartPanel symbol={active} onTradeDone={() => setRefresh((r) => r + 1)} />
+          <ErrorBoundary
+            fallback={
+              <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-muted-foreground">
+                <BarChart3 className="size-8 mb-3 opacity-50" />
+                <p className="text-sm font-medium">Grafik yüklenemedi</p>
+                <p className="text-xs mt-1">Lütfen sayfayı yenileyin</p>
+              </div>
+            }
+          >
+            <ChartPanel symbol={active} onTradeDone={() => setRefresh((r) => r + 1)} />
+          </ErrorBoundary>
         </section>
         <aside className="order-3 min-h-[600px] lg:min-h-0 flex flex-col gap-3">
           <div className="h-[58%] min-h-[340px] shrink-0">

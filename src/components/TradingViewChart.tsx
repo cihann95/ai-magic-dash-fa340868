@@ -10,6 +10,12 @@ export default function TradingViewChart({ symbol, theme = "dark", height = "100
   const ref = useRef<HTMLDivElement>(null);
   const [error, setError] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   useEffect(() => {
     if (!ref.current) return;
@@ -43,14 +49,12 @@ export default function TradingViewChart({ symbol, theme = "dark", height = "100
     });
 
     const timeoutId = setTimeout(() => {
-      if (!error) {
-        setError(true);
-      }
+      if (mountedRef.current) setError(true);
     }, 10000);
 
     script.onerror = () => {
       clearTimeout(timeoutId);
-      setError(true);
+      if (mountedRef.current) setError(true);
     };
 
     script.onload = () => {
