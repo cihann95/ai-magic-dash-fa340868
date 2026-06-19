@@ -94,13 +94,18 @@ export default function Index() {
         </aside>
         <section className="rounded-2xl glass border border-border/40 shadow-card overflow-hidden order-1 lg:order-2 min-h-[600px] lg:min-h-0">
           <ErrorBoundary
-            fallback={
-              <div className="flex flex-col items-center justify-center h-full min-h-[400px] text-muted-foreground">
-                <BarChart3 className="size-8 mb-3 opacity-50" />
-                <p className="text-sm font-medium">Grafik yüklenemedi</p>
-                <p className="text-xs mt-1">Lütfen sayfayı yenileyin</p>
+            fallbackRender={(error) => (
+              <div className="flex flex-col gap-2 items-center justify-center h-full min-h-[400px] p-4">
+                <BarChart3 className="size-8 mb-1 opacity-50 text-destructive" />
+                <p className="text-destructive text-sm font-medium">
+                  {error.name}: {error.message}
+                </p>
+                <p className="text-muted-foreground text-xs text-center max-w-md break-all">
+                  {error.stack?.split('\n')[1]}
+                </p>
+                <p className="text-muted-foreground text-xs mt-2">Lütfen sayfayı yenileyin</p>
               </div>
-            }
+            )}
           >
             <ChartPanel symbol={active} onTradeDone={() => setRefresh((r) => r + 1)} />
           </ErrorBoundary>
