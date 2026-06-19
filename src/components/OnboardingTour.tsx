@@ -18,9 +18,17 @@ export default function OnboardingTour() {
     if (!user || fetchedForUser.current === user.id) return;
     fetchedForUser.current = user.id;
     supabase.from("user_stats").select("onboarding_completed").eq("user_id", user.id).maybeSingle()
-      .then(({ data, error }) => {
-        if (error) return;
-        if (data && !data.onboarding_completed) setOpen(true);
+      .then(async ({ data, error }) => {
+        if (error) {
+          console.warn("[OnboardingTour] user_stats query failed:", error.message);
+          return;
+        }
+        if (!data || !data.onboarding_completed) {
+          setOpen(true);
+          if (!data) {
+            await supabase.from("user_stats").upsert({ user_id: user.id, onboarding_completed: false });
+          }
+        }
       });
   }, [user]);
 

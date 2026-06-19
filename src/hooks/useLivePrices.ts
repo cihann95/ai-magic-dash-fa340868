@@ -48,22 +48,30 @@ function notify() {
 }
 
 async function fetchAll() {
-  const { data } = await supabase.from("price_cache").select("*");
-  if (data) {
-    for (const row of data) {
-      // Binance WS'ten taze veri varsa onu ezme (kripto için)
-      const existing = state.cache[row.symbol];
-      const incoming: LivePrice = {
-        symbol: row.symbol,
-        price: Number(row.price),
-        change_pct_24h: row.change_pct_24h !== null ? Number(row.change_pct_24h) : null,
-        change_24h: row.change_24h !== null ? Number(row.change_24h) : null,
-        updated_at: row.updated_at,
-      };
-      if (existing && new Date(existing.updated_at).getTime() > new Date(incoming.updated_at).getTime()) continue;
-      state.cache[row.symbol] = incoming;
+  try {
+    const { data, error } = await supabase.from("price_cache").select("*");
+    if (error) {
+      console.warn("[useLivePrices] fetchAll error:", error.message);
+      return;
     }
-    notify();
+    if (data) {
+      for (const row of data) {
+        // Binance WS'ten taze veri varsa onu ezme (kripto için)
+        const existing = state.cache[row.symbol];
+        const incoming: LivePrice = {
+          symbol: row.symbol,
+          price: Number(row.price),
+          change_pct_24h: row.change_pct_24h !== null ? Number(row.change_pct_24h) : null,
+          change_24h: row.change_24h !== null ? Number(row.change_24h) : null,
+          updated_at: row.updated_at,
+        };
+        if (existing && new Date(existing.updated_at).getTime() > new Date(incoming.updated_at).getTime()) continue;
+        state.cache[row.symbol] = incoming;
+      }
+      notify();
+    }
+  } catch (err) {
+    console.warn("[useLivePrices] fetchAll exception:", err instanceof Error ? err.message : String(err));
   }
 }
 
@@ -96,7 +104,16 @@ function init() {
         notify();
       }
     )
-    .subscribe();
+    .subscribe((status) => {
+      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+        console.warn("[useLivePrices] Realtime channel status:", status, "- scheduling reconnect");
+        state.initialized = false;
+        state.channel = null;
+        setTimeout(() => {
+          init();
+        }, 2000);
+      }
+    });
 
   if (state.pollInterval) clearInterval(state.pollInterval);
   state.pollInterval = window.setInterval(fetchAll, 5000);

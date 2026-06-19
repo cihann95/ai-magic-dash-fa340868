@@ -21,6 +21,8 @@ interface BinanceStreamState {
   reconnectTimer: number | null;
   backoff: number;
   last24hPct: Record<string, number>;
+  lastMessageTime: number;
+  heartbeatInterval: number | null;
 }
 const w: { __binance_stream?: BinanceStreamState } =
   typeof window !== "undefined" ? (window as { __binance_stream?: BinanceStreamState }) : {};
@@ -30,12 +32,19 @@ const S = w.__binance_stream ?? {
   reconnectTimer: null as number | null,
   backoff: 1000,
   last24hPct: {} as Record<string, number>,
+  lastMessageTime: 0,
+  heartbeatInterval: null as number | null,
 };
 if (typeof window !== "undefined") w.__binance_stream = S;
 
 function connect() {
   if (typeof window === "undefined") return;
   if (S.ws && (S.ws.readyState === WebSocket.OPEN || S.ws.readyState === WebSocket.CONNECTING)) return;
+  // Clear any existing heartbeat interval before creating a new connection
+  if (S.heartbeatInterval) {
+    clearInterval(S.heartbeatInterval);
+    S.heartbeatInterval = null;
+  }
   // trade = son gerçekleşen işlem fiyatı; TradingView chart ile book mid-price'tan daha uyumlu.
   // ticker = 24h yüzde için (1sn)
   const streams = [
@@ -49,8 +58,20 @@ function connect() {
     scheduleReconnect();
     return;
   }
-  S.ws.onopen = () => { S.backoff = 1000; };
+  S.ws.onopen = () => {
+    S.backoff = 1000;
+    S.lastMessageTime = Date.now();
+    // Heartbeat: check every 30s if we've received a message in the last 45s
+    S.heartbeatInterval = window.setInterval(() => {
+      const now = Date.now();
+      if (now - S.lastMessageTime > 45000) {
+        console.warn("[binanceStream] Heartbeat timeout - no message for 45s, closing connection");
+        S.ws?.close();
+      }
+    }, 30000);
+  };
   S.ws.onmessage = (e: MessageEvent) => {
+    S.lastMessageTime = Date.now();
     try {
       const msg = JSON.parse(e.data);
       const stream: string = msg?.stream ?? "";
@@ -76,7 +97,14 @@ function connect() {
     } catch { /* noop */ }
   };
   S.ws.onerror = () => { /* will close */ };
-  S.ws.onclose = () => { S.ws = null; scheduleReconnect(); };
+  S.ws.onclose = () => {
+    if (S.heartbeatInterval) {
+      clearInterval(S.heartbeatInterval);
+      S.heartbeatInterval = null;
+    }
+    S.ws = null;
+    scheduleReconnect();
+  };
 }
 
 function scheduleReconnect() {

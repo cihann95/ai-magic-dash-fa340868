@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface Props {
   symbol: string; // e.g. "BINANCE:BTCUSDT"
@@ -8,9 +8,12 @@ interface Props {
 
 export default function TradingViewChart({ symbol, theme = "dark", height = "100%" }: Props) {
   const ref = useRef<HTMLDivElement>(null);
+  const [error, setError] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
     if (!ref.current) return;
+    setError(false);
     ref.current.innerHTML = "";
     const container = document.createElement("div");
     container.className = "tradingview-widget-container__widget";
@@ -38,8 +41,48 @@ export default function TradingViewChart({ symbol, theme = "dark", height = "100
       studies: ["STD;EMA", "STD;RSI"],
       support_host: "https://www.tradingview.com",
     });
+
+    const timeoutId = setTimeout(() => {
+      if (!error) {
+        setError(true);
+      }
+    }, 10000);
+
+    script.onerror = () => {
+      clearTimeout(timeoutId);
+      setError(true);
+    };
+
+    script.onload = () => {
+      clearTimeout(timeoutId);
+    };
+
     ref.current.appendChild(script);
-  }, [symbol, theme]);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [symbol, theme, retryKey]);
+
+  if (error) {
+    return (
+      <div
+        className="tradingview-widget-container w-full h-full flex items-center justify-center bg-gray-900 text-gray-300"
+        style={{ height }}
+        ref={ref}
+      >
+        <div className="text-center p-4">
+          <p className="mb-2">Grafik yüklenemedi</p>
+          <button
+            onClick={() => setRetryKey((k) => k + 1)}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+          >
+            Tekrar dene
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="tradingview-widget-container w-full h-full" style={{ height }} ref={ref} />
