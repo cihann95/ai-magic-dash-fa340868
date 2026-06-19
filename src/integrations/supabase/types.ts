@@ -654,6 +654,7 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           demo_balance: number
+          demo_balance_locked: number
           display_name: string | null
           id: string
           initial_balance: number
@@ -670,6 +671,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           demo_balance?: number
+          demo_balance_locked?: number
           display_name?: string | null
           id: string
           initial_balance?: number
@@ -686,6 +688,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           demo_balance?: number
+          demo_balance_locked?: number
           display_name?: string | null
           id?: string
           initial_balance?: number

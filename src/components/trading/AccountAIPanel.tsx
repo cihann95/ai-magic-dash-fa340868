@@ -29,6 +29,7 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
   const { lang, user } = useApp();
   const tr = t(lang);
   const [balance, setBalance] = useState(0);
+  const [locked, setLocked] = useState(0);
   const [initial, setInitial] = useState(100000);
   const [positions, setPositions] = useState<Position[]>([]);
 
@@ -49,10 +50,10 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
   const loadAcct = async () => {
     if (!user) return;
     const [{ data: prof }, { data: pos }] = await Promise.all([
-      supabase.from("profiles").select("demo_balance, initial_balance").eq("id", user.id).maybeSingle(),
+      supabase.from("profiles").select("demo_balance, demo_balance_locked, initial_balance").eq("id", user.id).maybeSingle(),
       supabase.from("positions").select("*").eq("user_id", user.id).order("opened_at", { ascending: false }),
     ]);
-    if (prof) { setBalance(Number(prof.demo_balance)); setInitial(Number(prof.initial_balance)); }
+    if (prof) { setBalance(Number(prof.demo_balance)); setLocked(Number(prof.demo_balance_locked ?? 0)); setInitial(Number(prof.initial_balance)); }
     if (pos) setPositions(pos as Position[]);
   };
 
@@ -90,8 +91,9 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
     const ch = supabase
       .channel(`profile-balance-${user.id}`)
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${user.id}` }, (payload) => {
-        const row = payload.new as { demo_balance?: number; initial_balance?: number };
+        const row = payload.new as { demo_balance?: number; demo_balance_locked?: number; initial_balance?: number };
         if (row.demo_balance != null) setBalance(Number(row.demo_balance));
+        if (row.demo_balance_locked != null) setLocked(Number(row.demo_balance_locked));
         if (row.initial_balance != null) setInitial(Number(row.initial_balance));
       })
       .subscribe();
@@ -105,6 +107,7 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
     return acc + (Number.isFinite(v) ? v : 0);
   }, 0);
 
+  const availableBalance = balance - locked;
   const totalEquity = balance + livePnl;
   const totalChange = initial > 0 ? ((totalEquity - initial) / initial) * 100 : 0;
 
@@ -226,7 +229,7 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
         <div className="flex justify-between mt-3 pt-3 border-t border-border/40 text-xs">
           <div>
             <div className="text-muted-foreground">{tr.available}</div>
-            <div className="font-mono font-semibold">${balance.toFixed(2)}</div>
+            <div className="font-mono font-semibold">${availableBalance.toFixed(2)}</div>
           </div>
           <div className="text-right">
             <div className="text-muted-foreground">{tr.pnl}</div>

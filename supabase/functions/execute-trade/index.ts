@@ -206,8 +206,9 @@ async function executeOne(admin: Admin, userId: string, body: TradeRequest, opts
     pnl = Number(pnl.toFixed(2));
     const closeAmount = Number((entry * qty + pnl).toFixed(2));
 
-    const { data: closeUpdated } = await admin.rpc("deduct_balance", {
-      p_user_id: userId, p_amount: -closeAmount,
+    const closedTotal = Number((entry * qty).toFixed(2));
+    const { data: closeUpdated } = await admin.rpc("release_locked_balance", {
+      p_user_id: userId, p_locked_amount: closedTotal, p_pnl: pnl,
     });
     if (closeUpdated == null) {
       return { ok: false as const, error: "Bakiye güncellenemedi", code: "BALANCE_UPDATE_FAILED" };
@@ -245,8 +246,8 @@ async function executeOne(admin: Admin, userId: string, body: TradeRequest, opts
     }
     await admin.from("positions").delete().eq("id", position_id);
   } else {
-    // Atomik balance düşüşü: RACE CONDITION yok, PostgreSQL atomik UPDATE yapar
-    const { data: deducted } = await admin.rpc("deduct_balance", {
+    // Atomik balance kilitleme: demo_balance düşmez, demo_balance_locked artar
+    const { data: deducted } = await admin.rpc("deduct_locked_balance", {
       p_user_id: userId, p_amount: total,
     });
     if (deducted == null) {
