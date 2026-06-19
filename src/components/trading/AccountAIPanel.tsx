@@ -85,11 +85,24 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
     return () => window.removeEventListener('balance-update', handler);
   }, []);
 
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase
+      .channel(`profile-balance-${user.id}`)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "profiles", filter: `id=eq.${user.id}` }, (payload) => {
+        const row = payload.new as { demo_balance?: number; initial_balance?: number };
+        if (row.demo_balance != null) setBalance(Number(row.demo_balance));
+        if (row.initial_balance != null) setInitial(Number(row.initial_balance));
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user]);
+
   const livePnl = positions.reduce((acc, p) => {
     const cur = livePrices[p.symbol]?.price ?? Number(p.current_price ?? p.entry_price);
     const v = p.side === "long" ? (cur - Number(p.entry_price)) * Number(p.quantity)
                                 : (Number(p.entry_price) - cur) * Number(p.quantity);
-    return acc + v;
+    return acc + (Number.isFinite(v) ? v : 0);
   }, 0);
 
   const totalEquity = balance + livePnl;

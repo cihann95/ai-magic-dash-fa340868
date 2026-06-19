@@ -293,15 +293,8 @@ async function executeOne(admin: Admin, userId: string, body: TradeRequest, opts
   let newProfitable = 0;
   let ac: Set<string> = new Set();
   let _statsData: Record<string, unknown> | null = null;
-  try {
-    // RPC'ler ayrı try-catch'te — başarısız olursa sadece XP/streak eklenmez, trade istatistikleri yine güncellenir
-    try {
-      await admin.rpc("touch_streak", { _user_id: userId });
-      await admin.rpc("award_xp", { _user_id: userId, _amount: 25 });
-    } catch (rpcErr) {
-      console.error("xp/streak rpc error", rpcErr);
-    }
 
+  try {
     const { data: stats } = await admin.from("user_stats").select("*").eq("user_id", userId).maybeSingle();
     _statsData = stats;
     newTotalTrades = (stats?.total_trades ?? 0) + 1;
@@ -320,8 +313,22 @@ async function executeOne(admin: Admin, userId: string, body: TradeRequest, opts
       best_trade_pnl: +newBest.toFixed(2),
       asset_classes_traded: Array.from(ac),
     }, { onConflict: "user_id" });
+  } catch (statsErr) {
+    console.error("user_stats upsert error (trade stats NOT updated)", statsErr);
+  }
 
-    try {
+  try {
+    await admin.rpc("touch_streak", { _user_id: userId });
+  } catch (rpcErr) {
+    console.error("touch_streak rpc error", rpcErr);
+  }
+  try {
+    await admin.rpc("award_xp", { _user_id: userId, _amount: 25 });
+  } catch (rpcErr) {
+    console.error("award_xp rpc error", rpcErr);
+  }
+
+  try {
       const tryGrant = async (code: string) => {
         const { data } = await admin.rpc("grant_achievement", { _user_id: userId, _code: code });
         if (data === true) grantedAchievements.push(code);
@@ -346,9 +353,6 @@ async function executeOne(admin: Admin, userId: string, body: TradeRequest, opts
     } catch (achErr) {
       console.error("achievement error", achErr);
     }
-  } catch (gErr) {
-    console.error("gamification stats upsert error", gErr);
-  }
 
   // ===== AI MIRROR - kapanan trade'ler için davranış aynası =====
   // Sadece kullanıcının kendi trade'i (copy değil) ve close action için

@@ -131,14 +131,17 @@ export default function OpenPositionsPanel({ refreshKey, onTradeDone, onSelectSy
 
   const enriched = useMemo(() => {
     return positions.map((p) => {
-      const cur = livePrices[p.symbol]?.price ?? Number(p.current_price ?? p.entry_price);
+      const livePrice = livePrices[p.symbol]?.price;
+      const fallbackPrice = Number(p.current_price ?? p.entry_price);
+      const cur = livePrice ?? fallbackPrice;
       const entry = Number(p.entry_price);
       const qty = Number(p.quantity);
       const notional = entry * qty;
       const pnl = p.side === "long" ? (cur - entry) * qty : (entry - cur) * qty;
       const pnlPct = entry > 0 ? ((p.side === "long" ? cur - entry : entry - cur) / entry) * 100 : 0;
       const heldMs = Date.now() - new Date(p.opened_at).getTime();
-      return { ...p, cur, entry, qty, notional, pnl, pnlPct, heldMs };
+      const isStale = livePrice == null;
+      return { ...p, cur, entry, qty, notional, pnl: Number.isFinite(pnl) ? pnl : 0, pnlPct: Number.isFinite(pnlPct) ? pnlPct : 0, heldMs, isStale };
     });
   }, [positions, livePrices]);
 
@@ -327,7 +330,8 @@ export default function OpenPositionsPanel({ refreshKey, onTradeDone, onSelectSy
                         <span className="text-muted-foreground/60">@</span>
                         <span>{formatPrice(p.entry)}</span>
                         <span className="text-muted-foreground/40">→</span>
-                        <span className="text-foreground/80">{formatPrice(p.cur)}</span>
+                        <span className={cn("text-foreground/80", p.isStale && "text-amber-500/80")}>{formatPrice(p.cur)}</span>
+                        {p.isStale && <Clock className="size-2.5 text-amber-500/60" />}
                       </div>
                     </div>
                     <div className="text-right shrink-0">
