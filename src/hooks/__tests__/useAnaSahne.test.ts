@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook, act, cleanup } from "@testing-library/react";
 
-// ─── Hoisted mocks (vi.hoisted ensures availability in vi.mock factory) ───
 const {
   mockSingle,
   mockTrack,
@@ -27,7 +26,7 @@ const {
 
   const mockFrom = vi.fn(() => ({
     select: mockSelect.mockReturnValue({
-      single: mockSingle,
+      maybeSingle: mockSingle,
     }),
   }));
 
@@ -46,7 +45,6 @@ vi.mock("@/integrations/supabase/client", () => ({
 
 import { useAnaSahne } from "@/hooks/useAnaSahne";
 
-// ─── Helpers ──────────────────────────────────────────────────
 const FAKE_ROOM = {
   id: "room-1",
   symbol: "BTC/USD",
@@ -73,7 +71,6 @@ const FAKE_ROOM = {
   ],
 };
 
-// ─── Tests ────────────────────────────────────────────────────
 describe("useAnaSahne", () => {
   beforeEach(() => {
     vi.clearAllMocks();

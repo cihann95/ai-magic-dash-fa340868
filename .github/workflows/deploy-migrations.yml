@@ -1,3 +1,4 @@
+---
 name: deploy-migrations
 
 on:
@@ -21,7 +22,7 @@ env:
   SUPABASE_PROD_REF: ${{ secrets.SUPABASE_PROD_REF }}
 
 jobs:
-  # ─── verify-migration-order ──────────────────────────────────────────────────
+  # verify-migration-order
   verify-migration-order:
     name: Verify Migration Order
     runs-on: ubuntu-latest
@@ -36,7 +37,7 @@ jobs:
       - name: Verify migration ordering
         run: npx tsx scripts/verify-migration-order.ts
 
-  # ─── deploy-staging ──────────────────────────────────────────────────────────
+  # deploy-staging
   deploy-staging:
     name: Deploy to Staging
     runs-on: ubuntu-latest
@@ -52,7 +53,7 @@ jobs:
       - name: Push migrations to staging
         run: supabase db push
 
-  # ─── verify-staging ──────────────────────────────────────────────────────────
+  # verify-staging
   verify-staging:
     name: Verify Staging Deployment
     runs-on: ubuntu-latest
@@ -68,20 +69,36 @@ jobs:
       - name: Verify RLS policies exist
         run: |
           echo "::group::RLS Policies"
-          supabase db query "SELECT schemaname, tablename, policyname, permissive, roles, cmd FROM pg_policies WHERE schemaname = 'public' ORDER BY tablename, policyname;"
+          supabase db query "
+            SELECT schemaname, tablename, policyname, permissive, roles, cmd
+            FROM pg_policies
+            WHERE schemaname = 'public'
+            ORDER BY tablename, policyname;
+          "
           echo "::endgroup::"
       - name: Verify triggers exist
         run: |
           echo "::group::Triggers"
-          supabase db query "SELECT trigger_name, event_manipulation, event_object_table, action_timing FROM information_schema.triggers WHERE trigger_schema = 'public' ORDER BY event_object_table, trigger_name;"
+          supabase db query "
+            SELECT trigger_name, event_manipulation, event_object_table, action_timing
+            FROM information_schema.triggers
+            WHERE trigger_schema = 'public'
+            ORDER BY event_object_table, trigger_name;
+          "
           echo "::endgroup::"
       - name: Verify functions exist
         run: |
           echo "::group::Functions"
-          supabase db query "SELECT routine_name, routine_type, data_type FROM information_schema.routines WHERE specific_schema = 'public' AND routine_type IN ('FUNCTION','PROCEDURE') ORDER BY routine_name;"
+          supabase db query "
+            SELECT routine_name, routine_type, data_type
+            FROM information_schema.routines
+            WHERE specific_schema = 'public'
+              AND routine_type IN ('FUNCTION','PROCEDURE')
+            ORDER BY routine_name;
+          "
           echo "::endgroup::"
 
-  # ─── manual-gate ─────────────────────────────────────────────────────────────
+  # manual-gate
   manual-gate:
     name: Manual Approval Gate
     runs-on: ubuntu-latest
@@ -93,7 +110,7 @@ jobs:
       - name: Awaiting production approval
         run: echo "⏸ Manual approval required before deploying to production"
 
-  # ─── deploy-production ───────────────────────────────────────────────────────
+  # deploy-production
   deploy-production:
     name: Deploy to Production
     runs-on: ubuntu-latest
@@ -109,7 +126,7 @@ jobs:
       - name: Push migrations to production
         run: supabase db push
 
-  # ─── verify-production ───────────────────────────────────────────────────────
+  # verify-production
   verify-production:
     name: Verify Production Deployment
     runs-on: ubuntu-latest
@@ -125,23 +142,44 @@ jobs:
       - name: Verify RLS policies exist
         run: |
           echo "::group::RLS Policies"
-          supabase db query "SELECT schemaname, tablename, policyname, permissive, roles, cmd FROM pg_policies WHERE schemaname = 'public' ORDER BY tablename, policyname;"
+          supabase db query "
+            SELECT schemaname, tablename, policyname, permissive, roles, cmd
+            FROM pg_policies
+            WHERE schemaname = 'public'
+            ORDER BY tablename, policyname;
+          "
           echo "::endgroup::"
       - name: Verify triggers exist
         run: |
           echo "::group::Triggers"
-          supabase db query "SELECT trigger_name, event_manipulation, event_object_table, action_timing FROM information_schema.triggers WHERE trigger_schema = 'public' ORDER BY event_object_table, trigger_name;"
+          supabase db query "
+            SELECT trigger_name, event_manipulation, event_object_table, action_timing
+            FROM information_schema.triggers
+            WHERE trigger_schema = 'public'
+            ORDER BY event_object_table, trigger_name;
+          "
           echo "::endgroup::"
       - name: Verify functions exist
         run: |
           echo "::group::Functions"
-          supabase db query "SELECT routine_name, routine_type, data_type FROM information_schema.routines WHERE specific_schema = 'public' AND routine_type IN ('FUNCTION','PROCEDURE') ORDER BY routine_name;"
+          supabase db query "
+            SELECT routine_name, routine_type, data_type
+            FROM information_schema.routines
+            WHERE specific_schema = 'public'
+              AND routine_type IN ('FUNCTION','PROCEDURE')
+            ORDER BY routine_name;
+          "
           echo "::endgroup::"
 
-  # ─── rollback-on-failure ─────────────────────────────────────────────────────
+  # rollback-on-failure
   rollback-on-failure:
     name: Rollback on Failure
-    if: ${{ always() && (needs.deploy-staging.result == 'failure' || needs.verify-staging.result == 'failure' || needs.deploy-production.result == 'failure' || needs.verify-production.result == 'failure') }}
+    if: >-
+      ${{ always() &&
+      (needs.deploy-staging.result == 'failure' ||
+       needs.verify-staging.result == 'failure' ||
+       needs.deploy-production.result == 'failure' ||
+       needs.verify-production.result == 'failure') }}
     runs-on: ubuntu-latest
     needs: [deploy-staging, verify-staging, deploy-production, verify-production]
     timeout-minutes: 10

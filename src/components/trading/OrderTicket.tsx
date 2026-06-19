@@ -29,7 +29,7 @@ export default function OrderTicket({ symbol }: { symbol: SymbolDef }) {
 
   useEffect(() => {
     if (lp?.price && !trigger) setTrigger(String(lp.price));
-  }, [lp?.price]);
+  }, [lp?.price, trigger]);
 
   const loadOrders = async () => {
     if (!user) return;
@@ -38,6 +38,7 @@ export default function OrderTicket({ symbol }: { symbol: SymbolDef }) {
     setOrders(data ?? []);
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadOrders(); }, [user, symbol.symbol]);
 
   useEffect(() => {
@@ -46,6 +47,7 @@ export default function OrderTicket({ symbol }: { symbol: SymbolDef }) {
       .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `user_id=eq.${user.id}` }, () => loadOrders())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const place = async () => {

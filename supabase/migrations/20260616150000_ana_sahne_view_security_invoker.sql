@@ -48,12 +48,14 @@ GRANT SELECT ON public.blitz_rooms TO anon, authenticated;
 GRANT SELECT ON public.blitz_participants TO anon, authenticated;
 GRANT SELECT ON public.blitz_orders TO anon, authenticated;
 
+DROP POLICY IF EXISTS "featured_room_select" ON public.blitz_rooms;
 CREATE POLICY "featured_room_select"
   ON public.blitz_rooms
   FOR SELECT
   TO anon, authenticated
   USING (is_featured = true);
 
+DROP POLICY IF EXISTS "featured_room_participants_select" ON public.blitz_participants;
 CREATE POLICY "featured_room_participants_select"
   ON public.blitz_participants
   FOR SELECT
@@ -63,6 +65,7 @@ CREATE POLICY "featured_room_participants_select"
     WHERE id = blitz_participants.room_id AND is_featured = true
   ));
 
+DROP POLICY IF EXISTS "featured_room_orders_select" ON public.blitz_orders;
 CREATE POLICY "featured_room_orders_select"
   ON public.blitz_orders
   FOR SELECT
@@ -72,6 +75,7 @@ CREATE POLICY "featured_room_orders_select"
     WHERE id = blitz_orders.room_id AND is_featured = true
   ));
 
+DROP POLICY IF EXISTS "featured_room_profiles_select" ON public.profiles;
 CREATE POLICY "featured_room_profiles_select"
   ON public.profiles
   FOR SELECT

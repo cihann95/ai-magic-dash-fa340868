@@ -1,0 +1,84 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { screen, cleanup, waitFor } from "@testing-library/react";
+import BottomNav from "@/components/BottomNav";
+import { renderWithProviders, setupGlobalMocks } from "@/pages/__tests__/test-utils";
+
+// ── Hoisted mocks ──
+const mockSupabaseClient = vi.hoisted(() => ({
+  from: vi.fn(),
+  auth: {
+    getSession: vi.fn().mockResolvedValue({
+      data: {
+        session: {
+          user: { id: "test-user-id", email: "test@example.com" },
+          access_token: "mock-token",
+        },
+      },
+      error: null,
+    }),
+    onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
+    signOut: vi.fn().mockResolvedValue({ error: null }),
+  },
+  channel: vi.fn(() => ({
+    on: vi.fn().mockReturnThis(),
+    subscribe: vi.fn(),
+    unsubscribe: vi.fn(),
+  })),
+  removeChannel: vi.fn(),
+  functions: { invoke: vi.fn().mockResolvedValue({ data: null, error: null }) },
+}));
+
+vi.mock("@/integrations/supabase/client", () => ({
+  supabase: mockSupabaseClient,
+}));
+
+vi.mock("lucide-react", () => ({
+  LineChart: () => <svg data-testid="icon-linechart" />,
+  Wallet: () => <svg data-testid="icon-wallet" />,
+  Settings: () => <svg data-testid="icon-settings" />,
+  Zap: () => <svg data-testid="icon-zap" />,
+  Activity: () => <svg data-testid="icon-activity" />,
+}));
+
+describe("BottomNav", () => {
+  beforeEach(() => {
+    setupGlobalMocks();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(async () => {
+    vi.unstubAllGlobals();
+    await cleanup();
+  });
+
+  it("renders navigation links when user is logged in", async () => {
+    renderWithProviders(<BottomNav />);
+    await waitFor(() => {
+      expect(screen.getByText("Piyasalar")).toBeInTheDocument();
+      expect(screen.getByText("Portföy")).toBeInTheDocument();
+      expect(screen.getByText("Blitz")).toBeInTheDocument();
+      expect(screen.getByText("İçgörüler")).toBeInTheDocument();
+      expect(screen.getByText("Ayarlar")).toBeInTheDocument();
+    });
+  });
+
+  it("renders nav element with correct structure", async () => {
+    renderWithProviders(<BottomNav />);
+    await waitFor(() => {
+      const nav = screen.getByRole("navigation");
+      expect(nav).toBeInTheDocument();
+      expect(nav).toHaveClass("lg:hidden");
+    });
+  });
+
+  it("returns null when user is not logged in", async () => {
+    mockSupabaseClient.auth.getSession.mockResolvedValue({
+      data: { session: null },
+      error: null,
+    });
+    renderWithProviders(<BottomNav />);
+    await waitFor(() => {
+      expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
+    });
+  });
+});

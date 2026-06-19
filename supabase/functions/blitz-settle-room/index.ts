@@ -3,11 +3,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { redis } from "../_shared/redis.ts";
 import type { Admin } from "../_shared/blitz-types.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
-};
+import { corsHeaders } from "../_shared/cors.ts";
 
 const PLATFORM_FEE_PCT = 0.05; // FAZ 4 raporları için kayıt; ödül net dağıtılır
 

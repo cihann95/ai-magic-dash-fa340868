@@ -68,6 +68,8 @@ export interface Config {
   readonly vapidSubject: string;
   /** Waiting room timeout in seconds (blitz-matchmake). Defaults to 300. Optional. */
   readonly waitingRoomTtlSeconds: string | undefined;
+  /** Log level for structured logger (DEBUG/INFO/WARN/ERROR/SILENT). Defaults to INFO. Optional. */
+  readonly logLevel: string | undefined;
 }
 
 // ---------------------------------------------------------------------------
@@ -108,6 +110,7 @@ function loadConfig(): Config {
       vapidPrivateKey: getOptional("VAPID_PRIVATE_KEY"),
       vapidSubject: getOptional("VAPID_SUBJECT") ?? "mailto:noreply@lumen.trade",
       waitingRoomTtlSeconds: getOptional("WAITING_ROOM_TTL_SECONDS"),
+      logLevel: getOptional("LOG_LEVEL"),
     }) satisfies Config;
 
     return config;
@@ -126,6 +129,7 @@ function loadConfig(): Config {
         vapidPrivateKey: getOptional("VAPID_PRIVATE_KEY"),
         vapidSubject: getOptional("VAPID_SUBJECT") ?? "mailto:noreply@lumen.trade",
         waitingRoomTtlSeconds: getOptional("WAITING_ROOM_TTL_SECONDS"),
+        logLevel: getOptional("LOG_LEVEL"),
       }) satisfies Config;
     }
 

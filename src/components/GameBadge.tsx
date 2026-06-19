@@ -25,6 +25,7 @@ export default function GameBadge() {
       .on("postgres_changes", { event: "*", schema: "public", table: "user_stats", filter: `user_id=eq.${user.id}` }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   if (!user || !stats) return null;

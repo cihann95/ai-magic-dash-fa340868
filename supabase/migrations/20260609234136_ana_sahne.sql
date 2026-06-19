@@ -85,23 +85,11 @@ LEFT JOIN public.blitz_orders o ON o.room_id = r.id AND o.user_id = bp.user_id A
 WHERE r.is_featured = true
 GROUP BY r.id;
 
--- ── RLS on the view itself (PostgreSQL 15+) ────────────────────────────────
-ALTER VIEW public.ana_sahne_view ENABLE ROW LEVEL SECURITY;
-
--- Everyone may SELECT the curated featured-room view
-CREATE POLICY "ana_sahne_view_anon_select"
-  ON public.ana_sahne_view
-  FOR SELECT
-  TO anon
-  USING (true);
-
-CREATE POLICY "ana_sahne_view_authenticated_select"
-  ON public.ana_sahne_view
-  FOR SELECT
-  TO authenticated
-  USING (true);
-
 -- ── Grants on the view ───────────────────────────────────────────────────
+-- NOTE: security_invoker on the view enforces base-table RLS automatically.
+-- Direct ALTER VIEW ... ENABLE ROW LEVEL SECURITY is not supported on this
+-- PostgreSQL version, and the underlying table policies (defined below)
+-- plus the GRANT SELECT statements provide equivalent access control.
 GRANT SELECT ON public.ana_sahne_view TO anon;
 GRANT SELECT ON public.ana_sahne_view TO authenticated;
 

@@ -438,8 +438,10 @@ Deno.serve(async (req) => {
     const bodySizeError = await checkBodySize(req);
     if (bodySizeError) return bodySizeError;
 
-    const parsedBody = parsePublicTradeRequest(await req.json().catch(() => null));
+    const rawBody = await req.json().catch(() => null);
+    const parsedBody = parsePublicTradeRequest(rawBody);
     if (!parsedBody.ok) {
+      console.error(JSON.stringify({ event: "validation_failed", error: parsedBody.error, body: rawBody }));
       return new Response(JSON.stringify({ error: parsedBody.error, code: "INVALID_REQUEST" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -452,6 +454,7 @@ Deno.serve(async (req) => {
 
     const result = await executeOne(admin, user.id, body, { fanOut: true });
     if (!result.ok) {
+      console.error(JSON.stringify({ event: "trade_failed", code: result.code, error: result.error, user_id: user.id, symbol: body.symbol }));
       const status = result.code === "PRICE_UNAVAILABLE" || result.code === "PRICE_STALE" ? 429 : 400;
       return new Response(JSON.stringify({ error: result.error, code: result.code, retryable: result.retryable }), {
         status, headers: { ...corsHeaders, "Content-Type": "application/json" },

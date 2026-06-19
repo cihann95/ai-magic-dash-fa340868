@@ -58,6 +58,7 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
     if (trades) setAllTrades(trades as { pnl: number | null }[]);
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadAcct(); }, [user, refreshKey]);
 
   useEffect(() => {

@@ -80,7 +80,7 @@ Deno.env.set("NODE_ENV", "development");
 
 // Need to clear module cache to force re-evaluation
 const configUrl = new URL("../../supabase/functions/_shared/config.ts", import.meta.url).href;
-const configKey = Deno.env.get("SUPABASE_URL") ?? "";
+const _configKey = Deno.env.get("SUPABASE_URL") ?? "";
 
 try {
   // Import a fresh copy — Deno caches by URL, so use a cache-busting import

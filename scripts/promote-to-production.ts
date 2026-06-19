@@ -17,8 +17,6 @@
  *   AUTO_CONFIRM             — Set to "true" to skip human approval prompt
  */
 
-import * as fs from "fs";
-import * as path from "path";
 import { execSync } from "child_process";
 import * as readline from "readline";
 
@@ -31,12 +29,12 @@ interface EnvConfig {
   autoConfirm: boolean;
 }
 
-interface HealthStatus {
+interface _HealthStatus {
   healthy: boolean;
   details: string;
 }
 
-interface DiffResult {
+interface _DiffResult {
   hasDifferences: boolean;
   summary: string;
 }
@@ -294,7 +292,7 @@ function runRegressionTests(dryRun: boolean): TestResult {
   // TypeScript check
   console.log(info("Running TypeScript check..."));
   try {
-    const tscOutput = execSync("npx tsc --noEmit", {
+    const _tscOutput = execSync("npx tsc --noEmit", {
       encoding: "utf-8",
       timeout: 120000,
     });
@@ -323,7 +321,7 @@ function runRegressionTests(dryRun: boolean): TestResult {
   // Build check
   console.log(info("Running build..."));
   try {
-    const buildOutput = execSync("npm run build 2>&1", {
+    const _buildOutput = execSync("npm run build 2>&1", {
       encoding: "utf-8",
       timeout: 120000,
     });

@@ -617,7 +617,7 @@ async function main(): Promise<void> {
       try {
         // Execute via psql
         const { execSync } = await import("node:child_process");
-        const psqlResult = execSync(
+        const _psqlResult = execSync(
           `psql "${process.env.DATABASE_URL}" -c "${downStmt.replace(/"/g, '\\"')}"`,
           {
             timeout: 30000,
@@ -674,7 +674,7 @@ async function main(): Promise<void> {
     const remainingTables = new Set<string>();
     const remainingFunctions = new Set<string>();
     for (const m of remainingMigrations) {
-      const analysis = analyzeMigration(m.content);
+      const _analysis = analyzeMigration(m.content);
       for (const stmt of m.content.split(";")) {
         const tableMatch = stmt.match(
           /CREATE\s+(?:OR\s+REPLACE\s+)?TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?(?:public\.)?(\w+)/i

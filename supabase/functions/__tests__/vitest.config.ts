@@ -8,7 +8,10 @@ export default defineConfig({
   test: {
     environment: "node",
     globals: true,
-    include: ["supabase/functions/__tests__/**/*.test.ts"],
+    include: [
+      "supabase/functions/__tests__/**/*.test.ts",
+      "supabase/functions/blitz-*/__tests__/**/*.test.ts",
+    ],
     setupFiles: [],
   },
   resolve: {

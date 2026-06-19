@@ -78,14 +78,23 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
       },
     }));
     try {
-      const { data, error } = await supabase.functions.invoke("execute-trade", {
+      const { data, error, response } = await supabase.functions.invoke("execute-trade", {
         body: {
           symbol: symbol.symbol, asset_class: symbol.asset_class, side, quantity: q,
           intent_tag: intent.tag, intent_note: intent.note || null,
           planned_tp: intent.planned_tp, planned_sl: intent.planned_sl,
         },
       });
-      if (error) throw error;
+      if (error) {
+        // FunctionsHttpError.context is a Response object, not {body:string}.
+        // Use Response.json() to extract the actual error message.
+        let errorMsg = error.message || "Unknown error";
+        try {
+          const body = await response?.json();
+          if (body?.error) errorMsg = body.error;
+        } catch { /* response body already consumed or not json */ }
+        throw new Error(errorMsg);
+      }
       const result = data as ExecuteTradeResponse;
       if (result?.error) throw new Error(result.error);
       const fillPrice = result?.price ?? price;

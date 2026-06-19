@@ -29,6 +29,7 @@ export default function AlertsPanel({ symbol }: { symbol: SymbolDef }) {
     setAlerts(data ?? []);
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); }, [user]);
   useEffect(() => {
     if (!user) return;
@@ -36,6 +37,7 @@ export default function AlertsPanel({ symbol }: { symbol: SymbolDef }) {
       .on("postgres_changes", { event: "*", schema: "public", table: "price_alerts", filter: `user_id=eq.${user.id}` }, () => load())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const create = async () => {

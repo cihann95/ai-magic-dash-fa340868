@@ -1,367 +1,216 @@
 {
+  "active_plan": "/home/user/projects/ai-magic-dash-fa340868/.omo/plans/master-fix-plan.md",
+  "started_at": "2026-06-18T13:44:46.522Z",
+  "session_ids": [
+    "opencode:ses_12555272bffes7zOwZ1tQx7UxZ",
+    "opencode:ses_12504de1fffeuhyMxTz62bT6tK",
+    "opencode:ses_12504cd64ffej8MgNG4pcpcIq1",
+    "opencode:ses_12504bbdeffeHwj45Pv5agzNXI"
+  ],
+  "plan_name": "master-fix-plan",
+  "session_origins": {
+    "opencode:ses_12555272bffes7zOwZ1tQx7UxZ": "direct",
+    "opencode:ses_12504de1fffeuhyMxTz62bT6tK": "appended",
+    "opencode:ses_12504cd64ffej8MgNG4pcpcIq1": "appended",
+    "opencode:ses_12504bbdeffeHwj45Pv5agzNXI": "appended"
+  },
+  "task_sessions": {
+    "todo:1": {
+      "task_key": "todo:1",
+      "task_label": "1",
+      "task_title": "Kullanilmayan Degisken/Import Temizligi",
+      "session_id": "opencode:ses_12504bbdeffeHwj45Pv5agzNXI",
+      "agent": "Sisyphus-Junior",
+      "category": "quick",
+      "updated_at": "2026-06-18T13:46:00.741Z"
+    }
+  },
   "schema_version": 2,
-  "active_work_id": "production-readiness",
   "works": {
-    "blitz-full-3832e9e5": {
-      "work_id": "blitz-full-3832e9e5",
-      "active_plan": "/home/user/projects/ai-magic-dash-fa340868/.omo/plans/blitz-full.md",
-      "plan_name": "blitz-full",
-      "status": "completed",
-      "started_at": "2026-06-09T20:38:44.672Z",
-      "updated_at": "2026-06-09T21:08:42.899Z",
+    "edge-function-fix-legacy": {
+      "work_id": "edge-function-fix-legacy",
+      "active_plan": "/home/user/projects/ai-magic-dash-fa340868/.omo/plans/edge-function-fix.md",
+      "plan_name": "edge-function-fix",
+      "started_at": "2026-06-17T13:52:51.492Z",
+      "updated_at": "2026-06-18T10:58:34.055Z",
       "session_ids": [
-        "opencode:ses_1520a38e2ffe5pJ2os9H6OZxsN"
+        "opencode:ses_12a620843ffeEwYeBOGFp5Jcxm",
+        "opencode:ses_12a241382ffewPjJfOCLYh6pyX",
+        "opencode:ses_12a23fef3ffe36L4obgghjP1zn",
+        "opencode:ses_12a23e935ffe2hRgn7gaTLR675",
+        "opencode:ses_12a23d44fffeuKzct8Hk7KjDI2",
+        "opencode:ses_125b8c03cffeJXXIen9VYky2Ab",
+        "opencode:ses_125b8b094ffeBc1oA9Trb9X4HB",
+        "opencode:ses_125b8606bffe7csrFpggTYz0dW",
+        "opencode:ses_125b84e8effepbkqfI4lECIDrZ",
+        "opencode:ses_125b84282ffeqYubQLYGyLN2cR",
+        "opencode:ses_125b825f7ffeAnaVD2Ma1gp8Ea",
+        "opencode:ses_125b8171affe3tU5r8bfdiqpAl",
+        "opencode:ses_125b0b431ffeVsAVZFDPOZA6Ap",
+        "opencode:ses_125b09d7dffeghqI1o8IgvAEfU",
+        "opencode:ses_125b08b7cffeaLT0fVLLrUXZVo",
+        "opencode:ses_1259e77beffebRGIHdVpAfUnug",
+        "opencode:ses_1259e6a91ffeRtf8lgZB86vsOS",
+        "opencode:ses_1259e5ee9fferVFtgkcMfjxb0G",
+        "opencode:ses_1259e531effee6vJK4KuUgHYjr",
+        "opencode:ses_1259e1768ffegVPravISI588Nj",
+        "opencode:ses_1259e08ebffeJXdXrt2WV9S2Hp"
       ],
       "session_origins": {
-        "opencode:ses_1520a38e2ffe5pJ2os9H6OZxsN": "direct"
+        "opencode:ses_12a620843ffeEwYeBOGFp5Jcxm": "direct",
+        "opencode:ses_12a241382ffewPjJfOCLYh6pyX": "appended",
+        "opencode:ses_12a23fef3ffe36L4obgghjP1zn": "appended",
+        "opencode:ses_12a23e935ffe2hRgn7gaTLR675": "appended",
+        "opencode:ses_12a23d44fffeuKzct8Hk7KjDI2": "appended",
+        "opencode:ses_125b8c03cffeJXXIen9VYky2Ab": "appended",
+        "opencode:ses_125b8b094ffeBc1oA9Trb9X4HB": "appended",
+        "opencode:ses_125b8606bffe7csrFpggTYz0dW": "appended",
+        "opencode:ses_125b84e8effepbkqfI4lECIDrZ": "appended",
+        "opencode:ses_125b84282ffeqYubQLYGyLN2cR": "appended",
+        "opencode:ses_125b825f7ffeAnaVD2Ma1gp8Ea": "appended",
+        "opencode:ses_125b8171affe3tU5r8bfdiqpAl": "appended",
+        "opencode:ses_125b0b431ffeVsAVZFDPOZA6Ap": "appended",
+        "opencode:ses_125b09d7dffeghqI1o8IgvAEfU": "appended",
+        "opencode:ses_125b08b7cffeaLT0fVLLrUXZVo": "appended",
+        "opencode:ses_1259e77beffebRGIHdVpAfUnug": "appended",
+        "opencode:ses_1259e6a91ffeRtf8lgZB86vsOS": "appended",
+        "opencode:ses_1259e5ee9fferVFtgkcMfjxb0G": "appended",
+        "opencode:ses_1259e531effee6vJK4KuUgHYjr": "appended",
+        "opencode:ses_1259e1768ffegVPravISI588Nj": "appended",
+        "opencode:ses_1259e08ebffeJXdXrt2WV9S2Hp": "appended"
       },
-      "agent": "atlas",
-      "ended_at": "2026-06-09T21:08:42.899Z",
-      "elapsed_ms": 1798227
-    },
-    "blitz-phase-2-01": {
-      "work_id": "blitz-phase-2-01",
-      "active_plan": "/home/user/projects/ai-magic-dash-fa340868/.omo/plans/blitz-phase-2.md",
-      "plan_name": "blitz-phase-2",
-      "status": "completed",
-      "started_at": "2026-06-09T21:49:44.317Z",
-      "updated_at": "2026-06-10T00:52:06.824Z",
-      "session_ids": [
-        "opencode:ses_1520a38e2ffe5pJ2os9H6OZxsN"
-      ],
-      "session_origins": {
-        "opencode:ses_1520a38e2ffe5pJ2os9H6OZxsN": "direct"
-      },
-      "agent": "atlas",
+      "worktree_path": null,
       "task_sessions": {
         "todo:1": {
           "task_key": "todo:1",
           "task_label": "1",
-          "task_title": "**SEC-001: Server-authoritative order timestamping**",
-          "session_id": "opencode:ses_151a1ba1bffe5Rcw5zL147546F",
+          "task_title": "_shared/config.ts - ConfigError Graceful Degradation",
+          "session_id": "opencode:ses_12a23d44fffeuKzct8Hk7KjDI2",
           "agent": "Sisyphus-Junior",
-          "category": "unspecified-high",
-          "updated_at": "2026-06-09T21:53:03.734Z",
-          "started_at": "2026-06-09T21:52:28.280Z",
+          "category": "quick",
+          "started_at": "2026-06-17T13:59:27.458Z",
           "status": "completed",
-          "ended_at": "2026-06-09T21:53:03.734Z",
-          "elapsed_ms": 35454
-        },
-        "todo:2": {
-          "task_key": "todo:2",
-          "task_label": "2",
-          "task_title": "**SEC-002: Slippage validation layer**",
-          "session_id": "opencode:ses_1519fee96ffecjEQYcfhVApIrK",
-          "agent": "Sisyphus-Junior",
-          "category": "unspecified-high",
-          "updated_at": "2026-06-09T21:53:57.007Z",
-          "started_at": "2026-06-09T21:53:48.786Z",
-          "status": "completed",
-          "ended_at": "2026-06-09T21:53:57.007Z",
-          "elapsed_ms": 8221
-        },
-        "todo:3": {
-          "task_key": "todo:3",
-          "task_label": "3",
-          "task_title": "**SEC-003: Anti-cheat guard trigger**",
-          "session_id": "opencode:ses_1519f237fffeNLIZeHe0JMbPcm",
-          "agent": "Sisyphus-Junior",
-          "category": "unspecified-high",
-          "updated_at": "2026-06-09T21:55:14.908Z",
-          "started_at": "2026-06-09T21:55:05.889Z",
-          "status": "completed",
-          "ended_at": "2026-06-09T21:55:14.908Z",
-          "elapsed_ms": 9019
-        },
-        "todo:4": {
-          "task_key": "todo:4",
-          "task_label": "4",
-          "task_title": "**SET-001: Settlement_ledger table + idempotency system**",
-          "session_id": "opencode:ses_1519dee2effe3dzowG9YVGz6U3",
-          "agent": "Sisyphus-Junior",
-          "category": "unspecified-high",
-          "updated_at": "2026-06-09T21:55:55.238Z",
-          "started_at": "2026-06-09T21:55:46.772Z",
-          "status": "completed",
-          "ended_at": "2026-06-09T21:55:55.238Z",
-          "elapsed_ms": 8466
+          "updated_at": "2026-06-17T14:01:34.523Z",
+          "ended_at": "2026-06-17T14:01:34.523Z",
+          "elapsed_ms": 127065
         },
         "todo:5": {
           "task_key": "todo:5",
           "task_label": "5",
-          "task_title": "**ANA-001: Analytics_events schema + staging table**",
-          "session_id": "opencode:ses_1519d4c31ffei9WpwWxAjR6DNF",
-          "agent": "Sisyphus-Junior",
-          "category": "unspecified-high",
-          "updated_at": "2026-06-09T21:56:43.979Z",
-          "started_at": "2026-06-09T21:56:34.248Z",
-          "status": "completed",
-          "ended_at": "2026-06-09T21:56:43.979Z",
-          "elapsed_ms": 9731
-        },
-        "todo:6": {
-          "task_key": "todo:6",
-          "task_label": "6",
-          "task_title": "**SEC-004: blitz-tick-order v2 — server-authoritative with slippage**",
-          "session_id": "opencode:ses_1519c6455ffebB0xBXyJLtqFoJ",
-          "agent": "Sisyphus-Junior",
-          "category": "unspecified-high",
-          "updated_at": "2026-06-09T21:59:39.081Z",
-          "started_at": "2026-06-09T21:59:08.391Z",
-          "status": "completed",
-          "ended_at": "2026-06-09T21:59:39.081Z",
-          "elapsed_ms": 30690
-        },
-        "todo:7": {
-          "task_key": "todo:7",
-          "task_label": "7",
-          "task_title": "**SET-002: blitz-settle-room v2 — row-level locking + ledger write**",
-          "session_id": "opencode:ses_15199ca9dffeOxKbkB6vO4dDDv",
+          "task_title": "execute-trade/index.ts - Price Stale Hardening + Error Mapping",
+          "session_id": "opencode:ses_12a1bf987ffevoV6fA3WkaqMBH",
           "agent": "Sisyphus-Junior",
           "category": "deep",
-          "updated_at": "2026-06-09T22:02:24.547Z",
-          "started_at": "2026-06-09T22:02:00.758Z",
+          "updated_at": "2026-06-17T14:56:04.649Z",
+          "started_at": "2026-06-17T14:22:02.280Z",
           "status": "completed",
-          "ended_at": "2026-06-09T22:02:24.547Z",
-          "elapsed_ms": 23789
+          "ended_at": "2026-06-17T14:56:04.649Z",
+          "elapsed_ms": 2042369
         },
-        "todo:10": {
-          "task_key": "todo:10",
-          "task_label": "10",
-          "task_title": "**SOC-001: useSpectatorBroadcast hook**",
-          "session_id": "opencode:ses_15196e0e4ffem4ZG6J0tp4OljJ",
-          "agent": "Sisyphus-Junior",
-          "category": "unspecified-high",
-          "updated_at": "2026-06-09T22:04:23.333Z",
-          "started_at": "2026-06-09T22:04:16.222Z",
-          "status": "completed",
-          "ended_at": "2026-06-09T22:04:23.333Z",
-          "elapsed_ms": 7111
-        },
-        "todo:11": {
-          "task_key": "todo:11",
-          "task_label": "11",
-          "task_title": "**SOC-002: SpectatorPanel component (emoji grid + chat)**",
-          "session_id": "opencode:ses_15195599effedQEI4XYgvvnsqf",
-          "agent": "Sisyphus-Junior",
-          "category": "visual-engineering",
-          "updated_at": "2026-06-10T00:03:33.191Z",
-          "started_at": "2026-06-09T22:05:33.342Z",
-          "status": "completed",
-          "ended_at": "2026-06-10T00:03:33.191Z",
-          "elapsed_ms": 7079849
-        },
-        "todo:15": {
-          "task_key": "todo:15",
-          "task_label": "15",
-          "task_title": "**SOC-003: Integrate SpectatorPanel into AnaSahne**",
-          "session_id": "opencode:ses_151286664ffe99ITFDlbhgBBbj",
-          "agent": "Sisyphus-Junior",
-          "category": "visual-engineering",
-          "updated_at": "2026-06-10T00:07:09.152Z",
-          "started_at": "2026-06-10T00:05:42.350Z",
-          "status": "completed",
-          "ended_at": "2026-06-10T00:07:09.152Z",
-          "elapsed_ms": 86802
-        },
-        "todo:20": {
-          "task_key": "todo:20",
-          "task_label": "20",
-          "task_title": "**QA-003: Broadcast throttling + burst tests**",
-          "session_id": "opencode:ses_15124dfccffeQ4iXDl6nVNkNHf",
+        "todo:13": {
+          "task_key": "todo:13",
+          "task_label": "13",
+          "task_title": "ai-analyze/index.ts - OpenRouter Error Mapping",
+          "session_id": "opencode:ses_129e9df3bffey3iq4V7fBfuGw0",
           "agent": "Sisyphus-Junior",
           "category": "quick",
-          "updated_at": "2026-06-10T00:10:36.197Z",
-          "started_at": "2026-06-10T00:10:28.440Z",
+          "updated_at": "2026-06-18T07:34:00.096Z",
+          "started_at": "2026-06-17T15:00:25.140Z",
           "status": "completed",
-          "ended_at": "2026-06-10T00:10:36.197Z",
-          "elapsed_ms": 7757
+          "ended_at": "2026-06-18T07:34:00.096Z",
+          "elapsed_ms": 59614956
         },
         "final-wave:f2": {
           "task_key": "final-wave:f2",
           "task_label": "F2",
-          "task_title": "**Code Quality + Security Review** — Run TypeScript compilation check, review all changed files for code quality issues, and perform a security audit.",
-          "session_id": "opencode:ses_15121ab2bffe1xKRDENDzX3ZZH",
+          "task_title": "**Code Quality Review** — Run build, lint, and tests; review all changed files for quality issues.",
+          "session_id": "opencode:ses_126579c69ffe9kECK4sWCX5eeE",
           "agent": "Sisyphus-Junior",
           "category": "unspecified-high",
-          "updated_at": "2026-06-10T00:51:49.801Z",
-          "started_at": "2026-06-10T00:13:02.551Z",
+          "updated_at": "2026-06-18T09:31:25.382Z",
+          "started_at": "2026-06-18T07:38:11.776Z",
           "status": "completed",
-          "ended_at": "2026-06-10T00:51:49.801Z",
-          "elapsed_ms": 2327250
+          "ended_at": "2026-06-18T09:31:25.382Z",
+          "elapsed_ms": 6793606
         },
         "final-wave:f3": {
           "task_key": "final-wave:f3",
           "task_label": "F3",
-          "task_title": "**Real Manual QA — End-to-End Scenario Execution** — Execute every QA scenario from EVERY implementation task. Test cross-task integration: verify that all components connect correctly. Save evidence to `.omo/evidence/final-qa/`.",
-          "session_id": "opencode:ses_151218e8cffehOx6xRHprVn2GW",
+          "task_title": "**Real Manual QA** — Execute QA scenarios from the edge-function-fix plan to verify correctness.",
+          "session_id": "opencode:ses_12657876effegkmoVt1kfgc124",
           "agent": "Sisyphus-Junior",
           "category": "unspecified-high",
-          "updated_at": "2026-06-10T00:51:50.607Z",
-          "started_at": "2026-06-10T00:13:41.164Z",
+          "updated_at": "2026-06-18T09:31:25.907Z",
+          "started_at": "2026-06-18T07:40:50.425Z",
           "status": "completed",
-          "ended_at": "2026-06-10T00:51:50.607Z",
-          "elapsed_ms": 2289443
-        },
-        "final-wave:f1": {
-          "task_key": "final-wave:f1",
-          "task_label": "F1",
-          "task_title": "**Plan Compliance Audit** — Read the plan end-to-end at `.omo/plans/blitz-phase-2.md`. For each \"Must Have\" in the plan: verify implementation exists (read files, run commands). For each \"Must NOT Have\": search the codebase for forbidden patterns — reject with file:line if found. Check evidence files exist in `.omo/evidence/`. Compare deliverables against plan.",
-          "session_id": "opencode:ses_15121c994ffekTDsnzMkpb2BBb",
-          "agent": "Sisyphus-Junior",
-          "category": "unspecified-high",
-          "updated_at": "2026-06-10T00:51:49.225Z",
-          "started_at": "2026-06-10T00:14:47.956Z",
-          "status": "completed",
-          "ended_at": "2026-06-10T00:51:49.225Z",
-          "elapsed_ms": 2221269
+          "ended_at": "2026-06-18T09:31:25.907Z",
+          "elapsed_ms": 6635482
         },
         "final-wave:f4": {
           "task_key": "final-wave:f4",
           "task_label": "F4",
-          "task_title": "**Scope Fidelity + Anti-Creep Audit** — For each of the 21 implementation tasks in `.omo/plans/blitz-phase-2.md`: read \"What to do\", read actual source files. Verify 1:1 — everything in spec was built (no missing), nothing beyond spec was built (no creep). Check \"Must NOT do\" compliance. Detect cross-task contamination. Flag unaccounted changes.",
-          "session_id": "opencode:ses_15100da82ffe4CIh0n2ahGNH7O",
+          "task_title": "**Scope Fidelity Check** — Verify each task's implementation matches exactly what was specified, with no scope creep.",
+          "session_id": "opencode:ses_126577518ffeWEhunbbW2pNigW",
           "agent": "Sisyphus-Junior",
           "category": "deep",
-          "started_at": "2026-06-10T00:46:22.387Z",
+          "updated_at": "2026-06-18T09:31:26.406Z",
+          "started_at": "2026-06-18T08:29:58.369Z",
           "status": "completed",
-          "updated_at": "2026-06-10T00:51:51.295Z",
-          "ended_at": "2026-06-10T00:51:51.295Z",
-          "elapsed_ms": 328908
+          "ended_at": "2026-06-18T09:31:26.406Z",
+          "elapsed_ms": 3688037
+        },
+        "final-wave:f1": {
+          "task_key": "final-wave:f1",
+          "task_label": "F1",
+          "task_title": "**Plan Compliance Audit** — `oracle`",
+          "session_id": "opencode:ses_125f3e7d4ffeaeUXnFXMW2aJu5",
+          "agent": "oracle",
+          "started_at": "2026-06-18T08:33:20.359Z",
+          "status": "completed",
+          "updated_at": "2026-06-18T09:31:24.865Z",
+          "ended_at": "2026-06-18T09:31:24.865Z",
+          "elapsed_ms": 3484506
         }
       },
-      "ended_at": "2026-06-10T00:52:06.824Z",
-      "elapsed_ms": 10942507
+      "ended_at": "2026-06-18T10:24:26.496Z",
+      "elapsed_ms": 73895004,
+      "status": "completed"
     },
-    "hard-technical-audit": {
-      "work_id": "hard-technical-audit",
-      "active_plan": "/home/user/projects/ai-magic-dash-fa340868/.omo/plans/hard-technical-audit.md",
-      "plan_name": "hard-technical-audit",
-      "status": "completed",
-      "started_at": "2026-06-10T00:00:00.000Z",
-      "updated_at": "2026-06-10T14:15:00.000Z",
-      "ended_at": "2026-06-10T14:15:00.000Z",
-      "elapsed_ms": 51300000,
-      "agent": "atlas",
-      "tasks": {
-        "CRSH-001": {
-          "title": "Runtime purge + connection proofing",
-          "status": "implemented",
-          "evidence": ".omo/evidence/hard-audit/crsh-001-leak.log",
-          "script": "scripts/audit/redis-leak-probe.ts"
-        },
-        "CRSH-002": {
-          "title": "Concurrency bombardment",
-          "status": "implemented",
-          "evidence": ".omo/evidence/hard-audit/crsh-002-bomb.log",
-          "script": "scripts/audit/concurrency-bomb.ts"
-        },
-        "CRSH-003": {
-          "title": "Exploit simulation + idempotency",
-          "status": "implemented",
-          "evidence": ".omo/evidence/hard-audit/crsh-003-exploit.log",
-          "script": "scripts/audit/arbitrage-exploit.ts"
-        }
-      },
+    "master-fix-plan-774dc7f9": {
+      "work_id": "master-fix-plan-774dc7f9",
+      "active_plan": "/home/user/projects/ai-magic-dash-fa340868/.omo/plans/master-fix-plan.md",
+      "plan_name": "master-fix-plan",
+      "status": "active",
+      "started_at": "2026-06-18T13:44:46.522Z",
+      "updated_at": "2026-06-18T13:46:00.741Z",
       "session_ids": [
-        "opencode:ses_14e36669cffe77XkmbF3e1WuYP"
-      ],
-      "session_origins": {},
-      "task_sessions": {}
-    },
-    "ci-pipeline-setup-b2e128ff": {
-      "work_id": "ci-pipeline-setup-b2e128ff",
-      "active_plan": "/home/user/projects/ai-magic-dash-fa340868/.omo/plans/ci-pipeline-setup.md",
-      "plan_name": "ci-pipeline-setup",
-      "status": "completed",
-      "started_at": "2026-06-10T13:30:34.510Z",
-      "updated_at": "2026-06-10T13:35:00.090Z",
-      "session_ids": [
-        "opencode:ses_1520a38e2ffe5pJ2os9H6OZxsN"
+        "opencode:ses_12555272bffes7zOwZ1tQx7UxZ",
+        "opencode:ses_12504de1fffeuhyMxTz62bT6tK",
+        "opencode:ses_12504cd64ffej8MgNG4pcpcIq1",
+        "opencode:ses_12504bbdeffeHwj45Pv5agzNXI"
       ],
       "session_origins": {
-        "opencode:ses_1520a38e2ffe5pJ2os9H6OZxsN": "direct"
+        "opencode:ses_12555272bffes7zOwZ1tQx7UxZ": "direct",
+        "opencode:ses_12504de1fffeuhyMxTz62bT6tK": "appended",
+        "opencode:ses_12504cd64ffej8MgNG4pcpcIq1": "appended",
+        "opencode:ses_12504bbdeffeHwj45Pv5agzNXI": "appended"
       },
       "agent": "atlas",
       "task_sessions": {
         "todo:1": {
           "task_key": "todo:1",
           "task_label": "1",
-          "task_title": "Create `.github/workflows/ci.yml` — crash-test CI workflow",
-          "session_id": "opencode:ses_14e451d91ffesdOL3G2WKP0mzj",
+          "task_title": "Kullanilmayan Degisken/Import Temizligi",
+          "session_id": "opencode:ses_12504bbdeffeHwj45Pv5agzNXI",
           "agent": "Sisyphus-Junior",
           "category": "quick",
-          "updated_at": "2026-06-10T13:32:40.788Z",
-          "started_at": "2026-06-10T13:31:26.017Z",
-          "status": "completed",
-          "ended_at": "2026-06-10T13:32:40.788Z",
-          "elapsed_ms": 74771
-        },
-        "final-wave:f1": {
-          "task_key": "final-wave:f1",
-          "task_label": "F1",
-          "task_title": "Plan Compliance Audit — Verify the `.github/workflows/ci.yml` implementation against the plan at `.omo/plans/ci-pipeline-setup.md`.",
-          "session_id": "opencode:ses_14e4333c7ffewi7TaxrNWnYvRv",
-          "agent": "oracle",
-          "started_at": "2026-06-10T13:33:06.314Z",
-          "status": "completed",
-          "updated_at": "2026-06-10T13:34:34.729Z",
-          "ended_at": "2026-06-10T13:34:34.729Z",
-          "elapsed_ms": 88415
-        },
-        "final-wave:f2": {
-          "task_key": "final-wave:f2",
-          "task_label": "F2",
-          "task_title": "YAML Syntax + Correctness Review — Review the CI workflow file for syntax correctness and structural compliance.",
-          "session_id": "opencode:ses_14e432487ffeKylFcRAnghN31b",
-          "agent": "Sisyphus-Junior",
-          "category": "unspecified-high",
-          "updated_at": "2026-06-10T13:34:35.416Z",
-          "started_at": "2026-06-10T13:33:51.898Z",
-          "status": "completed",
-          "ended_at": "2026-06-10T13:34:35.416Z",
-          "elapsed_ms": 43518
-        },
-        "final-wave:f4": {
-          "task_key": "final-wave:f4",
-          "task_label": "F4",
-          "task_title": "Scope Fidelity Check — Verify the implementation matches the plan exactly with no scope creep.",
-          "session_id": "opencode:ses_14e430053ffe7iVqnAcgHeM837",
-          "agent": "Sisyphus-Junior",
-          "category": "deep",
-          "updated_at": "2026-06-10T13:34:37.055Z",
-          "started_at": "2026-06-10T13:34:00.312Z",
-          "status": "completed",
-          "ended_at": "2026-06-10T13:34:37.055Z",
-          "elapsed_ms": 36743
-        },
-        "final-wave:f3": {
-          "task_key": "final-wave:f3",
-          "task_label": "F3",
-          "task_title": "Real QA — Directive Verification — Execute EVERY QA scenario from Task 1 in the plan. Run each grep/check command, verify expected results. Confirm all 9 evidence files exist in `.omo/evidence/ci-pipeline/`.",
-          "session_id": "opencode:ses_14e431148ffeH3uWQvoOxQyBJN",
-          "agent": "Sisyphus-Junior",
-          "category": "unspecified-high",
-          "updated_at": "2026-06-10T13:34:36.196Z",
-          "started_at": "2026-06-10T13:34:14.066Z",
-          "status": "completed",
-          "ended_at": "2026-06-10T13:34:36.196Z",
-          "elapsed_ms": 22130
+          "updated_at": "2026-06-18T13:46:00.741Z"
         }
-      },
-      "ended_at": "2026-06-10T13:35:00.090Z",
-      "elapsed_ms": 265580
+      }
     }
   },
-  "active_plan": "/home/user/projects/ai-magic-dash-fa340868/.omo/plans/production-hardening.md",
-  "plan_name": "production-hardening",
-  "session_ids": ["opencode:ses_1346aaddcffeIkEoLMJDfsKVvg"],
-  "session_origins": {
-    "opencode:ses_1346aaddcffeIkEoLMJDfsKVvg": "direct"
-  },
-  "agent": "atlas",
+  "active_work_id": "master-fix-plan-774dc7f9",
+  "updated_at": "2026-06-18T13:46:00.741Z",
   "status": "active",
-  "started_at": "2026-06-15T14:05:00.000Z",
-  "updated_at": "2026-06-15T14:05:00.000Z",
-  "task_sessions": {}
+  "agent": "atlas"
 }

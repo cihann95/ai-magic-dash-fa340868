@@ -20,7 +20,7 @@ function PortfolioInner() {
   const tr = t(lang);
   const [positions, setPositions] = useState<Database["public"]["Tables"]["positions"]["Row"][]>([]);
   const [trades, setTrades] = useState<Database["public"]["Tables"]["trades"]["Row"][]>([]);
-  const [balance, setBalance] = useState(0);
+  const [_balance, setBalance] = useState(0);
   const [initial, setInitial] = useState(100000);
   const [healthMode, setHealthMode] = useState(false);
 

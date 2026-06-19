@@ -1414,7 +1414,7 @@ Max Concurrent: 8 (Wave 2-6)
   - Files: `src/test-utils/**`
   - Pre-commit: `npx vitest run`
 
-- [ ] 22. **Unit Tests — Edge Functions (vitest)**
+- [x] 22. **Unit Tests — Edge Functions (vitest)**
 
   **What to do**:
   - Add vitest unit tests for each critical Edge Function: blitz-settle-room, blitz-tick-order, blitz-matchmake, blitz-analytics-writer
@@ -1469,7 +1469,7 @@ Max Concurrent: 8 (Wave 2-6)
   - Files: `supabase/functions/blitz-*/__tests__/*.test.ts`
   - Pre-commit: `npx vitest run supabase/functions/blitz-*/__tests__/ --reporter=verbose`
 
-- [ ] 23. **Unit Tests — Hooks + Lib (vitest + @testing-library/react)**
+- [x] 23. **Unit Tests — Hooks + Lib (vitest + @testing-library/react)**
 
   **What to do**:
   - Add vitest unit tests for all 12 custom hooks
@@ -1504,7 +1504,7 @@ Max Concurrent: 8 (Wave 2-6)
 
   **Commit**: YES — `test: add unit tests for hooks and lib modules`
 
-- [ ] 24. **Unit Tests — Pages + Components (vitest + @testing-library/react)**
+- [x] 24. **Unit Tests — Pages + Components (vitest + @testing-library/react)**
 
   **What to do**:
   - Add vitest tests for key pages (BlitzRoom, Dashboard, Profile) and shared components
@@ -1775,7 +1775,7 @@ Max Concurrent: 8 (Wave 2-6)
 
 ### Wave 4: Security (Parallel — hardening)
 
-- [ ] 31. **Rate Limiting — Supabase + Edge Function Layer**
+- [x] 31. **Rate Limiting — Supabase + Edge Function Layer**
 
   **What to do**:
   - Implement rate limiting on all public Edge Functions (HTTP-triggered)
@@ -1832,7 +1832,7 @@ Max Concurrent: 8 (Wave 2-6)
   - Files: `_shared/rate-limiter.ts`, modified EF files
   - Pre-commit: `npm run build`
 
-- [ ] 32. **CORS Headers on All Public Edge Functions**
+- [x] 32. **CORS Headers on All Public Edge Functions**
 
   **What to do**:
   - Create `_shared/cors.ts` with CORS header configuration
@@ -1958,7 +1958,7 @@ Max Concurrent: 8 (Wave 2-6)
 
   **Commit**: YES — `fix: strengthen RLS policies based on audit findings`
 
-- [ ] 35. **SQLCipher Key Remnant Scrub + Git History Cleanup**
+- [x] 35. **SQLCipher Key Remnant Scrub + Git History Cleanup**
 
   **What to do**:
   - Search git history for any remaining SQLCipher key references (from migration 0017 era)
@@ -2085,7 +2085,7 @@ Max Concurrent: 8 (Wave 2-6)
   - Message: `fix: resolve crash test failures in production`
   - Files: Fixes to issues found
 
-- [ ] 38. **Security Headers (CSP, HSTS, X-Frame-Options)**
+- [x] 38. **Security Headers (CSP, HSTS, X-Frame-Options)**
 
   **What to do**:
   - Configure security headers for the frontend deployment
@@ -2144,7 +2144,7 @@ Max Concurrent: 8 (Wave 2-6)
 
 ### Wave 5: Observability (Parallel — instrumentation)
 
-- [ ] 39. **Structured Logging Library for Edge Functions**
+- [x] 39. **Structured Logging Library for Edge Functions**
 
   **What to do**:
   - Create `_shared/logger.ts` for structured JSON logging in Edge Functions
@@ -2257,7 +2257,7 @@ Max Concurrent: 8 (Wave 2-6)
   - Files: `package.json`, `src/main.tsx`, `_shared/sentry.ts`
   - Pre-commit: `npm run build`
 
-- [ ] 41. **Health Check Endpoint on All Critical Edge Functions**
+- [x] 41. **Health Check Endpoint on All Critical Edge Functions**
 
   **What to do**:
   - Add `GET /health` handler to each critical Edge Function: blitz-settle-room, blitz-tick-order, blitz-matchmake, blitz-analytics-writer
@@ -2418,7 +2418,7 @@ Max Concurrent: 8 (Wave 2-6)
 
 ### Wave 6: Hardening (Parallel — code quality)
 
-- [ ] 45. **`as any` Elimination — Lib Files**
+- [x] 45. **`as any` Elimination — Lib Files**
 
   **What to do**:
   - Find all `as any` casts in `src/lib/` files
@@ -2472,7 +2472,7 @@ Max Concurrent: 8 (Wave 2-6)
   **Commit**: YES (group with T46-T49)
   - Message: `refactor: eliminate as any casts in lib files`
 
-- [ ] 46. **`as any` Elimination — Hooks**
+- [x] 46. **`as any` Elimination — Hooks**
 
   **What to do**:
   - Find all `as any` casts in `src/hooks/` files
@@ -2500,7 +2500,7 @@ Max Concurrent: 8 (Wave 2-6)
 
   **Commit**: YES (with T45-T49 group) — `refactor: eliminate as any casts in hooks`
 
-- [ ] 47. **`as any` Elimination — Pages**
+- [x] 47. **`as any` Elimination — Pages**
 
   **What to do**:
   - Find all `as any` casts in `src/pages/` files  
@@ -2527,7 +2527,7 @@ Max Concurrent: 8 (Wave 2-6)
 
   **Commit**: YES (with T45-T49 group) — `refactor: eliminate as any casts in pages`
 
-- [ ] 48. **`as any` Elimination — Edge Functions**
+- [x] 48. **`as any` Elimination — Edge Functions**
 
   **What to do**:
   - Find all `as any` casts in `supabase/functions/` files
@@ -2559,7 +2559,7 @@ Max Concurrent: 8 (Wave 2-6)
 
   **Commit**: YES (with T45-T49 group) — `refactor: eliminate as any casts in Edge Functions`
 
-- [ ] 49. **Admin Type Safety (settleRoom admin param)**
+- [x] 49. **Admin Type Safety (settleRoom admin param)**
 
   **What to do**:
   - Specifically fix the `admin` parameter typed as `any` in `blitz-settle-room/index.ts`
@@ -2598,7 +2598,7 @@ Max Concurrent: 8 (Wave 2-6)
   - Message: `fix: add proper Admin type to settleRoom (was any)`
   - Files: `_shared/blitz-types.ts`, `blitz-settle-room/index.ts`
 
-- [ ] 50. **Console.log Removal + Logger Integration**
+- [x] 50. **Console.log Removal + Logger Integration**
 
   **What to do**:
   - Find all `console.log()` statements in production code (src/ and supabase/functions/)
@@ -2634,7 +2634,7 @@ Max Concurrent: 8 (Wave 2-6)
 
   **Commit**: YES — `refactor: replace console.log with structured logger`
 
-- [ ] 51. **Unused Import/Variable Cleanup**
+- [x] 51. **Unused Import/Variable Cleanup**
 
   **What to do**:
   - Run `npx tsc --noEmit` and fix all unused import/variable warnings
@@ -2669,7 +2669,7 @@ Max Concurrent: 8 (Wave 2-6)
 
   **Commit**: YES — `refactor: remove unused imports and variables`
 
-- [ ] 52. **Blitz Settlement Timestamp Fix (order_timestamp() RPC)**
+- [x] 52. **Blitz Settlement Timestamp Fix (order_timestamp() RPC)**
 
   **What to do**:
   - In `blitz-settle-room/index.ts`: replace `new Date().toISOString()` with `order_timestamp()` RPC call
@@ -2726,7 +2726,7 @@ Max Concurrent: 8 (Wave 2-6)
   - Files: `supabase/functions/blitz-settle-room/index.ts`
   - Pre-commit: `npx tsx scripts/audit/concurrency-bomb/index.ts` (verify no regression)
 
-- [ ] 53. **Waiting Room Timeout Cleanup (Phase 2 Leftover)**
+- [x] 53. **Waiting Room Timeout Cleanup (Phase 2 Leftover)**
 
   **What to do**:
   - Audit current waiting room behavior: what happens when a player doesn't join?
