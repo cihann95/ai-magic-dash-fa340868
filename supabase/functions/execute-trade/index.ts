@@ -192,6 +192,7 @@ async function executeOne(admin: Admin, userId: string, body: TradeRequest, opts
   }
 
   let pnl: number | null = null;
+  let pnlPct: number = 0;
   let action: "open" | "close" = "open";
   let newBalance: number;
   let planAdherence: number | null = null;
@@ -215,6 +216,7 @@ async function executeOne(admin: Admin, userId: string, body: TradeRequest, opts
     const qty = Number(pos.quantity);
     pnl = pos.side === "long" ? (price - entry) * qty : (entry - price) * qty;
     pnl = Number(pnl.toFixed(2));
+    pnlPct = entry > 0 ? (pnl / (entry * qty)) * 100 : 0;
     const closeAmount = Number((entry * qty + pnl).toFixed(2));
 
     const closedTotal = Number((entry * qty).toFixed(2));
@@ -285,6 +287,9 @@ async function executeOne(admin: Admin, userId: string, body: TradeRequest, opts
 
   // Notification (close için plan uyum mesajı eklenir)
   let closeBody = `${quantity} @ $${price.toFixed(price < 5 ? 4 : 2)} • Toplam $${total.toFixed(2)}${copied_from ? " (Copy-Trade)" : ""}`;
+  if (action === "close") {
+    closeBody += ` • Kâr: ${pnl! >= 0 ? "+" : ""}$${pnl!.toFixed(2)} (${pnlPct >= 0 ? "+" : ""}${pnlPct.toFixed(1)}%)`;
+  }
   if (action === "close" && planAdherence !== null) {
     closeBody += ` • 📐 Plana uyum: %${planAdherence}`;
   }
@@ -293,10 +298,10 @@ async function executeOne(admin: Admin, userId: string, body: TradeRequest, opts
     type: "trade_executed",
     title: action === "open"
       ? `${side === "buy" ? "🟢" : "🔴"} ${side.toUpperCase()} ${symbol}${copied_from ? " 🔁" : ""}`
-      : `✖ ${symbol} kapatıldı${pnl !== null ? ` (${pnl >= 0 ? "+" : ""}$${pnl.toFixed(2)})` : ""}`,
+      : `✖ ${symbol} kapatıldı${pnl !== null ? ` (${pnl >= 0 ? "+" : ""}$${pnl.toFixed(2)} (${pnlPct >= 0 ? "+" : ""}${pnlPct.toFixed(1)}%))` : ""}`,
     body: closeBody,
     link: `/portfolio`,
-    metadata: { symbol, side, action, qty: quantity, price, pnl, copied_from, plan_adherence: planAdherence },
+    metadata: { symbol, side, action, qty: quantity, price, pnl, pnlPct, copied_from, plan_adherence: planAdherence },
   });
 
   // Gamification
