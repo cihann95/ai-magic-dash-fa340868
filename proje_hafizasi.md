@@ -364,3 +364,53 @@ real_balance_ledger:
   - Immutable: UPDATE/DELETE policy'leri yok
   - INSERT sadece service_role
   - granted_by kolonu her zaman dolu
+
+## BÖLÜM 9 — FEATURE STATUS
+
+GENEL DURUM:
+  - Toplam sayfa: 17 (auth dahil)
+  - Çalışan: 15 (%88)
+  - Eksik: 2 (%12) — /history loading, /social error state
+
+SAYFA DURUMLARI:
+  - / (Index): ✅ Çalışıyor — trading dashboard, sembol listesi, grafik, pozisyonlar, AI panel
+  - /portfolio: ✅ Çalışiyor — positions, trades, profiles, live prices, PnL hesaplama
+  - /history: ⚠️ Düzeltildi — loading state eklendi (Faz 6)
+  - /watchlist: ✅ Çalışıyor — watchlist CRUD, live prices
+  - /settings: ✅ Çalışıyor — profil, public profil, tema, push, demo reset
+  - /leaderboard: ✅ Çalışıyor — get_leaderboard RPC, join/leave
+  - /achievements: ✅ Çalışıyor — achievements + user_achievements
+  - /heatmap: ✅ Çalışıyor — useLivePrices, renkli grid
+  - /social: ⚠️ Eksik — client-side write (RLS korumalı ama edge function'a taşınacak)
+  - /coach: ✅ Çalışıyor — coach_insights + ai-trade-coach edge function
+  - /journal: ✅ Çalışıyor — trade_journal CRUD
+  - /insights: ✅ Çalışıyor — intent mirror, plan discipline, emotion mirror
+  - /blitz: ✅ Çalışıyor — matchmaking, private room, queue
+  - /blitz/:roomId: ✅ Çalışıyor — 60s timer, trading, leaderboard, settlement
+  - /admin/blitz: ✅ Çalışıyor — admin role check, revenue dashboard, top-up
+  - /auth: ✅ Çalışıyor — Supabase Auth
+  - /reset-password: ✅ Çalışıyor — Supabase Auth
+
+COPY TRADING FLOW:
+  1. Follow: /social → followers INSERT (client-side) ✅
+  2. Copy Settings: /social → copy_settings UPSERT (client-side) ✅
+  3. Trade Mirror: trade-mirror edge function ✅
+  4. Trigger: pg_trigger ile tetikleniyor ✅
+  - Not: Client-side write kullanıyor, Faz 7'de edge function'a taşınacak
+
+EDGE FUNCTION KULLANIMI:
+  - execute-trade: /, /portfolio (trading)
+  - manage-order: / (order ticket)
+  - ai-chat: / (AI panel)
+  - ai-analyze: / (AI panel)
+  - ai-strategy: / (AI panel)
+  - ai-trade-coach: /coach
+  - ai-risk-monitor: / (AI panel)
+  - blitz-matchmake: /blitz
+  - blitz-join-private: /blitz
+  - blitz-tick-order: /blitz/:roomId
+  - blitz-settle-room: /blitz/:roomId (cron)
+  - blitz-admin-topup: /admin/blitz
+  - trade-mirror: pg_trigger
+  - reset-demo-account: /settings
+  - health: CI/monitoring
