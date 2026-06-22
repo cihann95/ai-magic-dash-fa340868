@@ -190,6 +190,20 @@ SORUN 8:
   - Kök neden: responsive layout için mobile-specific UI yoktu
   - Öncelik: orta
   - Durum: ÇÖZÜLDÜ — lg altında ResizablePanelGroup yerine Tabs (Pozisyonlar/AI) ile tek alanda geçiş; useLocalStorage hook'u ile son sekme hatırlanıyor
+SORUN 9:
+  - Belirti: E2E test senaryoları eksikti — sadece auth ve blitz vardı
+  - Hata mesajı: dashboard, order ticket, mobile responsive testleri yoktu
+  - Etkilenen dosya/fonksiyon: e2e/critical-flows.spec.ts (yeni oluşturuldu)
+  - Kök neden: production readiness için kritik user flow'lar test edilmemişti
+  - Öncelik: yüksek
+  - Durum: ÇÖZÜLDÜ — 5 senaryo yazıldı (auth, dashboard, order ticket, mobile, blitz)
+SORUN 10:
+  - Belirti: Bundle optimize edilmemişti — tek chunk tüm vendor'ları içeriyordu
+  - Hata mesajı: büyük bundle → yavaş yükleme
+  - Etkilenen dosya/fonksiyon: vite.config.ts (manualChunks eklendi)
+  - Kök neden: manualChunks konfigürasyonu eksikti
+  - Öncelik: orta
+  - Durum: ÇÖZÜLDÜ — vendor-react, vendor-supabase, vendor-charts, vendor-ui ayrıldı
 ## BÖLÜM 5 — ORTAM DEĞİŞKENLERİ
 .env dosyasındaki KEY isimleri ve açıklamaları:
 - NODE_ENV
@@ -269,3 +283,36 @@ Proje, React 18 + Vite + Supabase üzerine kurulu bir trading dashboard ve "Blit
 3) price_cache RLS akışı: birden fazla migration ile override edildi; prod DB şeması ile `.env.example`/frontend beklentisi tekrar kontrol edilmeli
 4) cron_secret taşınması: pg_cron → edge function çağrısı için Supabase Vault’ta saklanıyor; yeni ortamda Vault secret kurulumu unutulabilir
 5) AI edge timeout/handle sapması: sadece trade-mirror’da standartlaştırıldı; ai-chat/ai-risk-monitor/ai-strategy/ai-trade-coach/ai-analyze/daily-brief/weekly-digest’te benzer değil
+## BÖLÜM 7 — DEPLOYMENT REHBERİ
+
+VERCEL DEPLOYMENT:
+  - Hosting: Vercel (otomatik deploy, main dalına push ile)
+  - Zorunlu env var'lar (Vercel Dashboard → Settings → Environment Variables):
+    * VITE_SUPABASE_URL — Supabase proje URL'i
+    * VITE_SUPABASE_PUBLISHABLE_KEY — Supabase anon key
+    * VITE_ANA_SAHNE_ENABLED — Ana Sahne section toggle (true/false)
+  - Opsiyonel env var'lar:
+    * VITE_VAPID_PUBLIC_KEY — Web Push bildirimleri
+    * VITE_SENTRY_DSN — Sentry hata takibi
+
+SUPABASE EDGE FUNCTIONS:
+  - Deploy yöntemi: Manuel (supabase CLI) veya CI (GitHub Actions + SUPABASE_ACCESS_TOKEN)
+  - Manuel deploy: DEPLOYMENT.md dosyasına bakın
+  - Fonksiyon sayısı: 20
+  - JWT gereksinimleri: price-feed ve news-feed public (--no-verify-jwt), diğerleri auth gerektirir
+
+GITHUB SECRETS:
+  - SUPABASE_ACCESS_TOKEN: Supabase Dashboard → Account → Access Tokens
+  - SUPABASE_PROJECT_ID: Supabase Dashboard → Settings → General → Reference ID
+  - Bu secret'lar eklendiğinde CI otomatik deploy eder
+  - Eksikse deploy-edge-functions workflow skip edilir (fail olmaz)
+
+CI/CD AKIŞ:
+  1. Push → GitHub Actions tetiklenir
+  2. Frontend Unit Tests (vitest) → tüm testler geçmeli
+  3. Edge Function Tests (vitest) → edge function testleri
+  4. Blitz Types Sync Check → type senkronizasyonu
+  5. Hard Technical Audit → crash test suite
+  6. E2E Tests (Playwright) → kritik user flow'lar
+  7. Deploy Edge Functions → sadece SUPABASE_ACCESS_TOKEN varsa
+  8. Vercel → otomatik build & deploy
