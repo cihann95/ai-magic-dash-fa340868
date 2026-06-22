@@ -2,12 +2,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Loader2, Swords, Plus, KeyRound, Zap, X } from "lucide-react";
+import { Loader2, Swords, Plus, KeyRound, Zap, X, Copy, Check } from "lucide-react";
 import AppShell from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { SYMBOLS } from "@/lib/symbols";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,7 +19,7 @@ import { useApp } from "@/contexts/AppContext";
 const ENTRY_FEES = [5, 10, 25, 50];
 
 export default function Blitz() {
-  const { user } = useApp();
+  const { user, realBalance, realBalanceLocked } = useApp();
   const navigate = useNavigate();
   const [symbol, setSymbol] = useState("BTCUSD");
   const [entryFee, setEntryFee] = useState(5);
@@ -26,16 +27,12 @@ export default function Blitz() {
   const [creating, setCreating] = useState(false);
   const [joining, setJoining] = useState(false);
   const [inviteCode, setInviteCode] = useState("");
+  const [createdInviteCode, setCreatedInviteCode] = useState("");
   const [waitingRoomId, setWaitingRoomId] = useState<string | null>(null);
-  const [balance, setBalance] = useState<{ real: number; locked: number } | null>(null);
+  const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    if (!user) return;
-    supabase.from("profiles").select("real_balance, real_balance_locked").eq("id", user.id).maybeSingle()
-      .then(({ data }) => {
-        if (data) setBalance({ real: Number(data.real_balance), locked: Number(data.real_balance_locked) });
-      });
-  }, [user]);
+  const available = realBalance - realBalanceLocked;
+  const insufficientBalance = available < entryFee;
 
   // Kuyrukta beklerken yeni oda açıldığında dinle
   useEffect(() => {
@@ -59,15 +56,16 @@ export default function Blitz() {
     try {
       const data = await callEdgeFunction<{ room_id: string; status: string }>("blitz-matchmake", {
         mode: "quick", symbol, entry_fee: entryFee,
-      });
+      }, { showToast: false });
       if (data?.status === "active" && data?.room_id) {
         setQueueing(false);
         navigate(`/blitz/${data.room_id}`);
         return;
       }
       toast.success("Kuyruğa eklendi. Rakip aranıyor...");
-    } catch {
+    } catch (err: any) {
       setQueueing(false);
+      toast.error(err?.error || err?.message || "İşlem başarısız, tekrar deneyin");
     }
   }
 
@@ -75,9 +73,8 @@ export default function Blitz() {
     try {
       await callEdgeFunction("blitz-matchmake", {
         mode: "cancel", symbol, entry_fee: entryFee,
-      });
+      }, { showToast: false });
     } catch {
-      // callEdgeFunction already shows toast
     }
     setQueueing(false);
     toast.info("Kuyruktan çıktın");
@@ -89,12 +86,13 @@ export default function Blitz() {
     try {
       const data = await callEdgeFunction<{ room_id: string; invite_code: string }>("blitz-matchmake", {
         mode: "create_private", symbol, entry_fee: entryFee,
-      });
+      }, { showToast: false });
       setCreating(false);
       setWaitingRoomId(data.room_id);
-      toast.success(`Davet kodu: ${data.invite_code}`);
-    } catch {
+      setCreatedInviteCode(data.invite_code);
+    } catch (err: any) {
       setCreating(false);
+      toast.error(err?.error || err?.message || "İşlem başarısız, tekrar deneyin");
     }
   }
 
@@ -105,15 +103,32 @@ export default function Blitz() {
     try {
       const data = await callEdgeFunction<{ room_id: string }>("blitz-join-private", {
         invite_code: inviteCode.trim(),
-      });
+      }, { showToast: false });
       setJoining(false);
       navigate(`/blitz/${data.room_id}`);
-    } catch {
+    } catch (err: any) {
       setJoining(false);
+      toast.error(err?.error || err?.message || "İşlem başarısız, tekrar deneyin");
     }
   }
 
-  // Waiting room takip
+  async function cancelWaitingRoom() {
+    try {
+      await callEdgeFunction("blitz-matchmake", { mode: "cancel", symbol, entry_fee: entryFee }, { showToast: false });
+    } catch {
+    }
+    setWaitingRoomId(null);
+    setCreatedInviteCode("");
+    toast.info("Oda iptal edildi");
+  }
+
+  async function copyInviteCode() {
+    if (!createdInviteCode) return;
+    await navigator.clipboard.writeText(createdInviteCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
   useEffect(() => {
     if (!waitingRoomId) return;
     const ch = supabase.channel(`blitz_wait_${waitingRoomId}`)
@@ -140,20 +155,18 @@ export default function Blitz() {
           <p className="text-sm text-muted-foreground">60 saniye. 1v1. Kazanan havuzu alır.</p>
         </header>
 
-        {balance && (
-          <Card className="p-4 flex items-center justify-between glass">
-            <div>
-              <div className="text-xs text-muted-foreground">Blitz cüzdanı</div>
-              <div className="text-2xl font-bold">${(balance.real - balance.locked).toFixed(2)}</div>
-              {balance.locked > 0 && (
-                <div className="text-[11px] text-muted-foreground">Kilitli: ${balance.locked.toFixed(2)}</div>
-              )}
-            </div>
-            <div className="text-xs text-muted-foreground text-right max-w-[180px]">
-              Bakiye yetersizse yöneticiyle iletişime geç.
-            </div>
-          </Card>
-        )}
+        <Card className="p-4 flex items-center justify-between glass">
+          <div>
+            <div className="text-xs text-muted-foreground">Gerçek Bakiye</div>
+            <div className="text-2xl font-bold">${available.toFixed(2)}</div>
+            {realBalanceLocked > 0 && (
+              <div className="text-[11px] text-muted-foreground">Kilitli: ${realBalanceLocked.toFixed(2)}</div>
+            )}
+          </div>
+          <div className="text-xs text-muted-foreground text-right max-w-[200px]">
+            Blitz ve platform işlemleri için kullanılan bakiye. Admin tarafından yüklenir.
+          </div>
+        </Card>
 
         <Card className="p-5 space-y-5 glass">
           <div className="space-y-2">
@@ -190,9 +203,27 @@ export default function Blitz() {
 
             <TabsContent value="quick" className="pt-4">
               {!queueing ? (
-                <Button className="w-full h-12 gradient-primary text-primary-foreground" onClick={quickMatch}>
-                  <Swords className="size-4 mr-2" /> Eşleşme bul
-                </Button>
+                insufficientBalance ? (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button className="w-full h-12 gradient-primary text-primary-foreground" disabled>
+                          <Swords className="size-4 mr-2" /> Eşleşme bul
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent className="space-y-2">
+                        <p>Bakiye yetersiz. Minimum ${entryFee} gerekli.</p>
+                        <Button asChild variant="link" size="sm" className="p-0 h-auto text-xs">
+                          <a href="/settings">Bakiye Yükle →</a>
+                        </Button>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ) : (
+                  <Button className="w-full h-12 gradient-primary text-primary-foreground" onClick={quickMatch}>
+                    <Swords className="size-4 mr-2" /> Eşleşme bul
+                  </Button>
+                )
               ) : (
                 <div className="space-y-3">
                   <div className="flex items-center justify-center gap-3 py-4">
@@ -207,19 +238,58 @@ export default function Blitz() {
             </TabsContent>
 
             <TabsContent value="private" className="pt-4 space-y-4">
-              <Button className="w-full" variant="outline" onClick={createPrivate} disabled={creating || !!waitingRoomId}>
-                {creating ? <Loader2 className="size-4 mr-2 animate-spin" /> : <Plus className="size-4 mr-2" />}
-                Davet kodu oluştur
-              </Button>
-              {waitingRoomId && (
-                <div className="text-center text-xs text-muted-foreground">Oda bekliyor, rakibin katılmasını bekle.</div>
+              {!waitingRoomId && (
+                insufficientBalance ? (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button className="w-full" variant="outline" disabled>
+                          {creating ? <Loader2 className="size-4 mr-2 animate-spin" /> : <Plus className="size-4 mr-2" />}
+                          Davet kodu oluştur
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent className="space-y-2">
+                        <p>Bakiye yetersiz. Minimum ${entryFee} gerekli.</p>
+                        <Button asChild variant="link" size="sm" className="p-0 h-auto text-xs">
+                          <a href="/settings">Bakiye Yükle →</a>
+                        </Button>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ) : (
+                  <Button className="w-full" variant="outline" onClick={createPrivate} disabled={creating}>
+                    {creating ? <Loader2 className="size-4 mr-2 animate-spin" /> : <Plus className="size-4 mr-2" />}
+                    Davet kodu oluştur
+                  </Button>
+                )
               )}
-              <div className="flex gap-2">
-                <Input placeholder="DAVET KODU" value={inviteCode} onChange={(e) => setInviteCode(e.target.value.toUpperCase())} maxLength={8} />
-                <Button onClick={joinPrivate} disabled={joining || !inviteCode}>
-                  {joining ? <Loader2 className="size-4 animate-spin" /> : "Katıl"}
-                </Button>
-              </div>
+              {waitingRoomId && createdInviteCode && (
+                <Card className="p-6 space-y-4 text-center border border-primary/30 bg-primary/5">
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">Davet Kodunuz</p>
+                    <p className="text-4xl font-mono font-bold tracking-widest text-primary select-all">{createdInviteCode}</p>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={copyInviteCode}>
+                    {copied ? <Check className="size-4 mr-2" /> : <Copy className="size-4 mr-2" />}
+                    {copied ? "Kopyalandı!" : "Kopyala"}
+                  </Button>
+                  <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="size-4 animate-spin" />
+                    Odanın hazır olması bekleniyor...
+                  </div>
+                  <Button variant="destructive" size="sm" onClick={cancelWaitingRoom}>
+                    <X className="size-4 mr-2" /> İptal
+                  </Button>
+                </Card>
+              )}
+              {!waitingRoomId && (
+                <div className="flex gap-2">
+                  <Input placeholder="DAVET KODU" value={inviteCode} onChange={(e) => setInviteCode(e.target.value.toUpperCase())} maxLength={8} />
+                  <Button onClick={joinPrivate} disabled={joining || !inviteCode}>
+                    {joining ? <Loader2 className="size-4 animate-spin" /> : "Katıl"}
+                  </Button>
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </Card>
