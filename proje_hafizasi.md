@@ -7,7 +7,7 @@ FRONTEND:
   - Paket yöneticisi: npm (package-lock.json mevcut, tek paket yöneticisi olarak sabitlendi)
 BACKEND:
   - Supabase kullanılıyor mu?: Evet
-    - Edge Functions listesi: ai-analyze, ai-chat, ai-risk-monitor, ai-strategy, ai-trade-coach, blitz-admin-topup, blitz-analytics-writer, blitz-join-private, blitz-matchmake, blitz-settle-room, blitz-tick-order, daily-brief, execute-trade, manage-order, news-feed, price-feed, reset-demo-account, send-push, trade-mirror, weekly-digest
+    - Edge Functions listesi: ai-analyze, ai-chat, ai-risk-monitor, ai-strategy, ai-trade-coach, blitz-admin-topup, blitz-analytics-writer, blitz-join-private, blitz-matchmake, blitz-settle-room, blitz-tick-order, daily-brief, execute-trade, manage-copy-settings, manage-follow, manage-order, news-feed, price-feed, reset-demo-account, send-push, trade-mirror, weekly-digest
     - Realtime subscription var mı?: Evet — notifications, price_cache, coach_insights, copy_settings, blitz_rooms, blitz_participants, blitz_orders, user_stats, positions, orders, price_alerts vb.
     - RLS aktif mi?: Evet — profiles, positions, trades, orders, notifications, public_profiles, copy_settings, coach_insights, push_subscriptions, emotional_logs, followers, blitz_rooms, blitz_participants, blitz_orders, platform_revenue, real_balance_ledger, settlement_ledger, slippage_config, analytics_events, observability_log vb.
   - Harici API'ler:
@@ -426,6 +426,12 @@ AI CONTEXT (Faz 8):
   - ai-trade-coach: behavior stats + portfolio context
   - AccountAIPanel: selectedSymbol tüm AI çağrılarına gönderiliyor
 
+AI MODEL KARARI:
+  - Tüm AI fonksiyonları: openai/gpt-4o-mini (OpenRouter üzerinden)
+  - OPENROUTER_API_KEY: Supabase Secrets'ta tanımlı (16 Haz 2026)
+  - LOVABLE_API_KEY: .env'de var ama edge function'larda kullanılmıyor (vestigial)
+  - Karar: Model yükseltme yapılmayacak, gpt-4o-mini ile devam
+
 HATA YÖNETİMİ (Faz 8):
   - edge-error.ts: callEdgeFunction wrapper — Supabase raw error parse, Türkçe mesajlar, retry
   - Tüm frontend edge function çağrıları callEdgeFunction üzerinden
@@ -435,4 +441,8 @@ UI DÜZELTMELERİ (Faz 8):
   - AccountAIPanel: TabsContent height zinciri düzeltildi (min-h-0 + data-[state] pattern)
   - Mobil layout: TabsContent height düzeltildi
 
-🏁 Faz 8 tamamlandı — AI context + error handling + UI düzeltmeleri.
+DEPLOY DURUMU:
+  - 22 Haz 2026: ai-analyze, ai-chat, ai-strategy, ai-trade-coach deploy edildi (build-ai-context entegrasyonu)
+  - Tüm AI fonksiyonları artık güncel fiyat + portföy context'i alıyor
+
+🏁 Faz 8 tamamlandı — AI context + error handling + UI düzeltmeleri. Edge functions deploy edildi.
