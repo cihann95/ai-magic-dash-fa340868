@@ -1,0 +1,27 @@
+Task 5 Evidence: Notification Title + PnlPct + JSON Fallback
+
+=== Notification Title (satır 181-184) ===
+const pnlPctStr = `(${pnlPct >= 0 ? "+" : ""}${pnlPct.toFixed(1)}%)`;
+const titlePrefix = current.intent_tag && intentMap[current.intent_tag]
+  ? `${intentMap[current.intent_tag]} → +$${pnlNum.toFixed(2)} ${pnlPctStr}`
+  : `🪞 ${current.symbol} aynası`;
+
+Örnek çıktı: "📊 Teknik sinyal → +$15.50 (+3.1%)"
+
+=== Notification Body (satır 162) ===
+Fallback: `İşlem kapatıldı: ${pnlNum >= 0 ? "+" : ""}$${pnlNum.toFixed(2)} (${pnlPct >= 0 ? "+" : ""}${pnlPct.toFixed(1)}%)`
+AI'dan gelirse: parsed.observation
+
+=== JSON Parse + Fallback (satır 165-171) ===
+try {
+  const parsed = JSON.parse(rawContent);
+  if (parsed.observation) observation = String(parsed.observation);
+  if (parsed.pattern) pattern = String(parsed.pattern);
+  if (parsed.winRate) winRate = String(parsed.winRate);
+} catch {
+  // fallback observation kullanılır
+}
+
+=== Metadata (satır 193, 202) ===
+coach_insights: { trade_id, pattern_type, intent, pnl, pnlPct, pattern, winRate }
+notifications: { trade_id, pattern_type, pnlPct, pattern, winRate }

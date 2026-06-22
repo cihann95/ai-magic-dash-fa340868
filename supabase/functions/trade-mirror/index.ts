@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
     const since = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
     const { data: trades } = await admin
       .from("trades")
-      .select("id, symbol, side, action, quantity, price, total, pnl, intent_tag, executed_at")
+      .select("id, symbol, side, action, quantity, price, total, pnl, intent_tag, executed_at, position_id")
       .eq("user_id", user_id)
       .gte("executed_at", since)
       .order("executed_at", { ascending: false })
@@ -56,24 +56,55 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Compact context for the model
+    // Fetch entry_price from positions for the current trade
+    let currentEntryPrice: number | null = null;
+    let currentQuantity: number | null = null;
+    if (current.position_id) {
+      const { data: pos } = await admin
+        .from("positions")
+        .select("entry_price, quantity")
+        .eq("id", current.position_id)
+        .single();
+      if (pos) {
+        currentEntryPrice = pos.entry_price != null ? Number(pos.entry_price) : null;
+        currentQuantity = pos.quantity != null ? Number(pos.quantity) : null;
+      }
+    }
+
+    // pnlPct: kod'da hesapla, AI'a GÖNDERME
+    const pnlNum = current.pnl != null ? Number(current.pnl) : 0;
+    const entryForPct = currentEntryPrice ?? 0;
+    const qtyForPct = currentQuantity ?? Number(current.quantity ?? 0);
+    const pnlPct = entryForPct > 0 && qtyForPct > 0
+      ? (pnlNum / (entryForPct * qtyForPct)) * 100
+      : 0;
+
     const compact = trades.slice(0, 30).map((t) => ({
       sym: t.symbol,
       side: t.side,
       action: t.action,
       pnl: t.pnl != null ? Number(t.pnl).toFixed(2) : null,
+      entry_price: null,
+      exit_price: t.price != null ? Number(t.price) : null,
+      quantity: t.quantity != null ? Number(t.quantity) : null,
       intent: t.intent_tag ?? null,
       at: t.executed_at,
     }));
 
-    const systemPrompt = `Sen bir trader davranış aynasısın. Kullanıcının son işlemlerine bakıp YENİ KAPATILAN işlem hakkında 1-2 cümle GÖZLEM yazarsın. KURALLAR:
-- Tavsiye verme. Sadece gözlemle.
-- Veride kalıp varsa onu söyle (saat, gün, sembol, niyet etiketi, kazanma oranı).
-- Türkçe yanıtla, samimi ve kısa.
-- "Olabilir mi?" gibi sorularla bitir, kesin yargı yok.`;
+    const systemPrompt = `Sen bir trader davranış aynasısın. Kullanıcının son işlemlerine bakıp YENİ KAPATILAN işlem hakkında 1-2 cümle GÖZLEM yazarsın.
 
+KESIN KURALLAR:
+- pnl BİR DOLAR TUTARIDIR, yüzde DEĞİLDİR. pnlPct sana ayrıca verilir, sadece onu kullan.
+- Yüzdeyi ASLA kendin hesaplama. Sadece pnlPct alanını kullan.
+- Veride olmayan bilgiyi uydurma.
+- Çıktı MUTLAKA JSON formatında: {"observation": "1-2 cümle Türkçe gözlem", "pattern": "kalıp açıklaması veya null", "winRate": "son 30 işlemde kazanma oranı %X veya null"}
+- Türkçe yanıtla, samimi ve kısa.
+- "Olabilir mi?" ile bitir, kesin yargı yok.
+- Tavsiye verme, sadece gözlemle.`;
+
+    const currentPnl = current.pnl != null ? Number(current.pnl).toFixed(2) : "0";
     const userPrompt = `Yeni kapatılan işlem: ${JSON.stringify({
-      sym: current.symbol, side: current.side, pnl: current.pnl, intent: current.intent_tag,
+      sym: current.symbol, side: current.side, pnl: currentPnl, pnlPct: pnlPct.toFixed(1), intent: current.intent_tag,
     })}\n\nSon 30 işlem (en yeni önce):\n${JSON.stringify(compact)}`;
 
     const controller = new AbortController();
@@ -95,29 +126,7 @@ Deno.serve(async (req) => {
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt },
           ],
-          tools: [
-            {
-              type: "function",
-              function: {
-                name: "emit_mirror",
-                description: "Emit a behavioral mirror observation",
-                parameters: {
-                  type: "object",
-                  properties: {
-                    observation: { type: "string", description: "1-2 sentence observation in Turkish" },
-                    pattern_type: {
-                      type: "string",
-                      enum: ["timing", "intent", "size", "symbol", "frequency", "other"],
-                    },
-                    severity: { type: "string", enum: ["info", "warning"] },
-                  },
-                  required: ["observation", "pattern_type", "severity"],
-                  additionalProperties: false,
-                },
-              },
-            },
-          ],
-          tool_choice: { type: "function", function: { name: "emit_mirror" } },
+          response_format: { type: "json_object" },
         }),
         signal: controller.signal,
       });
@@ -148,17 +157,20 @@ Deno.serve(async (req) => {
     }
 
     const aiJson = await aiResp.json();
-    const toolCall = aiJson.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall) {
-      const elapsed = Date.now() - start;
-      return new Response(JSON.stringify({ skipped: true, reason: "no_tool_call", event: "request", duration_ms: elapsed }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const rawContent = aiJson.choices?.[0]?.message?.content ?? "";
+
+    let observation = `İşlem kapatıldı: ${pnlNum >= 0 ? "+" : ""}$${pnlNum.toFixed(2)} (${pnlPct >= 0 ? "+" : ""}${pnlPct.toFixed(1)}%)`;
+    let pattern: string | null = null;
+    let winRate: string | null = null;
+    try {
+      const parsed = JSON.parse(rawContent);
+      if (parsed.observation) observation = String(parsed.observation);
+      if (parsed.pattern) pattern = String(parsed.pattern);
+      if (parsed.winRate) winRate = String(parsed.winRate);
+    } catch {
     }
-    const args = JSON.parse(toolCall.function.arguments);
-    const observation: string = args.observation;
-    const patternType: string = args.pattern_type;
-    const severity: string = args.severity ?? "info";
+
+    const patternType = pattern ?? "other";
 
     // Build intent-aware title
     const intentMap: Record<string, string> = {
@@ -166,29 +178,28 @@ Deno.serve(async (req) => {
       news: "📰 Haber",
       intuition: "✨ Sezgi",
     };
-    const pnlNum = current.pnl != null ? Number(current.pnl) : 0;
+    const pnlPctStr = `(${pnlPct >= 0 ? "+" : ""}${pnlPct.toFixed(1)}%)`;
     const titlePrefix = current.intent_tag && intentMap[current.intent_tag]
-      ? `${intentMap[current.intent_tag]} → ${pnlNum >= 0 ? "+" : ""}$${pnlNum.toFixed(2)}`
+      ? `${intentMap[current.intent_tag]} → +$${pnlNum.toFixed(2)} ${pnlPctStr}`
       : `🪞 ${current.symbol} aynası`;
 
     // Insert into coach_insights
     await admin.from("coach_insights").insert({
       user_id,
       category: "mirror",
-      severity,
+      severity: "info",
       title: titlePrefix,
       body: observation,
-      metadata: { trade_id, pattern_type: patternType, intent: current.intent_tag, pnl: pnlNum },
+      metadata: { trade_id, pattern_type: patternType, intent: current.intent_tag, pnl: pnlNum, pnlPct, pattern, winRate },
     });
 
-    // Notification
     await admin.from("notifications").insert({
       user_id,
       type: "ai_signal",
       title: `🪞 ${titlePrefix}`,
       body: observation,
       link: "/insights",
-      metadata: { trade_id, pattern_type: patternType },
+      metadata: { trade_id, pattern_type: patternType, pnlPct, pattern, winRate },
     });
 
     const elapsed = Date.now() - start;

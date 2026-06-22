@@ -605,7 +605,7 @@ Max Concurrent: 8 (Wave 1)
   - Message: `fix(blitz): cancel bakiye leak + Redis check 503 + stale queue TTL`
   - Files: `supabase/functions/blitz-matchmake/index.ts`
 
-- [ ] 5. trade-mirror AI Prompt Yeniden Yaz: Fiyat Verisi + Sert Kurallar + JSON Schema Çıktı
+- [x] 5. trade-mirror AI Prompt Yeniden Yaz: Fiyat Verisi + Sert Kurallar + JSON Schema Çıktı
 
   **What to do**:
   - **AI prompt'a fiyat verisi ekle** (`supabase/functions/trade-mirror/index.ts:60-77`): `compact` map'ine `entry_price`, `quantity`, `current_price` EKLE. Bu veriler trades tablosunda yok (sadece pnl, price, quantity) — positions veya trades'den türet. Mevcut trade için: `current.entry_price` positions'tan (kapanmış pozisyon), `current.exit_price` = `current.price` (trades.price), `current.quantity` = trades.quantity. Geçmiş 30 trade için: `entry_price` (trades tablosunda yoksa positions'tan veya trades metadata'dan), `exit_price` = trades.price.

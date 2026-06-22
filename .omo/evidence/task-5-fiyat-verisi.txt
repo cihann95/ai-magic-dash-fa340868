@@ -1,0 +1,30 @@
+Task 5 Evidence: Compact Map'te Fiyat Verisi
+
+=== Compact Map (satır 82-92) ===
+const compact = trades.slice(0, 30).map((t) => ({
+  sym: t.symbol,
+  side: t.side,
+  action: t.action,
+  pnl: t.pnl != null ? Number(t.pnl).toFixed(2) : null,
+  entry_price: null,                    // geçmiş trade'lerde yok
+  exit_price: t.price != null ? Number(t.price) : null,  // YENİ
+  quantity: t.quantity != null ? Number(t.quantity) : null, // YENİ
+  intent: t.intent_tag ?? null,
+  at: t.executed_at,
+}));
+
+=== Current Trade Entry Price (satır 59-72) ===
+positions tablosundan: entry_price, quantity
+const { data: pos } = await admin
+  .from("positions")
+  .select("entry_price, quantity")
+  .eq("id", current.position_id)
+  .single();
+
+=== trades SELECT'e position_id eklendi (satır 40) ===
+.select("id, symbol, side, action, quantity, price, total, pnl, intent_tag, executed_at, position_id")
+
+=== pnlPct Hesaplama (satır 74-80) ===
+const pnlPct = entryForPct > 0 && qtyForPct > 0
+  ? (pnlNum / (entryForPct * qtyForPct)) * 100
+  : 0;
