@@ -11,10 +11,12 @@ import {
   LineChart, Wallet, History, Eye, Settings, Trophy, Award, Flame,
   Users, Brain, BookOpen, Activity, TrendingUp, Moon, Sun, Languages, LogOut, Zap, ShieldCheck,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 export default function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [recentTrades, setRecentTrades] = useState<Array<{id: string; symbol: string; side: string; quantity: number; price: number; executed_at: string}>>([]);
   const navigate = useNavigate();
   const { lang, setLang, theme, setTheme, signOut, user } = useApp();
   const tr = t(lang);
@@ -24,6 +26,16 @@ export default function CommandPalette() {
     supabase.rpc("has_role", { _user_id: user.id, _role: "admin" })
       .then(({ data }) => setIsAdmin(data === true));
   }, [user]);
+
+  useEffect(() => {
+    if (!open || !user) return;
+    supabase
+      .from("trades")
+      .select("id,symbol,side,quantity,price,executed_at")
+      .order("executed_at", { ascending: false })
+      .limit(5)
+      .then(({ data }) => setRecentTrades(data ?? []));
+  }, [open, user]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -91,6 +103,34 @@ export default function CommandPalette() {
         </CommandGroup>
 
         <CommandSeparator />
+
+        {recentTrades.length > 0 && (
+          <>
+            <CommandGroup heading={lang === "tr" ? "Son İşlemler" : "Recent Trades"}>
+              {recentTrades.map((t) => (
+                <CommandItem
+                  key={t.id}
+                  value={`${t.symbol} trade ${t.side}`}
+                  onSelect={() => go(`/?symbol=${encodeURIComponent(t.symbol)}`)}
+                >
+                  <div className="flex items-center gap-2 w-full">
+                    <Badge variant="outline" className={`text-[10px] h-4 px-1 py-0 ${t.side === "buy" ? "border-up text-up" : "border-down text-down"}`}>
+                      {t.side === "buy" ? "LONG" : "SHORT"}
+                    </Badge>
+                    <span className="font-medium">{t.symbol}</span>
+                    <span className="font-price text-xs text-muted-foreground">
+                      {Number(t.quantity).toFixed(4)} @ {Number(t.price).toFixed(2)}
+                    </span>
+                    <span className="ml-auto text-xs text-muted-foreground">
+                      {new Date(t.executed_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+            <CommandSeparator />
+          </>
+        )}
 
         <CommandGroup heading={lang === "tr" ? "Sayfalar" : "Pages"}>
           {pages.map((p) => (

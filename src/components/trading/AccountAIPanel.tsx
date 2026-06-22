@@ -7,6 +7,8 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { motion } from "framer-motion";
 import { Loader2, RefreshCw, Send, Sparkles, Brain } from "lucide-react";
 import { SymbolDef } from "@/lib/symbols";
 import AIDisclaimer from "@/components/AIDisclaimer";
@@ -25,6 +27,40 @@ interface Position {
 
 interface NewsItem { title: string; summary: string; sentiment: "bullish" | "bearish" | "neutral"; source?: string; url?: string; published_at?: string; }
 interface ChatMsg { role: "user" | "assistant"; content: string; }
+
+function TypingDots() {
+  return (
+    <div className="flex items-center gap-1 py-4">
+      <span className="size-1.5 rounded-full bg-muted-foreground animate-pulse-dots" style={{ animationDelay: "0s" }} />
+      <span className="size-1.5 rounded-full bg-muted-foreground animate-pulse-dots" style={{ animationDelay: "0.2s" }} />
+      <span className="size-1.5 rounded-full bg-muted-foreground animate-pulse-dots" style={{ animationDelay: "0.4s" }} />
+    </div>
+  );
+}
+
+function SignalCard({ title, content, symbol, loading }: { title: string; content: string; symbol?: string; loading?: boolean }) {
+  if (loading && !content) return <TypingDots />;
+  if (!content) return null;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25 }}
+      className="rounded-lg border border-border-subtle bg-surface-1 p-4 space-y-3"
+    >
+      <div className="flex items-center justify-between gap-2">
+        <h4 className="font-semibold text-sm truncate">{title}</h4>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <Badge variant="outline" className="text-[10px]">AI</Badge>
+          {symbol && <Badge variant="secondary" className="text-[10px]">{symbol}</Badge>}
+        </div>
+      </div>
+      <div className="prose prose-sm dark:prose-invert max-w-none">
+        <ReactMarkdown>{content}</ReactMarkdown>
+      </div>
+    </motion.div>
+  );
+}
 
 export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTradeDone }: Props) {
   const { lang, user } = useApp();
@@ -166,6 +202,7 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
 
   const send = async () => {
     if (!input.trim() || streaming) return;
+    setChatError(null);
     const userMsg: ChatMsg = { role: "user", content: input };
     const next = [...messages, userMsg];
     setMessages(next); setInput(""); setStreaming(true);
@@ -211,7 +248,9 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
         }
       }
     } catch (e) {
-      toast({ title: tr.error, description: e instanceof Error ? e.message : "Unknown", variant: "destructive" });
+      const msg = e instanceof Error ? e.message : "Unknown";
+      setChatError(msg);
+      toast({ title: tr.error, description: msg, variant: "destructive" });
     } finally { setStreaming(false); }
   };
 
@@ -219,18 +258,18 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
     <div className="flex flex-col h-full gap-3">
       <Card className="p-4 glass border-border/40 shadow-card shrink-0">
         <div className="text-xs text-muted-foreground uppercase tracking-wide">{tr.balance}</div>
-        <div className="font-mono text-2xl font-bold mt-1">${totalEquity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-        <div className={cn("text-xs font-mono mt-0.5", totalChange >= 0 ? "text-bull" : "text-bear")}>
+        <div className="font-price text-2xl font-bold mt-1">${totalEquity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+        <div className={cn("text-xs font-price mt-0.5", totalChange >= 0 ? "text-bull" : "text-bear")}>
           {totalChange >= 0 ? "+" : ""}{totalChange.toFixed(2)}% • ${(totalEquity - initial).toFixed(2)}
         </div>
         <div className="flex justify-between mt-3 pt-3 border-t border-border/40 text-xs">
           <div>
             <div className="text-muted-foreground">{tr.available}</div>
-            <div className="font-mono font-semibold">${availableBalance.toFixed(2)}</div>
+            <div className="font-price font-semibold">${availableBalance.toFixed(2)}</div>
           </div>
           <div className="text-right">
             <div className="text-muted-foreground">{tr.pnl}</div>
-            <div className={cn("font-mono font-semibold", livePnl >= 0 ? "text-bull" : "text-bear")}>
+            <div className={cn("font-price font-semibold", livePnl >= 0 ? "text-bull" : "text-bear")}>
               {livePnl >= 0 ? "+" : ""}${livePnl.toFixed(2)}
             </div>
           </div>
@@ -238,66 +277,55 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
       </Card>
 
       <Card className="flex-1 min-h-0 flex flex-col glass border-border/40 shadow-card overflow-hidden">
-        <Tabs defaultValue="analysis" className="flex flex-col flex-1 min-h-0">
-          <TabsList className="grid grid-cols-5 m-3 mb-0 shrink-0">
-            <TabsTrigger value="analysis" className="text-xs"><Sparkles className="size-3 mr-0.5" />{tr.analysis}</TabsTrigger>
-            <TabsTrigger value="brief" className="text-xs">📊</TabsTrigger>
-            <TabsTrigger value="strategy" className="text-xs"><Brain className="size-3" /></TabsTrigger>
-            <TabsTrigger value="news" className="text-xs">{tr.news}</TabsTrigger>
-            <TabsTrigger value="chat" className="text-xs">{tr.chat}</TabsTrigger>
+        <Tabs defaultValue="analysis" value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 min-h-0">
+          <TabsList className="grid grid-cols-5 m-3 mb-0 shrink-0 relative">
+            <TabsTrigger value="analysis" className="text-xs transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"><Sparkles className="size-3 mr-0.5" />{tr.analysis}</TabsTrigger>
+            <TabsTrigger value="brief" className="text-xs transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">📊</TabsTrigger>
+            <TabsTrigger value="strategy" className="text-xs transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"><Brain className="size-3" /></TabsTrigger>
+            <TabsTrigger value="news" className="text-xs transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">{tr.news}</TabsTrigger>
+            <TabsTrigger value="chat" className="text-xs transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">{tr.chat}</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="analysis" className="flex-1 min-h-0 m-0 mt-3 p-3 pt-0 overflow-y-auto scrollbar-thin data-[state=active]:flex data-[state=active]:flex-col data-[state=inactive]:hidden">
-            <Button variant="outline" size="sm" onClick={runAnalysis} disabled={loadingA} className="w-full mb-3">
-              {loadingA ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
+          <TabsContent value="analysis" className="flex-1 min-h-0 m-0 mt-3 p-3 pt-0 overflow-y-auto scrollbar-thin space-y-3 data-[state=active]:flex data-[state=active]:flex-col data-[state=inactive]:hidden">
+            <Button variant="outline" size="sm" onClick={runAnalysis} disabled={loadingA} className="w-full">
+              {loadingA ? <Loader2 className="size-4 animate-spin mr-1" /> : <Sparkles className="size-4 mr-1" />}
               {loadingA ? tr.ai_loading : (lang === "tr" ? `${symbol.symbol} için analiz` : `Analyze ${symbol.symbol}`)}
             </Button>
-            {analysis && (
-              <>
-                <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
-                  <ReactMarkdown>{analysis}</ReactMarkdown>
-                </div>
-                <AIDisclaimer className="mt-3" />
-              </>
-            )}
+            <SignalCard title={`AI Analysis — ${symbol.symbol}`} content={analysis ?? ""} symbol={symbol.symbol} loading={loadingA} />
+            {analysis && <AIDisclaimer />}
           </TabsContent>
 
-          <TabsContent value="brief" className="flex-1 min-h-0 m-0 mt-3 p-3 pt-0 overflow-y-auto scrollbar-thin data-[state=active]:flex data-[state=active]:flex-col data-[state=inactive]:hidden">
-            <Button variant="outline" size="sm" onClick={runBrief} disabled={loadingB} className="w-full mb-3">
-              {loadingB ? <Loader2 className="size-4 animate-spin" /> : "📊"} {tr.daily_brief}
+          <TabsContent value="brief" className="flex-1 min-h-0 m-0 mt-3 p-3 pt-0 overflow-y-auto scrollbar-thin space-y-3 data-[state=active]:flex data-[state=active]:flex-col data-[state=inactive]:hidden">
+            <Button variant="outline" size="sm" onClick={runBrief} disabled={loadingB} className="w-full">
+              {loadingB ? <Loader2 className="size-4 animate-spin mr-1" /> : "📊"} {tr.daily_brief}
             </Button>
-            {brief && (
-              <>
-                <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
-                  <ReactMarkdown>{brief}</ReactMarkdown>
-                </div>
-                <AIDisclaimer className="mt-3" />
-              </>
-            )}
+            <SignalCard title={lang === "tr" ? "Günlük Özet" : "Daily Brief"} content={brief ?? ""} loading={loadingB} />
+            {brief && <AIDisclaimer />}
           </TabsContent>
 
-          <TabsContent value="strategy" className="flex-1 min-h-0 m-0 mt-3 p-3 pt-0 overflow-y-auto scrollbar-thin data-[state=active]:flex data-[state=active]:flex-col data-[state=inactive]:hidden">
-            <Button variant="outline" size="sm" onClick={runStrategy} disabled={loadingS} className="w-full mb-3">
-              {loadingS ? <Loader2 className="size-4 animate-spin" /> : <Brain className="size-4" />} {tr.get_strategy}
+          <TabsContent value="strategy" className="flex-1 min-h-0 m-0 mt-3 p-3 pt-0 overflow-y-auto scrollbar-thin space-y-3 data-[state=active]:flex data-[state=active]:flex-col data-[state=inactive]:hidden">
+            <Button variant="outline" size="sm" onClick={runStrategy} disabled={loadingS} className="w-full">
+              {loadingS ? <Loader2 className="size-4 animate-spin mr-1" /> : <Brain className="size-4 mr-1" />} {tr.get_strategy}
             </Button>
-            {strategy && (
-              <>
-                <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed">
-                  <ReactMarkdown>{strategy}</ReactMarkdown>
-                </div>
-                <AIDisclaimer className="mt-3" />
-              </>
-            )}
+            <SignalCard title={lang === "tr" ? `Strateji — ${symbol.symbol}` : `Strategy — ${symbol.symbol}`} content={strategy ?? ""} symbol={symbol.symbol} loading={loadingS} />
+            {strategy && <AIDisclaimer />}
           </TabsContent>
 
-          <TabsContent value="news" className="flex-1 min-h-0 m-0 mt-3 p-3 pt-0 overflow-y-auto scrollbar-thin data-[state=active]:flex data-[state=active]:flex-col data-[state=inactive]:hidden">
-            <Button variant="outline" size="sm" onClick={runNews} disabled={loadingN} className="w-full mb-3">
-              {loadingN ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
+          <TabsContent value="news" className="flex-1 min-h-0 m-0 mt-3 p-3 pt-0 overflow-y-auto scrollbar-thin space-y-3 data-[state=active]:flex data-[state=active]:flex-col data-[state=inactive]:hidden">
+            <Button variant="outline" size="sm" onClick={runNews} disabled={loadingN} className="w-full">
+              {loadingN ? <Loader2 className="size-4 animate-spin mr-1" /> : <RefreshCw className="size-4 mr-1" />}
               {loadingN ? tr.ai_loading : tr.refresh}
             </Button>
+            {loadingN && news.length === 0 && <TypingDots />}
             <div className="space-y-2">
               {news.map((n, i) => (
-                <div key={i} className="p-3 rounded-lg bg-accent/30 border border-border/40">
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, delay: i * 0.05 }}
+                  className="p-3 rounded-lg border border-border-subtle bg-surface-1"
+                >
                   <div className="flex items-start gap-2">
                     <span className={cn("text-[10px] uppercase font-bold px-1.5 py-0.5 rounded shrink-0",
                       n.sentiment === "bullish" && "bg-bull/15 text-bull",
@@ -310,7 +338,7 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
                       <div className="text-xs text-muted-foreground mt-1">{n.summary}</div>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               ))}
               {news.length === 0 && !loadingN && (
                 <div className="text-xs text-muted-foreground text-center py-8">{lang === "tr" ? "Yenile butonuna tıklayın" : "Click refresh to load"}</div>
@@ -324,16 +352,34 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
                 <div className="text-xs text-muted-foreground text-center py-8">{tr.ask_anything}</div>
               )}
               {messages.map((m, i) => (
-                <div key={i} className={cn("rounded-lg p-3 text-sm", m.role === "user" ? "bg-primary/15 ml-6" : "bg-accent/40 mr-6")}>
-                  <div className="prose prose-sm dark:prose-invert max-w-none">
-                    <ReactMarkdown>{m.content || "…"}</ReactMarkdown>
-                  </div>
-                </div>
+                m.role === "user" ? (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className={cn("rounded-lg p-3 text-sm bg-primary/15 ml-6")}
+                  >
+                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                      <ReactMarkdown>{m.content}</ReactMarkdown>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <SignalCard key={i} title="AI Assistant" content={m.content || "…"} loading={false} />
+                )
               ))}
+              {streaming && <TypingDots />}
             </div>
+            {chatError && (
+              <div className="px-3 py-2 bg-destructive/10 border-t border-destructive/20 flex items-center justify-between">
+                <span className="text-xs text-destructive">{chatError}</span>
+                <Button size="sm" variant="outline" onClick={() => { setChatError(null); send(); }}>
+                  {tr.retry ?? "Retry"}
+                </Button>
+              </div>
+            )}
             <div className="p-3 border-t border-border/40 flex gap-2">
               <Input value={input} onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && send()}
+                onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); send(); } }}
                 placeholder={tr.ask_anything} disabled={streaming} className="bg-background/60" />
               <Button size="icon" onClick={send} disabled={streaming || !input.trim()} className="gradient-primary text-primary-foreground">
                 {streaming ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
