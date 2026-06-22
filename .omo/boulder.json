@@ -1,28 +1,61 @@
 {
-  "active_plan": "/home/user/projects/ai-magic-dash-fa340868/.omo/plans/master-fix-plan.md",
-  "started_at": "2026-06-18T13:44:46.522Z",
+  "active_plan": "/home/user/projects/ai-magic-dash-fa340868/.omo/plans/critical-prod-fixes.md",
+  "started_at": "2026-06-22T13:34:11.735Z",
   "session_ids": [
-    "opencode:ses_12555272bffes7zOwZ1tQx7UxZ",
-    "opencode:ses_12504de1fffeuhyMxTz62bT6tK",
-    "opencode:ses_12504cd64ffej8MgNG4pcpcIq1",
-    "opencode:ses_12504bbdeffeHwj45Pv5agzNXI"
+    "opencode:ses_11094d437ffeI1XBPOQfzyki0y"
   ],
-  "plan_name": "master-fix-plan",
+  "plan_name": "critical-prod-fixes",
   "session_origins": {
-    "opencode:ses_12555272bffes7zOwZ1tQx7UxZ": "direct",
-    "opencode:ses_12504de1fffeuhyMxTz62bT6tK": "appended",
-    "opencode:ses_12504cd64ffej8MgNG4pcpcIq1": "appended",
-    "opencode:ses_12504bbdeffeHwj45Pv5agzNXI": "appended"
+    "opencode:ses_11094d437ffeI1XBPOQfzyki0y": "direct"
   },
   "task_sessions": {
     "todo:1": {
       "task_key": "todo:1",
       "task_label": "1",
-      "task_title": "Kullanilmayan Degisken/Import Temizligi",
-      "session_id": "opencode:ses_12504bbdeffeHwj45Pv5agzNXI",
-      "agent": "Sisyphus-Junior",
-      "category": "quick",
-      "updated_at": "2026-06-18T13:46:00.741Z"
+      "task_title": "RLS Migration: Admin SELECT Policy'leri + blitz_payout_trigger DROP + analytics_events Fix + reset-demo-account Fix",
+      "session_id": "opencode:ses_110171738ffeeawkQGva3uC2dz",
+      "agent": "general",
+      "started_at": "2026-06-22T14:12:03.935Z",
+      "status": "completed",
+      "updated_at": "2026-06-22T15:27:31.222Z",
+      "ended_at": "2026-06-22T15:27:31.222Z",
+      "elapsed_ms": 4527287
+    },
+    "todo:9": {
+      "task_key": "todo:9",
+      "task_label": "9",
+      "task_title": "Settings.tsx Bakiye Bölümü: Gösterim + Ledger Geçmişi",
+      "session_id": "opencode:ses_1100e0d11ffe0iEO84814hYIsJ",
+      "agent": "general",
+      "updated_at": "2026-06-22T15:32:50.706Z",
+      "started_at": "2026-06-22T15:32:50.701Z",
+      "status": "completed",
+      "ended_at": "2026-06-22T15:32:50.706Z",
+      "elapsed_ms": 5
+    },
+    "todo:14": {
+      "task_key": "todo:14",
+      "task_label": "14",
+      "task_title": "AdminBlitz Revenue Dashboard Zenginleştir: Grafik + Tarih Aralığı + Breakdown",
+      "session_id": "opencode:ses_1100d4934ffeujsvjdztRSOmh3",
+      "agent": "general",
+      "updated_at": "2026-06-22T15:38:06.709Z",
+      "started_at": "2026-06-22T15:38:06.708Z",
+      "status": "completed",
+      "ended_at": "2026-06-22T15:38:06.709Z",
+      "elapsed_ms": 1
+    },
+    "todo:17": {
+      "task_key": "todo:17",
+      "task_label": "17",
+      "task_title": "Deploy: Edge Functions + Vercel",
+      "session_id": "opencode:ses_10fdbf965ffevk7SW6sJtK56Ce",
+      "agent": "general",
+      "updated_at": "2026-06-22T16:36:27.401Z",
+      "started_at": "2026-06-22T16:36:27.400Z",
+      "status": "completed",
+      "ended_at": "2026-06-22T16:36:27.401Z",
+      "elapsed_ms": 1
     }
   },
   "schema_version": 2,
@@ -33,145 +66,10 @@
       "plan_name": "edge-function-fix",
       "started_at": "2026-06-17T13:52:51.492Z",
       "updated_at": "2026-06-18T10:58:34.055Z",
-      "session_ids": [
-        "opencode:ses_12a620843ffeEwYeBOGFp5Jcxm",
-        "opencode:ses_12a241382ffewPjJfOCLYh6pyX",
-        "opencode:ses_12a23fef3ffe36L4obgghjP1zn",
-        "opencode:ses_12a23e935ffe2hRgn7gaTLR675",
-        "opencode:ses_12a23d44fffeuKzct8Hk7KjDI2",
-        "opencode:ses_125b8c03cffeJXXIen9VYky2Ab",
-        "opencode:ses_125b8b094ffeBc1oA9Trb9X4HB",
-        "opencode:ses_125b8606bffe7csrFpggTYz0dW",
-        "opencode:ses_125b84e8effepbkqfI4lECIDrZ",
-        "opencode:ses_125b84282ffeqYubQLYGyLN2cR",
-        "opencode:ses_125b825f7ffeAnaVD2Ma1gp8Ea",
-        "opencode:ses_125b8171affe3tU5r8bfdiqpAl",
-        "opencode:ses_125b0b431ffeVsAVZFDPOZA6Ap",
-        "opencode:ses_125b09d7dffeghqI1o8IgvAEfU",
-        "opencode:ses_125b08b7cffeaLT0fVLLrUXZVo",
-        "opencode:ses_1259e77beffebRGIHdVpAfUnug",
-        "opencode:ses_1259e6a91ffeRtf8lgZB86vsOS",
-        "opencode:ses_1259e5ee9fferVFtgkcMfjxb0G",
-        "opencode:ses_1259e531effee6vJK4KuUgHYjr",
-        "opencode:ses_1259e1768ffegVPravISI588Nj",
-        "opencode:ses_1259e08ebffeJXdXrt2WV9S2Hp"
-      ],
-      "session_origins": {
-        "opencode:ses_12a620843ffeEwYeBOGFp5Jcxm": "direct",
-        "opencode:ses_12a241382ffewPjJfOCLYh6pyX": "appended",
-        "opencode:ses_12a23fef3ffe36L4obgghjP1zn": "appended",
-        "opencode:ses_12a23e935ffe2hRgn7gaTLR675": "appended",
-        "opencode:ses_12a23d44fffeuKzct8Hk7KjDI2": "appended",
-        "opencode:ses_125b8c03cffeJXXIen9VYky2Ab": "appended",
-        "opencode:ses_125b8b094ffeBc1oA9Trb9X4HB": "appended",
-        "opencode:ses_125b8606bffe7csrFpggTYz0dW": "appended",
-        "opencode:ses_125b84e8effepbkqfI4lECIDrZ": "appended",
-        "opencode:ses_125b84282ffeqYubQLYGyLN2cR": "appended",
-        "opencode:ses_125b825f7ffeAnaVD2Ma1gp8Ea": "appended",
-        "opencode:ses_125b8171affe3tU5r8bfdiqpAl": "appended",
-        "opencode:ses_125b0b431ffeVsAVZFDPOZA6Ap": "appended",
-        "opencode:ses_125b09d7dffeghqI1o8IgvAEfU": "appended",
-        "opencode:ses_125b08b7cffeaLT0fVLLrUXZVo": "appended",
-        "opencode:ses_1259e77beffebRGIHdVpAfUnug": "appended",
-        "opencode:ses_1259e6a91ffeRtf8lgZB86vsOS": "appended",
-        "opencode:ses_1259e5ee9fferVFtgkcMfjxb0G": "appended",
-        "opencode:ses_1259e531effee6vJK4KuUgHYjr": "appended",
-        "opencode:ses_1259e1768ffegVPravISI588Nj": "appended",
-        "opencode:ses_1259e08ebffeJXdXrt2WV9S2Hp": "appended"
-      },
+      "session_ids": [],
+      "session_origins": {},
       "worktree_path": null,
-      "task_sessions": {
-        "todo:1": {
-          "task_key": "todo:1",
-          "task_label": "1",
-          "task_title": "_shared/config.ts - ConfigError Graceful Degradation",
-          "session_id": "opencode:ses_12a23d44fffeuKzct8Hk7KjDI2",
-          "agent": "Sisyphus-Junior",
-          "category": "quick",
-          "started_at": "2026-06-17T13:59:27.458Z",
-          "status": "completed",
-          "updated_at": "2026-06-17T14:01:34.523Z",
-          "ended_at": "2026-06-17T14:01:34.523Z",
-          "elapsed_ms": 127065
-        },
-        "todo:5": {
-          "task_key": "todo:5",
-          "task_label": "5",
-          "task_title": "execute-trade/index.ts - Price Stale Hardening + Error Mapping",
-          "session_id": "opencode:ses_12a1bf987ffevoV6fA3WkaqMBH",
-          "agent": "Sisyphus-Junior",
-          "category": "deep",
-          "updated_at": "2026-06-17T14:56:04.649Z",
-          "started_at": "2026-06-17T14:22:02.280Z",
-          "status": "completed",
-          "ended_at": "2026-06-17T14:56:04.649Z",
-          "elapsed_ms": 2042369
-        },
-        "todo:13": {
-          "task_key": "todo:13",
-          "task_label": "13",
-          "task_title": "ai-analyze/index.ts - OpenRouter Error Mapping",
-          "session_id": "opencode:ses_129e9df3bffey3iq4V7fBfuGw0",
-          "agent": "Sisyphus-Junior",
-          "category": "quick",
-          "updated_at": "2026-06-18T07:34:00.096Z",
-          "started_at": "2026-06-17T15:00:25.140Z",
-          "status": "completed",
-          "ended_at": "2026-06-18T07:34:00.096Z",
-          "elapsed_ms": 59614956
-        },
-        "final-wave:f2": {
-          "task_key": "final-wave:f2",
-          "task_label": "F2",
-          "task_title": "**Code Quality Review** — Run build, lint, and tests; review all changed files for quality issues.",
-          "session_id": "opencode:ses_126579c69ffe9kECK4sWCX5eeE",
-          "agent": "Sisyphus-Junior",
-          "category": "unspecified-high",
-          "updated_at": "2026-06-18T09:31:25.382Z",
-          "started_at": "2026-06-18T07:38:11.776Z",
-          "status": "completed",
-          "ended_at": "2026-06-18T09:31:25.382Z",
-          "elapsed_ms": 6793606
-        },
-        "final-wave:f3": {
-          "task_key": "final-wave:f3",
-          "task_label": "F3",
-          "task_title": "**Real Manual QA** — Execute QA scenarios from the edge-function-fix plan to verify correctness.",
-          "session_id": "opencode:ses_12657876effegkmoVt1kfgc124",
-          "agent": "Sisyphus-Junior",
-          "category": "unspecified-high",
-          "updated_at": "2026-06-18T09:31:25.907Z",
-          "started_at": "2026-06-18T07:40:50.425Z",
-          "status": "completed",
-          "ended_at": "2026-06-18T09:31:25.907Z",
-          "elapsed_ms": 6635482
-        },
-        "final-wave:f4": {
-          "task_key": "final-wave:f4",
-          "task_label": "F4",
-          "task_title": "**Scope Fidelity Check** — Verify each task's implementation matches exactly what was specified, with no scope creep.",
-          "session_id": "opencode:ses_126577518ffeWEhunbbW2pNigW",
-          "agent": "Sisyphus-Junior",
-          "category": "deep",
-          "updated_at": "2026-06-18T09:31:26.406Z",
-          "started_at": "2026-06-18T08:29:58.369Z",
-          "status": "completed",
-          "ended_at": "2026-06-18T09:31:26.406Z",
-          "elapsed_ms": 3688037
-        },
-        "final-wave:f1": {
-          "task_key": "final-wave:f1",
-          "task_label": "F1",
-          "task_title": "**Plan Compliance Audit** — `oracle`",
-          "session_id": "opencode:ses_125f3e7d4ffeaeUXnFXMW2aJu5",
-          "agent": "oracle",
-          "started_at": "2026-06-18T08:33:20.359Z",
-          "status": "completed",
-          "updated_at": "2026-06-18T09:31:24.865Z",
-          "ended_at": "2026-06-18T09:31:24.865Z",
-          "elapsed_ms": 3484506
-        }
-      },
+      "task_sessions": {},
       "ended_at": "2026-06-18T10:24:26.496Z",
       "elapsed_ms": 73895004,
       "status": "completed"
@@ -183,34 +81,85 @@
       "status": "active",
       "started_at": "2026-06-18T13:44:46.522Z",
       "updated_at": "2026-06-18T13:46:00.741Z",
+      "session_ids": [],
+      "session_origins": {},
+      "agent": "atlas",
+      "task_sessions": {}
+    },
+    "critical-prod-fixes-20260622": {
+      "work_id": "critical-prod-fixes-20260622",
+      "active_plan": "/home/user/projects/ai-magic-dash-fa340868/.omo/plans/critical-prod-fixes.md",
+      "plan_name": "critical-prod-fixes",
+      "status": "completed",
+      "started_at": "2026-06-22T13:34:11.735Z",
+      "updated_at": "2026-06-22T16:37:25.423Z",
       "session_ids": [
-        "opencode:ses_12555272bffes7zOwZ1tQx7UxZ",
-        "opencode:ses_12504de1fffeuhyMxTz62bT6tK",
-        "opencode:ses_12504cd64ffej8MgNG4pcpcIq1",
-        "opencode:ses_12504bbdeffeHwj45Pv5agzNXI"
+        "opencode:ses_11094d437ffeI1XBPOQfzyki0y"
       ],
       "session_origins": {
-        "opencode:ses_12555272bffes7zOwZ1tQx7UxZ": "direct",
-        "opencode:ses_12504de1fffeuhyMxTz62bT6tK": "appended",
-        "opencode:ses_12504cd64ffej8MgNG4pcpcIq1": "appended",
-        "opencode:ses_12504bbdeffeHwj45Pv5agzNXI": "appended"
+        "opencode:ses_11094d437ffeI1XBPOQfzyki0y": "direct"
       },
       "agent": "atlas",
+      "worktree_path": null,
       "task_sessions": {
         "todo:1": {
           "task_key": "todo:1",
           "task_label": "1",
-          "task_title": "Kullanilmayan Degisken/Import Temizligi",
-          "session_id": "opencode:ses_12504bbdeffeHwj45Pv5agzNXI",
-          "agent": "Sisyphus-Junior",
-          "category": "quick",
-          "updated_at": "2026-06-18T13:46:00.741Z"
+          "task_title": "RLS Migration: Admin SELECT Policy'leri + blitz_payout_trigger DROP + analytics_events Fix + reset-demo-account Fix",
+          "session_id": "opencode:ses_110171738ffeeawkQGva3uC2dz",
+          "agent": "general",
+          "started_at": "2026-06-22T14:12:03.935Z",
+          "status": "completed",
+          "updated_at": "2026-06-22T15:27:31.222Z",
+          "ended_at": "2026-06-22T15:27:31.222Z",
+          "elapsed_ms": 4527287
+        },
+        "todo:9": {
+          "task_key": "todo:9",
+          "task_label": "9",
+          "task_title": "Settings.tsx Bakiye Bölümü: Gösterim + Ledger Geçmişi",
+          "session_id": "opencode:ses_1100e0d11ffe0iEO84814hYIsJ",
+          "agent": "general",
+          "updated_at": "2026-06-22T15:32:50.706Z",
+          "started_at": "2026-06-22T15:32:50.701Z",
+          "status": "completed",
+          "ended_at": "2026-06-22T15:32:50.706Z",
+          "elapsed_ms": 5
+        },
+        "todo:14": {
+          "task_key": "todo:14",
+          "task_label": "14",
+          "task_title": "AdminBlitz Revenue Dashboard Zenginleştir: Grafik + Tarih Aralığı + Breakdown",
+          "session_id": "opencode:ses_1100d4934ffeujsvjdztRSOmh3",
+          "agent": "general",
+          "updated_at": "2026-06-22T15:38:06.709Z",
+          "started_at": "2026-06-22T15:38:06.708Z",
+          "status": "completed",
+          "ended_at": "2026-06-22T15:38:06.709Z",
+          "elapsed_ms": 1
+        },
+        "todo:17": {
+          "task_key": "todo:17",
+          "task_label": "17",
+          "task_title": "Deploy: Edge Functions + Vercel",
+          "session_id": "opencode:ses_10fdbf965ffevk7SW6sJtK56Ce",
+          "agent": "general",
+          "updated_at": "2026-06-22T16:36:27.401Z",
+          "started_at": "2026-06-22T16:36:27.400Z",
+          "status": "completed",
+          "ended_at": "2026-06-22T16:36:27.401Z",
+          "elapsed_ms": 1
         }
-      }
+      },
+      "ended_at": "2026-06-22T16:37:25.423Z",
+      "elapsed_ms": 10993688
     }
   },
-  "active_work_id": "master-fix-plan-774dc7f9",
-  "updated_at": "2026-06-18T13:46:00.741Z",
-  "status": "active",
-  "agent": "atlas"
+  "active_work_id": "critical-prod-fixes-20260622",
+  "updated_at": "2026-06-22T16:37:25.423Z",
+  "status": "completed",
+  "agent": "atlas",
+  "worktree_path": null,
+  "ended_at": "2026-06-22T16:37:25.423Z",
+  "elapsed_ms": 10993688
 }
