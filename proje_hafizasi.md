@@ -296,10 +296,13 @@ VERCEL DEPLOYMENT:
     * VITE_SENTRY_DSN — Sentry hata takibi
 
 SUPABASE EDGE FUNCTIONS:
-  - Deploy yöntemi: Manuel (supabase CLI) veya CI (GitHub Actions + SUPABASE_ACCESS_TOKEN)
-  - Manuel deploy: DEPLOYMENT.md dosyasına bakın
-  - Fonksiyon sayısı: 20
-  - JWT gereksinimleri: price-feed ve news-feed public (--no-verify-jwt), diğerleri auth gerektirir
+  - Deploy yöntemi: Manuel (deploy-all.sh) veya CI (GitHub Actions + SUPABASE_ACCESS_TOKEN)
+  - Manuel deploy: bash supabase/deploy-all.sh --project-ref <REF>
+  - Fonksiyon sayısı: 21 (health endpoint dahil)
+  - JWT gereksinimleri: price-feed, news-feed, health public (--no-verify-jwt), diğerleri auth gerektirir
+  - Health endpoint: GET /functions/v1/health → {status, timestamp, version, checks: {database, redis}}
+  - Uptime monitoring: GitHub Actions her 15 dakikada health check (.github/workflows/uptime-check.yml)
+  - Smoke test: npm run smoke-test → deploy sonrası otomatik doğrulama
 
 GITHUB SECRETS:
   - SUPABASE_ACCESS_TOKEN: Supabase Dashboard → Account → Access Tokens
@@ -314,8 +317,16 @@ CI/CD AKIŞ:
   4. Blitz Types Sync Check → type senkronizasyonu
   5. Hard Technical Audit → crash test suite
   6. E2E Tests (Playwright) → kritik user flow'lar
-  7. Deploy Edge Functions → sadece SUPABASE_ACCESS_TOKEN varsa
-  8. Vercel → otomatik build & deploy
+  7. Deploy Edge Functions → deploy-all.sh ile tüm fonksiyonlar
+  8. Health Check → /functions/v1/health → 200 veya 401
+  9. Smoke Test → npm run smoke-test
+  10. Vercel → otomatik build & deploy
+
+SENTRY PRODUCTION:
+  - release: VITE_APP_VERSION (package.json version)
+  - ignoreErrors: ResizeObserver, Non-Error promise rejection, ChunkLoadError
+  - beforeSend: console.error noise filter
+  - tracesSampleRate: 0.1 (prod'da %10 tracing)
 
 ## BÖLÜM 8 — GÜVENLİK
 
