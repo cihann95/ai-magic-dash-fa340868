@@ -316,3 +316,40 @@ CI/CD AKIŞ:
   6. E2E Tests (Playwright) → kritik user flow'lar
   7. Deploy Edge Functions → sadece SUPABASE_ACCESS_TOKEN varsa
   8. Vercel → otomatik build & deploy
+
+## BÖLÜM 8 — GÜVENLİK
+
+RATE LIMITING:
+  - Upstash Redis-backed sliding window rate limiting
+  - Tüm para hareketi yapan fonksiyonlarda aktif
+  - Fail-open: Redis down ise rate limit bypass
+  - Limitler: execute-trade(10/dk), blitz-matchmake(5/dk), ai-chat(20/dk), ai-analyze(10/dk)
+
+INPUT VALIDATION:
+  - Zod schema validation tüm critical endpoint'lerde
+  - execute-trade: 8 geçerli sembol, pozitif miktar, max 1M
+  - manage-order: discriminatedUnion (place/cancel)
+  - blitz-join-private: invite_code alphanumeric, 4-32 karakter
+  - AI fonksiyonları: zaten Zod kullanıyordu
+
+CORS:
+  - Shared _shared/cors.ts ile merkezi yapılandırma
+  - ALLOWED_ORIGIN env var'ı ile production'da kısıtlanabilir
+  - Varsayılan: * (development)
+
+SECURITY HEADERS (vercel.json):
+  - CSP: TradingView widget frame-src dahil
+  - HSTS: 1 yıl
+  - X-Frame-Options: DENY
+  - X-Content-Type-Options: nosniff
+
+JWT:
+  - Tüm user-facing fonksiyonlarda JWT doğrulama aktif
+  - Public endpoint'ler: price-feed, news-feed (pg_cron çağrısı)
+  - System endpoint'ler: send-push (DB trigger), blitz-settle-room (cron)
+  - Admin endpoint'ler: blitz-admin-topup (admin role check)
+
+real_balance_ledger:
+  - Immutable: UPDATE/DELETE policy'leri yok
+  - INSERT sadece service_role
+  - granted_by kolonu her zaman dolu
