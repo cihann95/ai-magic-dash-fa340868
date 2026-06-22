@@ -1,11 +1,7 @@
 // AI Ayna - Kapanan trade'den sonra kullanıcının davranış kalıbına dair 1-2 cümle gözlem üretir.
 // Tavsiye DEĞİL, gözlem. Sonucu coach_insights'a + notifications'a yazar.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders, handleCors } from "../_shared/cors.ts";
 
 const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY")!;
 
@@ -15,7 +11,8 @@ interface MirrorRequest {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const cors = handleCors(req);
+  if (cors) return cors;
 
   // Internal only — must be invoked with the service-role key
   const auth = req.headers.get("Authorization") ?? "";

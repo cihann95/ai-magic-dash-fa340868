@@ -9,10 +9,7 @@ import { redis } from "../_shared/redis.ts";
 import { rateLimit } from "../_shared/rate-limit.ts";
 import { checkBodySize } from "../_shared/body-size-limit.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders, handleCors } from "../_shared/cors.ts";
 
 interface Req {
   room_id: string;
@@ -30,7 +27,8 @@ function jsonResp(body: unknown, status = 200) {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const cors = handleCors(req);
+  if (cors) return cors;
 
   const admin = createClient(
     Deno.env.get("SUPABASE_URL")!,

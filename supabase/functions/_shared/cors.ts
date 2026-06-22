@@ -23,7 +23,7 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-const DEFAULT_ORIGIN = Deno.env.get("CORS_ORIGIN") ?? "*";
+const DEFAULT_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") ?? Deno.env.get("CORS_ORIGIN") ?? "*";
 
 /** Standard CORS response headers for HTTP Edge Functions. */
 export const corsHeaders: Record<string, string> = {

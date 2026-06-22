@@ -2,11 +2,7 @@
 // notifications tablosuna yeni kayıt eklendiğinde DB trigger ile çağrılır.
 // VAPID anahtarları yoksa sessizce çıkar (PWA opsiyonel).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders, handleCors } from "../_shared/cors.ts";
 
 const VAPID_PUBLIC = Deno.env.get("VAPID_PUBLIC_KEY") ?? "";
 const VAPID_PRIVATE = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
@@ -78,7 +74,8 @@ async function sendPush(sub: { endpoint: string; p256dh: string; auth: string },
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const cors = handleCors(req);
+  if (cors) return cors;
 
   const authHdr = req.headers.get("Authorization") ?? "";
   if (authHdr !== `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`) {
