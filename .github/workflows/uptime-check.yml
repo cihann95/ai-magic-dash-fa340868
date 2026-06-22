@@ -1,0 +1,64 @@
+---
+name: uptime-check
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  health-check:
+    name: Health Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check Health Endpoint
+        id: health
+        run: |
+          HEALTH_URL="${SUPABASE_URL}/functions/v1/health"
+          echo "Checking: $HEALTH_URL"
+
+          START_TIME=$(date +%s%N)
+          HTTP_CODE=$(curl -s -o /tmp/health-response.txt -w "%{http_code}" "$HEALTH_URL" || echo "000")
+          END_TIME=$(date +%s%N)
+
+          DURATION_MS=$(( (END_TIME - START_TIME) / 1000000 ))
+          echo "Response time: ${DURATION_MS}ms"
+          echo "HTTP status: $HTTP_CODE"
+
+          cat /tmp/health-response.txt
+          echo ""
+
+          if [[ "$HTTP_CODE" == "200" ]]; then
+            echo "✅ Health check passed"
+            echo "status=ok" >> "$GITHUB_OUTPUT"
+          elif [[ "$HTTP_CODE" == "401" || "$HTTP_CODE" == "403" ]]; then
+            echo "⚠️ Auth required but endpoint is alive (HTTP $HTTP_CODE)"
+            echo "status=ok" >> "$GITHUB_OUTPUT"
+          else
+            echo "❌ Health check failed with HTTP $HTTP_CODE"
+            echo "status=fail" >> "$GITHUB_OUTPUT"
+          fi
+
+          if [[ $DURATION_MS -gt 2000 ]]; then
+            echo "⚠️ Warning: Response time ${DURATION_MS}ms exceeds 2s threshold"
+          fi
+
+      - name: Notify on Failure
+        if: steps.health.outputs.status == 'fail'
+        run: |
+          echo "::error::Health check failed! Endpoint returned non-200 status."
+          echo "Check the health endpoint manually: ${SUPABASE_URL}/functions/v1/health"
+          exit 1
+
+      - name: Slack Notification (Optional)
+        if: steps.health.outputs.status == 'fail' && env.SLACK_WEBHOOK_URL != ''
+        run: |
+          curl -s -X POST "$SLACK_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d '{"text":"⚠️ Lumen Trade health check failed! HTTP '"$HTTP_CODE"'"}'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
