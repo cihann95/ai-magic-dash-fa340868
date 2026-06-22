@@ -64,7 +64,10 @@ export default function CommandPalette() {
     { path: "/leaderboard", label: tr.leaderboard, icon: Trophy },
     { path: "/achievements", label: tr.achievements, icon: Award },
     { path: "/settings", label: tr.settings, icon: Settings },
-    ...(isAdmin ? [{ path: "/admin/blitz", label: "Admin · Blitz", icon: ShieldCheck }] : []),
+    ...(isAdmin ? [
+      { path: "/admin/blitz", label: "Admin · Blitz", icon: ShieldCheck },
+      { path: "/admin/settings", label: "Admin · Ayarlar", icon: Settings },
+    ] : []),
   ];
 
   return (
