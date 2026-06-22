@@ -7,6 +7,7 @@ import type { Admin } from "../_shared/blitz-types.ts";
 import { rateLimit } from "../_shared/rate-limit.ts";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
+import { buildAIContext, formatContextForPrompt } from "../_shared/build-ai-context.ts";
 
 /** Module-level holder for the last AI error code, read by the handler for HTTP mapping. */
 let _lastAiError: string | null = null;
@@ -100,11 +101,11 @@ function analyzeBehavior(trades: TradeRow[]) {
   };
 }
 
-async function generateInsight(stats: BehaviorStats): Promise<{ category: string; severity: string; title: string; body: string } | null> {
+async function generateInsight(stats: BehaviorStats, contextStr: string): Promise<{ category: string; severity: string; title: string; body: string } | null> {
   const apiKey = Deno.env.get("OPENROUTER_API_KEY");
   if (!apiKey) return null;
 
-  const prompt = `Sen bir profesyonel trading koçusun. Kullanıcının son 30 gündeki işlem istatistikleri:
+  const prompt = `${contextStr}\n\n---\n\nSen bir profesyonel trading koçusun. Kullanıcının son 30 gündeki işlem istatistikleri:
 - Toplam işlem: ${stats.totalTrades}
 - Toplam P&L: $${stats.totalPnl}
 - Kazanma oranı: %${stats.winRate}
@@ -182,7 +183,14 @@ async function processUser(admin: Admin, userId: string) {
   const stats = analyzeBehavior(trades as TradeRow[]);
   if (!stats) return { skipped: true };
 
-  const insight = await generateInsight(stats);
+  const ctx = await buildAIContext(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    userId
+  );
+  const contextStr = formatContextForPrompt(ctx);
+
+  const insight = await generateInsight(stats, contextStr);
   if (!insight) return { skipped: true, reason: "ai_failed" };
 
   await admin.from("coach_insights").insert({

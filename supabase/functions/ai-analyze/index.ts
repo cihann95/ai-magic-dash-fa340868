@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { rateLimit } from "../_shared/rate-limit.ts";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
+import { buildAIContext, formatContextForPrompt } from "../_shared/build-ai-context.ts";
 
 const AnalyzeRequestSchema = z.object({
   symbol: z.string().regex(/^[A-Z0-9.-]{1,16}$/, "Geçersiz sembol formatı"),
@@ -44,12 +45,20 @@ Deno.serve(async (req) => {
     const safeAsset = asset_class ?? null;
     const lang = language;
 
+    const ctx = await buildAIContext(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      userId!,
+      symbol
+    );
+    const contextStr = formatContextForPrompt(ctx);
+
     const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
     if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY yapılandırılmamış");
 
     const sys = lang === "tr"
-      ? "Sen profesyonel bir piyasa analistisin. Sembol için kısa, eyleme dönük teknik+temel analiz yap. Markdown kullan. Bölümler: **Genel Görünüm**, **Teknik (trend, destek/direnç)**, **Temel Etkenler**, **Sinyal: AL / SAT / BEKLE** (kalın). 200 kelimeyi geçme. Yatırım tavsiyesi olmadığını sonda kısaca belirt."
-      : "You are a professional market analyst. Provide a concise, actionable technical+fundamental analysis. Use markdown sections: **Overview**, **Technical (trend, S/R)**, **Fundamentals**, **Signal: BUY / SELL / HOLD** (bold). Under 200 words. Add brief disclaimer.";
+      ? `${contextStr}\n\n---\n\nSen profesyonel bir piyasa analistisin. Sembol için kısa, eyleme dönük teknik+temel analiz yap. Markdown kullan. Bölümler: **Genel Görünüm**, **Teknik (trend, destek/direnç)**, **Temel Etkenler**, **Sinyal: AL / SAT / BEKLE** (kalın). 200 kelimeyi geçme. Yatırım tavsiyesi olmadığını sonda kısaca belirt.`
+      : `${contextStr}\n\n---\n\nYou are a professional market analyst. Provide a concise, actionable technical+fundamental analysis. Use markdown sections: **Overview**, **Technical (trend, S/R)**, **Fundamentals**, **Signal: BUY / SELL / HOLD** (bold). Under 200 words. Add brief disclaimer.`;
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);

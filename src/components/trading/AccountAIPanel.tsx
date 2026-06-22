@@ -128,7 +128,7 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
   const runStrategy = async () => {
     setLoadingS(true); setStrategy("");
     try {
-      const result = await callEdgeFunction<AiStrategyResponse>("ai-strategy", { language: lang });
+      const result = await callEdgeFunction<AiStrategyResponse>("ai-strategy", { language: lang, symbol: symbol.symbol });
       if (result?.error) throw new Error(result.error);
       setStrategy(result.suggestion);
     } catch (e) {
@@ -247,7 +247,7 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
             <TabsTrigger value="chat" className="text-xs">{tr.chat}</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="analysis" className="flex-1 m-0 mt-3 p-3 pt-0 overflow-y-auto scrollbar-thin">
+          <TabsContent value="analysis" className="flex-1 min-h-0 m-0 mt-3 p-3 pt-0 overflow-y-auto scrollbar-thin data-[state=active]:flex data-[state=active]:flex-col data-[state=inactive]:hidden">
             <Button variant="outline" size="sm" onClick={runAnalysis} disabled={loadingA} className="w-full mb-3">
               {loadingA ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
               {loadingA ? tr.ai_loading : (lang === "tr" ? `${symbol.symbol} için analiz` : `Analyze ${symbol.symbol}`)}
@@ -262,7 +262,7 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
             )}
           </TabsContent>
 
-          <TabsContent value="brief" className="flex-1 m-0 mt-3 p-3 pt-0 overflow-y-auto scrollbar-thin">
+          <TabsContent value="brief" className="flex-1 min-h-0 m-0 mt-3 p-3 pt-0 overflow-y-auto scrollbar-thin data-[state=active]:flex data-[state=active]:flex-col data-[state=inactive]:hidden">
             <Button variant="outline" size="sm" onClick={runBrief} disabled={loadingB} className="w-full mb-3">
               {loadingB ? <Loader2 className="size-4 animate-spin" /> : "📊"} {tr.daily_brief}
             </Button>
@@ -276,7 +276,7 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
             )}
           </TabsContent>
 
-          <TabsContent value="strategy" className="flex-1 m-0 mt-3 p-3 pt-0 overflow-y-auto scrollbar-thin">
+          <TabsContent value="strategy" className="flex-1 min-h-0 m-0 mt-3 p-3 pt-0 overflow-y-auto scrollbar-thin data-[state=active]:flex data-[state=active]:flex-col data-[state=inactive]:hidden">
             <Button variant="outline" size="sm" onClick={runStrategy} disabled={loadingS} className="w-full mb-3">
               {loadingS ? <Loader2 className="size-4 animate-spin" /> : <Brain className="size-4" />} {tr.get_strategy}
             </Button>
@@ -290,7 +290,7 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
             )}
           </TabsContent>
 
-          <TabsContent value="news" className="flex-1 m-0 mt-3 p-3 pt-0 overflow-y-auto scrollbar-thin">
+          <TabsContent value="news" className="flex-1 min-h-0 m-0 mt-3 p-3 pt-0 overflow-y-auto scrollbar-thin data-[state=active]:flex data-[state=active]:flex-col data-[state=inactive]:hidden">
             <Button variant="outline" size="sm" onClick={runNews} disabled={loadingN} className="w-full mb-3">
               {loadingN ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
               {loadingN ? tr.ai_loading : tr.refresh}
@@ -318,7 +318,7 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
             </div>
           </TabsContent>
 
-          <TabsContent value="chat" className="flex-1 m-0 mt-3 flex flex-col min-h-0">
+          <TabsContent value="chat" className="flex-1 min-h-0 m-0 mt-3 flex flex-col data-[state=active]:flex data-[state=active]:flex-col data-[state=inactive]:hidden">
             <div className="flex-1 overflow-y-auto scrollbar-thin px-3 space-y-3">
               {messages.length === 0 && (
                 <div className="text-xs text-muted-foreground text-center py-8">{tr.ask_anything}</div>

@@ -3,6 +3,7 @@ import { rateLimit } from "../_shared/rate-limit.ts";
 import { logObservability, logger } from "../_shared/logger.ts";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
+import { buildAIContext, formatContextForPrompt } from "../_shared/build-ai-context.ts";
 
 const SYMBOL_RE = /^[A-Z0-9.-]{1,16}$/;
 const MAX_MESSAGES = 20;
@@ -49,6 +50,14 @@ Deno.serve(async (req) => {
     const safeSymbol = context_symbol;
     const lang = language;
 
+    const ctx = await buildAIContext(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      u.user.id,
+      safeSymbol
+    );
+    const contextStr = formatContextForPrompt(ctx);
+
     const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
     if (!OPENROUTER_API_KEY) {
       console.error("ai-chat: OPENROUTER_API_KEY missing");
@@ -57,8 +66,8 @@ Deno.serve(async (req) => {
     }
 
     const sys = lang === "tr"
-      ? `Sen yardımcı bir finans/yatırım asistanısın. Net, kısa cevaplar ver. Markdown kullan. ${safeSymbol ? `Aktif sembol: ${safeSymbol}.` : ""} Yatırım tavsiyesi vermediğini hatırlat.`
-      : `You are a helpful financial assistant. Be clear and concise. Use markdown. ${safeSymbol ? `Active symbol: ${safeSymbol}.` : ""} Remind users this is not investment advice.`;
+      ? `${contextStr}\n\n---\n\nSen yardımcı bir finans/yatırım asistanısın. Net, kısa cevaplar ver. Markdown kullan. ${safeSymbol ? `Aktif sembol: ${safeSymbol}.` : ""} Yatırım tavsiyesi vermediğini hatırlat.`
+      : `${contextStr}\n\n---\n\nYou are a helpful financial assistant. Be clear and concise. Use markdown. ${safeSymbol ? `Active symbol: ${safeSymbol}.` : ""} Remind users this is not investment advice.`;
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);

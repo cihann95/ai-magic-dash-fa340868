@@ -373,7 +373,7 @@ GENEL DURUM:
   - Eksik: 0
 
 SAYFA DURUMLARI:
-  - / (Index): ✅ Çalışıyor — trading dashboard, sembol listesi, grafik, pozisyonlar, AI panel
+  - / (Index): ✅ Çalışıyor — trading dashboard, sembol listesi, grafik, pozisyonlar, AI panel (height zinciri düzeltildi)
   - /portfolio: ✅ Çalışiyor — positions, trades, profiles, live prices, PnL hesaplama
   - /history: ✅ Çalışıyor — loading state eklendi (Faz 6)
   - /watchlist: ✅ Çalışıyor — watchlist CRUD, live prices
@@ -382,7 +382,7 @@ SAYFA DURUMLARI:
   - /achievements: ✅ Çalışıyor — achievements + user_achievements
   - /heatmap: ✅ Çalışıyor — useLivePrices, renkli grid
   - /social: ✅ Çalışıyor — edge function write, error/empty/loading state (Faz 7)
-  - /coach: ✅ Çalışıyor — coach_insights + ai-trade-coach edge function
+  - /coach: ✅ Çalışıyor — coach_insights + ai-trade-coach edge function (AI context eklendi)
   - /journal: ✅ Çalışıyor — trade_journal CRUD
   - /insights: ✅ Çalışıyor — intent mirror, plan discipline, emotion mirror
   - /blitz: ✅ Çalışıyor — matchmaking, private room, queue
@@ -403,11 +403,11 @@ EDGE FUNCTION KULLANIMI:
   - manage-order: / (order ticket)
   - manage-follow: /social (takip et/bırak)
   - manage-copy-settings: /social (copy ayarları)
-  - ai-chat: / (AI panel)
-  - ai-analyze: / (AI panel)
-  - ai-strategy: / (AI panel)
-  - ai-trade-coach: /coach
-  - ai-risk-monitor: / (AI panel)
+  - ai-chat: / (AI panel — anlık fiyat + pozisyon + bakiye ile)
+  - ai-analyze: / (AI panel — anlık fiyat + pozisyon + bakiye ile)
+  - ai-strategy: / (AI panel — anlık fiyat + pozisyon + bakiye ile)
+  - ai-trade-coach: /coach (davranış analizi + anlık portföy context)
+  - ai-risk-monitor: / (cron — tüm pozisyonları tarar)
   - blitz-matchmake: /blitz
   - blitz-join-private: /blitz
   - blitz-tick-order: /blitz/:roomId
@@ -417,4 +417,22 @@ EDGE FUNCTION KULLANIMI:
   - reset-demo-account: /settings
   - health: CI/monitoring
 
-🏁 Faz 7 tamamlandı — proje production-ready.
+AI CONTEXT (Faz 8):
+  - build-ai-context.ts: 5 veri kaynağı (price_cache, positions, profiles, user_stats, trades)
+  - Her kaynak bağımsız try/catch — partial context on failure
+  - ai-analyze: symbol + price + positions + balance + recentTrades
+  - ai-chat: positions + balance + recentTrades + selectedSymbol
+  - ai-strategy: price + positions + balance + recentTrades
+  - ai-trade-coach: behavior stats + portfolio context
+  - AccountAIPanel: selectedSymbol tüm AI çağrılarına gönderiliyor
+
+HATA YÖNETİMİ (Faz 8):
+  - edge-error.ts: callEdgeFunction wrapper — Supabase raw error parse, Türkçe mesajlar, retry
+  - Tüm frontend edge function çağrıları callEdgeFunction üzerinden
+  - Spesifik error codes: INSUFFICIENT_BALANCE, ROOM_FULL, LOCK_FAILED, AI_TIMEOUT, vb.
+
+UI DÜZELTMELERİ (Faz 8):
+  - AccountAIPanel: TabsContent height zinciri düzeltildi (min-h-0 + data-[state] pattern)
+  - Mobil layout: TabsContent height düzeltildi
+
+🏁 Faz 8 tamamlandı — AI context + error handling + UI düzeltmeleri.

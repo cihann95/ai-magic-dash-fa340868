@@ -3,9 +3,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { rateLimit } from "../_shared/rate-limit.ts";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
+import { buildAIContext, formatContextForPrompt } from "../_shared/build-ai-context.ts";
 
 const StrategyRequestSchema = z.object({
   language: z.enum(["tr", "en"]).default("tr"),
+  symbol: z.string().regex(/^[A-Z0-9.-]{1,16}$/).optional(),
 });
 
 Deno.serve(async (req) => {
@@ -36,37 +38,20 @@ Deno.serve(async (req) => {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const { language } = parseResult.data;
-    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const { language, symbol } = parseResult.data;
 
-    const [{ data: positions }, { data: profile }] = await Promise.all([
-      admin.from("positions").select("symbol,asset_class,side,quantity,entry_price,current_price").eq("user_id", user.id),
-      admin.from("profiles").select("demo_balance,initial_balance").eq("id", user.id).single(),
-    ]);
-
-    // Dağılım hesapla
-    const allocation: Record<string, number> = {};
-    let total = 0;
-    for (const p of positions ?? []) {
-      const v = Number(p.quantity) * Number(p.current_price ?? p.entry_price);
-      allocation[p.asset_class] = (allocation[p.asset_class] ?? 0) + v;
-      total += v;
-    }
-    const pct: Record<string, number> = {};
-    for (const k of Object.keys(allocation)) pct[k] = +((allocation[k] / total) * 100).toFixed(1);
-
-    const ctx = {
-      balance: profile?.demo_balance,
-      initial: profile?.initial_balance,
-      positions_count: positions?.length ?? 0,
-      allocation_pct: pct,
-      total_value: total,
-    };
+    const ctx = await buildAIContext(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      user.id,
+      symbol
+    );
+    const contextStr = formatContextForPrompt(ctx);
 
     const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
     const sys = language === "tr"
-      ? "Sen risk yönetimi uzmanısın. Verilen portföy dağılımına göre 3 somut, kısa ve aksiyona yönelik strateji önerisi ver. Markdown bullet liste, max 200 kelime. Sonda yatırım tavsiyesi değil notu ekle."
-      : "You are a risk management expert. Given the portfolio allocation, give 3 concrete, short, actionable strategy suggestions. Markdown bullets, max 200 words. End with not-investment-advice note.";
+      ? `${contextStr}\n\n---\n\nSen risk yönetimi uzmanısın. Verilen portföy dağılımına göre 3 somut, kısa ve aksiyona yönelik strateji önerisi ver. Markdown bullet liste, max 200 kelime. Sonda yatırım tavsiyesi değil notu ekle.`
+      : `${contextStr}\n\n---\n\nYou are a risk management expert. Given the portfolio allocation, give 3 concrete, short, actionable strategy suggestions. Markdown bullets, max 200 words. End with not-investment-advice note.`;
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
@@ -85,7 +70,7 @@ Deno.serve(async (req) => {
           model: "openai/gpt-4o-mini",
           messages: [
             { role: "system", content: sys },
-            { role: "user", content: `Portföy: ${JSON.stringify(ctx)}` },
+            { role: "user", content: "Mevcut portföy durumuma göre strateji öner." },
           ],
         }),
         signal: controller.signal,

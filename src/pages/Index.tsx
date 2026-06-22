@@ -107,7 +107,7 @@ export default function Index() {
                 <TabsTrigger value="positions" className="text-xs gap-1"><Layers className="size-3" />{tr.open_positions}</TabsTrigger>
                 <TabsTrigger value="ai" className="text-xs gap-1"><Sparkles className="size-3" />AI</TabsTrigger>
               </TabsList>
-              <TabsContent value="positions" className="flex-1 m-0 mt-2 p-0 overflow-hidden">
+              <TabsContent value="positions" className="flex-1 min-h-0 m-0 mt-2 p-0 overflow-hidden data-[state=active]:flex data-[state=active]:flex-col data-[state=inactive]:hidden">
                 <OpenPositionsPanel
                   refreshKey={refresh}
                   onTradeDone={() => setRefresh((r) => r + 1)}
@@ -115,7 +115,7 @@ export default function Index() {
                   activeSymbol={active.symbol}
                 />
               </TabsContent>
-              <TabsContent value="ai" className="flex-1 m-0 mt-2 p-0 overflow-hidden">
+              <TabsContent value="ai" className="flex-1 min-h-0 m-0 mt-2 p-0 overflow-hidden data-[state=active]:flex data-[state=active]:flex-col data-[state=inactive]:hidden">
                 <AccountAIPanel symbol={active} refreshKey={refresh} onTradeDone={() => setRefresh((r) => r + 1)} />
               </TabsContent>
             </Tabs>
