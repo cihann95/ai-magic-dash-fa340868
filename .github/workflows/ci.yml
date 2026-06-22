@@ -80,7 +80,7 @@ jobs:
         with:
           deno-version: "2.8.2"
       - name: Run audit suite
-        run: deno run --frozen --no-prompt -A scripts/audit/_run_all.ts
+        run: deno run --no-prompt -A scripts/audit/_run_all.ts
       - name: Upload audit evidence
         if: always()
         uses: actions/upload-artifact@v4
