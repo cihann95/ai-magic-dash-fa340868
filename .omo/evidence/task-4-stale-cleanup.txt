@@ -1,0 +1,43 @@
+# Task 4 QA: Stale Queue Cleanup TTL
+
+## Test Senaryosu
+Kullanıcı kuyrukta 6 dakikadır (TTL 5dk geçti), real_balance_locked=5. Başka bir kullanıcı quick match çağırır.
+
+## Beklenen Davranış
+1. `releaseStaleBalances()` her matchmake request'te inline çalışır
+2. Redis sorted set'ten (score=timestamp) eski entry'ler `ZRANGEBYSCORE` ile bulunur
+3. `blitz:queue:keys` set'inden tüm queue key'ler taranır
+4. Stale entry'ler sorted set'ten ve list'ten silinir
+5. Her stale user için DB conditional UPDATE ile `real_balance_locked -= entry_fee`
+6. Observability log: `queue_stale_cleanup` event
+
+## Test Adımları (curl)
+```bash
+# 1. Kullanıcı A kuyruğa girer (quick match)
+curl -X POST $SUPABASE_URL/functions/v1/blitz-matchmake \
+  -H "Authorization: Bearer $JWT_A" \
+  -d '{"mode":"quick","symbol":"BTCUSD","entry_fee":5}'
+# Response: {status: "queued"}
+# DB: user_A real_balance_locked=5
+# Redis: zadd(blitz:queue:BTCUSD:5, timestamp, user_A)
+
+# 2. 6 dakika bekle (veya WAITING_ROOM_TTL_SECONDS=10 yapıp 11 sn bekle)
+
+# 3. Kullanıcı B quick match çağırır (releaseStaleBalances tetiklenir)
+curl -X POST $SUPABASE_URL/functions/v1/blitz-matchmake \
+  -H "Authorization: Bearer $JWT_B" \
+  -d '{"mode":"quick","symbol":"BTCUSD","entry_fee":5}'
+
+# 4. DB kontrol: user_A real_balance_locked=0 (cleanup yapıldı)
+# Redis: user_A sorted set'ten ve list'ten silinmiş
+# Logs: queue_stale_cleanup event görülebilir
+```
+
+## Kod Değişiklikleri
+- `supabase/functions/blitz-matchmake/index.ts:78-125` - releaseStaleBalances() genişletildi
+- `redisEnabled` check ile sadece Redis varsa çalışır
+- `blitz:queue:keys` set'i ile tüm queue key'ler takip edilir
+- `zrangebyscore(queueKey, 0, staleCutoff, {withScores: true})` ile stale entry'ler bulunur
+- `zremrangebyscore` + `lrem` ile temizlik
+- Conditional UPDATE ile TOCTOU korumalı balance unlock
+- `supabase/functions/_shared/redis.ts` - `zrangebyscore` wrapper eklendi (Upstash `zrange` with `byScore: true` kullanır)

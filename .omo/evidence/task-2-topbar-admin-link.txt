@@ -1,0 +1,16 @@
+Task 2 - TopBar Admin Links
+============================
+
+Test Scenario:
+1. Admin login → click user avatar dropdown → "Admin Panel" section visible
+   - Kullanıcılar → /admin/users
+   - Blitz Odaları → /admin/rooms
+   - Sistem Ayarları → /admin/settings
+   - Revenue → /admin/blitz
+2. Normal kullanıcı login → click user avatar dropdown → "Admin Panel" section NOT visible
+
+Implementation:
+- useIsAdmin() hook'u ile isAdmin kontrolü
+- isAdmin=true ise dropdown'da "Admin Panel" başlığı + 4 link
+- isAdmin=false ise hiçbir admin linki gösterilmez
+- React Router navigate() ile yönlendirme

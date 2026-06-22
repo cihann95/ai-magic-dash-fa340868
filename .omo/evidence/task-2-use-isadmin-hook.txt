@@ -1,0 +1,11 @@
+Task 2 - useIsAdmin Hook
+========================
+
+File: src/hooks/useIsAdmin.ts
+Export: useIsAdmin (named export)
+
+Hook reads isAdmin from AppContext:
+  const { isAdmin } = useApp();
+  return isAdmin;
+
+Used in TopBar.tsx for admin link visibility.

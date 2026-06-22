@@ -4,7 +4,7 @@ import { t } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import {
   Moon, Sun, LineChart, Wallet, History, Eye, Settings, LogOut, Menu, X,
-  Trophy, Award, Flame, Users, Brain, BookOpen, Activity, Search, MoreHorizontal, Keyboard,
+  Trophy, Award, Flame, Users, Brain, BookOpen, Activity, Search, MoreHorizontal, Keyboard, Zap, TrendingUp,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -31,7 +31,7 @@ const moreItems = (lang: "tr" | "en") => [
 ];
 
 export default function TopBar() {
-  const { user, lang, setLang, theme, setTheme, signOut } = useApp();
+  const { user, lang, setLang, theme, setTheme, signOut, isAdmin } = useApp();
   const navigate = useNavigate();
   const loc = useLocation();
   const tr = t(lang);
@@ -132,6 +132,30 @@ export default function TopBar() {
                 <DropdownMenuItem onClick={() => navigate("/settings")}>
                   <Settings className="size-4 mr-2" />{tr.settings}
                 </DropdownMenuItem>
+                {isAdmin && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <div className="px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                      Admin Panel
+                    </div>
+                    <DropdownMenuItem onClick={() => navigate("/admin/users")} className="gap-2">
+                      <Users className="size-4 text-muted-foreground" />
+                      <span>{lang === "tr" ? "Kullanıcılar" : "Users"}</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/admin/rooms")} className="gap-2">
+                      <Zap className="size-4 text-muted-foreground" />
+                      <span>{lang === "tr" ? "Blitz Odaları" : "Blitz Rooms"}</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/admin/settings")} className="gap-2">
+                      <Settings className="size-4 text-muted-foreground" />
+                      <span>{lang === "tr" ? "Sistem Ayarları" : "System Settings"}</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/admin/blitz")} className="gap-2">
+                      <TrendingUp className="size-4 text-muted-foreground" />
+                      <span>Revenue</span>
+                    </DropdownMenuItem>
+                  </>
+                )}
                 <DropdownMenuItem onClick={async () => { await signOut(); navigate("/auth"); }}>
                   <LogOut className="size-4 mr-2" />{tr.signout}
                 </DropdownMenuItem>

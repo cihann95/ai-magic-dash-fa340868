@@ -1,0 +1,12 @@
+Task 2 - ProtectedRoute Admin Check
+====================================
+
+Test Scenario:
+1. Admin kullanıcı login → /admin/users sayfası yüklenir (isAdmin=true, requiredRole="admin" check geçer)
+2. Normal kullanıcı login → /admin/users → Redirect "/" + toast.error("Admin yetkisi gerekli")
+3. Auth check korunuyor: loading durumunda spinner, user=null ise /auth'a redirect
+
+Implementation:
+- requiredRole?: "admin" prop eklendi
+- if (requiredRole === "admin" && !isAdmin) → Navigate to="/" + toast.error
+- Mevcut auth check (user null → /auth) korunuyor

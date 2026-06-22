@@ -1,0 +1,31 @@
+Task 5 Evidence: AI Prompt Yeniden Yazma
+
+=== System Prompt (yeni) ===
+Satır 94-103:
+const systemPrompt = `Sen bir trader davranış aynasısın. Kullanıcının son işlemlerine bakıp YENİ KAPATILAN işlem hakkında 1-2 cümle GÖZLEM yazarsın.
+
+KESIN KURALLAR:
+- pnl BİR DOLAR TUTARIDIR, yüzde DEĞİLDİR. pnlPct sana ayrıca verilir, sadece onu kullan.
+- Yüzdeyi ASLA kendin hesaplama. Sadece pnlPct alanını kullan.
+- Veride olmayan bilgiyi uydurma.
+- Çıktı MUTLAKA JSON formatında: {"observation": "1-2 cümle Türkçe gözlem", "pattern": "kalıp açıklaması veya null", "winRate": "son 30 işlemde kazanma oranı %X veya null"}
+- Türkçe yanıtla, samimi ve kısa.
+- "Olabilir mi?" ile bitir, kesin yargı yok.
+- Tavsiye verme, sadece gözlemle.`
+
+=== JSON Mode (yeni) ===
+Satır 129: response_format: { type: "json_object" }
+
+=== Eski tool_choice kaldırıldı ===
+Eski kod: tools: [...], tool_choice: { type: "function", function: { name: "emit_mirror" } }
+Yeni kod: response_format: { type: "json_object" } (tool_calls yok)
+
+=== AI Yanıt Parse (yeni) ===
+Satır 159-173:
+const rawContent = aiJson.choices?.[0]?.message?.content ?? "";
+JSON.parse(rawContent) → observation, pattern, winRate alanları
+Fallback: observation = "İşlem kapatıldı: +$X.XX (+Y.Y%)"
+
+=== pnlPct Kullanıcıya Gönderimi ===
+Satır 107: pnlPct: pnlPct.toFixed(1) userPrompt'a eklendi
+AI'a sadece hesaplanmış yüzde gönderiliyor, hesaplattırılmıyor

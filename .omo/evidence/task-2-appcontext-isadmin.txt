@@ -1,0 +1,11 @@
+Task 2 - AppContext isAdmin State
+==================================
+
+AppContext.tsx updated with isAdmin state:
+- Interface: isAdmin: boolean added to AppContextValue
+- State: const [isAdmin, setIsAdmin] = useState(false)
+- useEffect: user değişince supabase.rpc("has_role", { _user_id: user.id, _role: "admin" }) çağrılıyor
+- Logout'ta (user null): setIsAdmin(false) reset
+- Provider value'ya isAdmin eklendi
+
+has_role() RPC çağrısı doğrulandı: AppContext.tsx'te user effect içinde .then(({ data }) => setIsAdmin(data === true))

@@ -1,0 +1,29 @@
+# Task 4 QA: Redis Yoksa Quick Match 503
+
+## Test Senaryosu
+UPSTASH_REDIS_REST_URL/TOKEN env var'ları yokken quick match çağrılır.
+
+## Beklenen Davranış
+1. `redisEnabled === false` kontrolü `rpush`/`lpop` ÖNCESİNDE yapılır
+2. 503 status code döner
+3. Response body: `{error: "Eşleştirme servisi geçici olarak kullanılamıyor", code: "MATCHMAKER_UNAVAILABLE", retryable: true}`
+4. Sessiz fail-open (queued dönmesi) ENGELLENDİ
+
+## Test Adımları (curl)
+```bash
+# UPSTASH env var'larını geçici olarak kaldır / boş bırak
+# Supabase dashboard -> Edge Functions -> blitz-matchmake -> Settings -> Environment Variables
+# UPSTASH_REDIS_REST_URL ve UPSTASH_REDIS_REST_TOKEN silin
+
+curl -X POST $SUPABASE_URL/functions/v1/blitz-matchmake \
+  -H "Authorization: Bearer $JWT" \
+  -d '{"mode":"quick","symbol":"BTCUSD","entry_fee":5}'
+
+# Beklenen: 503 Service Unavailable
+# Response: {"error":"Eşleştirme servisi geçici olarak kullanılamıyor","code":"MATCHMAKER_UNAVAILABLE","retryable":true}
+```
+
+## Kod Değişiklikleri
+- `supabase/functions/blitz-matchmake/index.ts:284-298` - Quick match başında redisEnabled kontrolü
+- Aynı kontrol `lpop` için de geçerli (kod akışı aynı blokta)
+- Frontend (Task 3) bu 503'i yakalayıp toast gösterecek

@@ -1,0 +1,29 @@
+# Task 4 QA: Cancel Idempotent (Kuyrukta Değilse)
+
+## Test Senaryosu
+Kullanıcı kuyrukta DEĞİL (real_balance_locked=0), cancel çağırır.
+
+## Beklenen Davranış
+1. Cancel handler çalışır
+2. Redis lrem 0 döner (kuyrukta yok)
+3. DB conditional UPDATE: `WHERE real_balance_locked >= entry_fee` koşulu sağlanmaz (0 >= 5 false)
+4. UPDATE 0 row affected, hata VERMEZ
+5. 200 OK döner: `{ok: true}`
+
+## Test Adımları (curl)
+```bash
+# Kullanıcı kuyrukta değil, real_balance_locked=0
+curl -X POST $SUPABASE_URL/functions/v1/blitz-matchmake \
+  -H "Authorization: Bearer $JWT" \
+  -d '{"mode":"cancel"}'
+
+# Beklenen: 200 OK + {ok: true}
+# DB: real_balance_locked hala 0 (değişmez)
+# Hata YOK (idempotent)
+```
+
+## Kod Değişiklikleri
+- `supabase/functions/blitz-matchmake/index.ts:183-189` - Conditional UPDATE with `WHERE real_balance_locked >= entry_fee`
+- `profile && Number(profile.real_balance_locked) >= entry_fee` check önceden yapılır
+- Sadece kilitli bakiye varsa unlock yapılır
+- Redis yoksa bile DB unlock çalışır (cancel handler Redis bağımsız)

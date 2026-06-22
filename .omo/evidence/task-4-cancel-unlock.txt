@@ -1,0 +1,32 @@
+# Task 4 QA: Cancel Bakiye Kilidini Açar
+
+## Test Senaryosu
+Kullanıcı kuyrukta beklerken (real_balance_locked=5) cancel çağırır.
+
+## Beklenen Davranış
+1. Cancel handler çalışır
+2. Conditional UPDATE ile bakiye kilidi açılır: `real_balance_locked -= entry_fee`
+3. TOCTOU koruması: `WHERE real_balance_locked = old_value` koşulu ile
+4. 200 OK döner
+
+## Test Adımları (curl)
+```bash
+# Önce kullanıcıyı kuyruğa sok (quick match)
+curl -X POST $SUPABASE_URL/functions/v1/blitz-matchmake \
+  -H "Authorization: Bearer $JWT" \
+  -d '{"mode":"quick","symbol":"BTCUSD","entry_fee":5}'
+
+# DB kontrol: real_balance_locked=5 olmalı
+# Sonra cancel çağır
+curl -X POST $SUPABASE_URL/functions/v1/blitz-matchmake \
+  -H "Authorization: Bearer $JWT" \
+  -d '{"mode":"cancel"}'
+
+# Beklenen: 200 OK + {ok: true}
+# DB kontrol: real_balance_locked=0 olmalı
+```
+
+## Kod Değişiklikleri
+- `supabase/functions/blitz-matchmake/index.ts:175-190` - Cancel handler'da conditional UPDATE eklendi
+- Idempotent: Kullanıcı kuyrukta değilse (locked=0) UPDATE 0 row affected, sessizce 200 döner
+- Redis lrem best-effort, fail-open (Redis yoksa bile DB unlock çalışır)
