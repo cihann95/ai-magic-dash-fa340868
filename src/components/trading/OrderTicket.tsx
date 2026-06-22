@@ -57,25 +57,50 @@ export default function OrderTicket({ symbol }: { symbol: SymbolDef }) {
     if (!q || q <= 0 || !tp || tp <= 0) return toast({ title: tr.error, variant: "destructive" });
     setSubmitting(true);
     try {
-      const { error } = await supabase.from("orders").insert({
-        user_id: user.id,
-        symbol: symbol.symbol,
-        asset_class: symbol.asset_class,
-        order_type: orderType,
-        side,
-        quantity: q,
-        trigger_price: tp,
+      const { data, error, response } = await supabase.functions.invoke("manage-order", {
+        body: {
+          action: "place",
+          symbol: symbol.symbol,
+          asset_class: symbol.asset_class,
+          order_type: orderType,
+          side,
+          quantity: q,
+          trigger_price: tp,
+        },
       });
-      if (error) throw error;
+      if (error) {
+        let errorMsg = error.message || "Unknown error";
+        try {
+          const body = await response?.json();
+          if (body?.error) errorMsg = body.error;
+        } catch { /* response body already consumed */ }
+        throw new Error(errorMsg);
+      }
       toast({ title: tr.success, description: `${orderType.toUpperCase()} ${side.toUpperCase()} ${q} ${symbol.symbol} @ ${tp}` });
+      loadOrders();
     } catch (e) {
       toast({ title: tr.error, description: e instanceof Error ? e.message : "Unknown", variant: "destructive" });
     } finally { setSubmitting(false); }
   };
 
   const cancel = async (id: string) => {
-    await supabase.from("orders").update({ status: "cancelled" }).eq("id", id);
-    toast({ title: tr.cancel, description: id.slice(0, 8) });
+    try {
+      const { error, response } = await supabase.functions.invoke("manage-order", {
+        body: { action: "cancel", order_id: id },
+      });
+      if (error) {
+        let errorMsg = error.message || "Unknown error";
+        try {
+          const body = await response?.json();
+          if (body?.error) errorMsg = body.error;
+        } catch { /* response body already consumed */ }
+        throw new Error(errorMsg);
+      }
+      toast({ title: tr.cancel, description: id.slice(0, 8) });
+      loadOrders();
+    } catch (e) {
+      toast({ title: tr.error, description: e instanceof Error ? e.message : "Unknown", variant: "destructive" });
+    }
   };
 
   return (

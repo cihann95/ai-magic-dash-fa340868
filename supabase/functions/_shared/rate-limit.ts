@@ -25,6 +25,7 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
   "ai-chat": { windowMs: ONE_MINUTE_MS, maxRequests: 15, keyPrefix: "rl:ai" },
   "ai-trade-coach": { windowMs: ONE_MINUTE_MS, maxRequests: 15, keyPrefix: "rl:ai" },
   "ai-risk-monitor": { windowMs: ONE_MINUTE_MS, maxRequests: 15, keyPrefix: "rl:ai" },
+  "manage-order": { windowMs: ONE_MINUTE_MS, maxRequests: 30, keyPrefix: "rl:order" },
 };
 
 const DEFAULT_CONFIG: RateLimitConfig = {
