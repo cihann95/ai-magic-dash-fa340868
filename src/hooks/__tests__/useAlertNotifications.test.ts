@@ -62,7 +62,7 @@ describe("useAlertNotifications", () => {
   it("subscribes to price_alerts channel for the user", () => {
     renderHook(() => useAlertNotifications());
 
-    expect(mockChannel).toHaveBeenCalledWith("price_alerts_user");
+    expect(mockChannel).toHaveBeenCalledWith("price_alerts_user-1");
     expect(mockOn).toHaveBeenCalledWith(
       "postgres_changes",
       expect.objectContaining({

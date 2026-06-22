@@ -1,3 +1,5 @@
+import * as Sentry from "@sentry/react";
+
 type LogLevel = "info" | "warn" | "error" | "debug";
 
 interface LogEntry {
@@ -8,7 +10,40 @@ interface LogEntry {
   durationMs?: number;
 }
 
-const isDev = typeof process !== "undefined" && process.env.NODE_ENV === "development";
+const isDev = typeof import.meta !== "undefined"
+  ? import.meta.env.MODE === "development"
+  : typeof process !== "undefined" && process.env.NODE_ENV === "development";
+
+const sentryDsn = typeof import.meta !== "undefined"
+  ? import.meta.env.VITE_SENTRY_DSN
+  : undefined;
+
+if (sentryDsn) {
+  Sentry.init({
+    dsn: sentryDsn,
+    environment: typeof import.meta !== "undefined" ? import.meta.env.MODE : "production",
+    tracesSampleRate: 0.1,
+    replaysSessionSampleRate: 0,
+    replaysOnErrorSampleRate: 0.5,
+    integrations: [
+      Sentry.browserTracingIntegration(),
+    ],
+    enabled: !isDev,
+  });
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("unhandledrejection", (event) => {
+    Sentry.captureException(event.reason, { tags: { source: "unhandledrejection" } });
+    console.error("[unhandledrejection]", event.reason);
+  });
+
+  window.addEventListener("error", (event) => {
+    if (event.error && !event.error.__sentry__) {
+      Sentry.captureException(event.error, { tags: { source: "global-error" } });
+    }
+  });
+}
 
 function log(entry: LogEntry): void {
   const prefix = `[${entry.service}] ${entry.event}`;
@@ -43,8 +78,15 @@ export const observability = {
   warn: (service: string, event: string, metadata?: Record<string, unknown>) =>
     log({ service, event, level: "warn", metadata }),
 
-  error: (service: string, event: string, metadata?: Record<string, unknown>) =>
-    log({ service, event, level: "error", metadata }),
+  error: (service: string, event: string, metadata?: Record<string, unknown>) => {
+    log({ service, event, level: "error", metadata });
+    Sentry.withScope((scope) => {
+      scope.setTag("service", service);
+      scope.setTag("event", event);
+      if (metadata) scope.setExtras(metadata);
+      Sentry.captureMessage(`${service}: ${event}`, "error");
+    });
+  },
 
   debug: (service: string, event: string, metadata?: Record<string, unknown>) =>
     log({ service, event, level: "debug", metadata }),
@@ -59,8 +101,23 @@ export const observability = {
       .catch((err) => {
         const durationMs = Math.round(performance.now() - start);
         log({ service, event, level: "error", metadata: { error: String(err), durationMs }, durationMs });
+        Sentry.withScope((scope) => {
+          scope.setTag("service", service);
+          scope.setTag("event", event);
+          scope.setExtra("durationMs", durationMs);
+          Sentry.captureException(err);
+        });
         throw err;
       });
+  },
+
+  captureException: (error: Error, context?: { service?: string; event?: string; metadata?: Record<string, unknown> }) => {
+    Sentry.withScope((scope) => {
+      if (context?.service) scope.setTag("service", context.service);
+      if (context?.event) scope.setTag("event", context.event);
+      if (context?.metadata) scope.setExtras(context.metadata);
+      Sentry.captureException(error);
+    });
   },
 };
 

@@ -4,6 +4,7 @@ import { useApp } from "@/contexts/AppContext";
 import { SYMBOLS, findSymbol } from "@/lib/symbols";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { t } from "@/lib/i18n";
 import SymbolList from "@/components/trading/SymbolList";
 import ChartPanel from "@/components/trading/ChartPanel";
@@ -12,8 +13,10 @@ import OpenPositionsPanel from "@/components/trading/OpenPositionsPanel";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { AnaSahne } from "@/components/AnaSahne";
 import { useAnaSahne } from "@/hooks/useAnaSahne";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useLocalStorage } from "@/hooks/useLocalStorage";
 import { hasFeature } from "@/lib/feature-flags";
-import { ArrowRight, BarChart3, Brain, Globe } from "lucide-react";
+import { ArrowRight, BarChart3, Brain, Globe, Layers, Sparkles } from "lucide-react";
 
 function AnaSahneSection() {
   const { lang } = useApp();
@@ -36,6 +39,8 @@ export default function Index() {
   const initial = findSymbol(params.get("symbol") || "") || SYMBOLS[0];
   const [active, setActive] = useState(initial);
   const [refresh, setRefresh] = useState(0);
+  const isMobile = useIsMobile();
+  const [mobileTab, setMobileTab] = useLocalStorage<string>("lumen-mobile-right-tab", "positions");
 
   useEffect(() => {
     const s = params.get("symbol");
@@ -96,20 +101,40 @@ export default function Index() {
           <ChartPanel symbol={active} onTradeDone={() => setRefresh((r) => r + 1)} />
         </section>
         <aside className="order-3 min-h-[600px] lg:min-h-0 flex flex-col">
-          <ResizablePanelGroup direction="vertical" className="flex-1 min-h-0">
-            <ResizablePanel defaultSize={52} minSize={28} className="flex flex-col min-h-0">
-              <OpenPositionsPanel
-                refreshKey={refresh}
-                onTradeDone={() => setRefresh((r) => r + 1)}
-                onSelectSymbol={setActive}
-                activeSymbol={active.symbol}
-              />
-            </ResizablePanel>
-            <ResizableHandle withHandle className="my-1" />
-            <ResizablePanel defaultSize={48} minSize={24} className="flex flex-col min-h-0">
-              <AccountAIPanel symbol={active} refreshKey={refresh} onTradeDone={() => setRefresh((r) => r + 1)} />
-            </ResizablePanel>
-          </ResizablePanelGroup>
+          {isMobile ? (
+            <Tabs value={mobileTab} onValueChange={setMobileTab} className="flex flex-col flex-1 min-h-0">
+              <TabsList className="grid grid-cols-2 m-3 mb-0 shrink-0">
+                <TabsTrigger value="positions" className="text-xs gap-1"><Layers className="size-3" />{tr.open_positions}</TabsTrigger>
+                <TabsTrigger value="ai" className="text-xs gap-1"><Sparkles className="size-3" />AI</TabsTrigger>
+              </TabsList>
+              <TabsContent value="positions" className="flex-1 m-0 mt-2 p-0 overflow-hidden">
+                <OpenPositionsPanel
+                  refreshKey={refresh}
+                  onTradeDone={() => setRefresh((r) => r + 1)}
+                  onSelectSymbol={setActive}
+                  activeSymbol={active.symbol}
+                />
+              </TabsContent>
+              <TabsContent value="ai" className="flex-1 m-0 mt-2 p-0 overflow-hidden">
+                <AccountAIPanel symbol={active} refreshKey={refresh} onTradeDone={() => setRefresh((r) => r + 1)} />
+              </TabsContent>
+            </Tabs>
+          ) : (
+            <ResizablePanelGroup direction="vertical" className="flex-1 min-h-0">
+              <ResizablePanel defaultSize={52} minSize={28} className="flex flex-col min-h-0">
+                <OpenPositionsPanel
+                  refreshKey={refresh}
+                  onTradeDone={() => setRefresh((r) => r + 1)}
+                  onSelectSymbol={setActive}
+                  activeSymbol={active.symbol}
+                />
+              </ResizablePanel>
+              <ResizableHandle withHandle className="my-1" />
+              <ResizablePanel defaultSize={48} minSize={24} className="flex flex-col min-h-0">
+                <AccountAIPanel symbol={active} refreshKey={refresh} onTradeDone={() => setRefresh((r) => r + 1)} />
+              </ResizablePanel>
+            </ResizablePanelGroup>
+          )}
         </aside>
       </div>
     </AppShell>

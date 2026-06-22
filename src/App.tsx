@@ -1,11 +1,12 @@
 import { lazy, Suspense } from "react";
+import * as Sentry from "@sentry/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppProvider } from "@/contexts/AppContext";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ErrorFallback } from "@/components/ErrorFallback";
 import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
 
@@ -40,7 +41,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <ErrorBoundary>
+        <Sentry.ErrorBoundary fallback={({ error, resetError }) => <ErrorFallback error={error} resetError={resetError} />}>
           <AppProvider>
             <Suspense fallback={<RouteFallback />}>
               <Routes>
@@ -65,7 +66,7 @@ const App = () => (
               </Routes>
             </Suspense>
           </AppProvider>
-        </ErrorBoundary>
+        </Sentry.ErrorBoundary>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { Clock, Loader2, X } from "lucide-react";
+import { Clock, Loader2, RefreshCw, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type OrderType = "limit" | "stop" | "take_profit" | "stop_loss";
@@ -23,6 +23,7 @@ export default function OrderTicket({ symbol }: { symbol: SymbolDef }) {
   const [qty, setQty] = useState("1");
   const [trigger, setTrigger] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [retryContext, setRetryContext] = useState<{ action: 'place' | 'cancel'; id?: string } | null>(null);
   const [orders, setOrders] = useState<any[]>([]);
   const noPrice = !lp?.price;
   const stale = isStale(lp?.updated_at);
@@ -43,7 +44,7 @@ export default function OrderTicket({ symbol }: { symbol: SymbolDef }) {
 
   useEffect(() => {
     if (!user) return;
-    const ch = supabase.channel("orders_user")
+    const ch = supabase.channel(`orders_${user.id}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `user_id=eq.${user.id}` }, () => loadOrders())
       .subscribe();
     return () => { supabase.removeChannel(ch); };
@@ -70,14 +71,23 @@ export default function OrderTicket({ symbol }: { symbol: SymbolDef }) {
       });
       if (error) {
         let errorMsg = error.message || "Unknown error";
+        let retryable = false;
         try {
           const body = await response?.json();
           if (body?.error) errorMsg = body.error;
+          if (body?.retryable) retryable = true;
         } catch { /* response body already consumed */ }
-        throw new Error(errorMsg);
+        if (retryable) {
+          setRetryContext({ action: 'place' });
+          toast({ title: tr.error, description: `${errorMsg} — ${lang === "tr" ? "Tekrar dene" : "Retry"}`, variant: "destructive" });
+        } else {
+          throw new Error(errorMsg);
+        }
+      } else {
+        setRetryContext(null);
+        toast({ title: tr.success, description: `${orderType.toUpperCase()} ${side.toUpperCase()} ${q} ${symbol.symbol} @ ${tp}` });
+        loadOrders();
       }
-      toast({ title: tr.success, description: `${orderType.toUpperCase()} ${side.toUpperCase()} ${q} ${symbol.symbol} @ ${tp}` });
-      loadOrders();
     } catch (e) {
       toast({ title: tr.error, description: e instanceof Error ? e.message : "Unknown", variant: "destructive" });
     } finally { setSubmitting(false); }
@@ -90,14 +100,23 @@ export default function OrderTicket({ symbol }: { symbol: SymbolDef }) {
       });
       if (error) {
         let errorMsg = error.message || "Unknown error";
+        let retryable = false;
         try {
           const body = await response?.json();
           if (body?.error) errorMsg = body.error;
+          if (body?.retryable) retryable = true;
         } catch { /* response body already consumed */ }
-        throw new Error(errorMsg);
+        if (retryable) {
+          setRetryContext({ action: 'cancel', id });
+          toast({ title: tr.error, description: `${errorMsg} — ${lang === "tr" ? "Tekrar dene" : "Retry"}`, variant: "destructive" });
+        } else {
+          throw new Error(errorMsg);
+        }
+      } else {
+        setRetryContext(null);
+        toast({ title: tr.cancel, description: id.slice(0, 8) });
+        loadOrders();
       }
-      toast({ title: tr.cancel, description: id.slice(0, 8) });
-      loadOrders();
     } catch (e) {
       toast({ title: tr.error, description: e instanceof Error ? e.message : "Unknown", variant: "destructive" });
     }
@@ -143,6 +162,19 @@ export default function OrderTicket({ symbol }: { symbol: SymbolDef }) {
       <Button onClick={place} disabled={submitting || noPrice || stale} title={noPrice ? tr.price_unavailable : stale ? tr.stale_data : undefined} className="w-full h-9 gradient-primary text-primary-foreground">
         {submitting ? <Loader2 className="size-4 animate-spin" /> : tr.place_order}
       </Button>
+      {retryContext && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            if (retryContext.action === 'place') place();
+            setRetryContext(null);
+          }}
+          className="w-full h-8 text-xs"
+        >
+          <RefreshCw className="size-3 mr-1" /> {lang === "tr" ? "Tekrar Dene" : "Retry"}
+        </Button>
+      )}
       {(noPrice || stale) && <div className="text-[11px] text-muted-foreground text-center">{noPrice ? tr.price_loading : tr.stale_data}</div>}
 
       <div className="border-t border-border/40 pt-3">

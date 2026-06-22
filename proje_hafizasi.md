@@ -7,7 +7,7 @@ FRONTEND:
   - Paket yöneticisi: npm (package-lock.json mevcut, tek paket yöneticisi olarak sabitlendi)
 BACKEND:
   - Supabase kullanılıyor mu?: Evet
-    - Edge Functions listesi: ai-analyze, ai-chat, ai-risk-monitor, ai-strategy, ai-trade-coach, blitz-admin-topup, blitz-analytics-writer, blitz-join-private, blitz-matchmake, blitz-settle-room, blitz-tick-order, daily-brief, execute-trade, news-feed, price-feed, reset-demo-account, send-push, trade-mirror, weekly-digest
+    - Edge Functions listesi: ai-analyze, ai-chat, ai-risk-monitor, ai-strategy, ai-trade-coach, blitz-admin-topup, blitz-analytics-writer, blitz-join-private, blitz-matchmake, blitz-settle-room, blitz-tick-order, daily-brief, execute-trade, manage-order, news-feed, price-feed, reset-demo-account, send-push, trade-mirror, weekly-digest
     - Realtime subscription var mı?: Evet — notifications, price_cache, coach_insights, copy_settings, blitz_rooms, blitz_participants, blitz_orders, user_stats, positions, orders, price_alerts vb.
     - RLS aktif mi?: Evet — profiles, positions, trades, orders, notifications, public_profiles, copy_settings, coach_insights, push_subscriptions, emotional_logs, followers, blitz_rooms, blitz_participants, blitz_orders, platform_revenue, real_balance_ledger, settlement_ledger, slippage_config, analytics_events, observability_log vb.
   - Harici API'ler:
@@ -124,6 +124,15 @@ KİMLİK DOĞRULAMA:
 POPUP / ONBOARDING:
   - Hoşgeldin popup'ı: src/components/OnboardingTour.tsx
   - Gösterim koşulu: user_stats.onboarding_completed == false ise ilk girişte göster; bitince supabase.rpc("mark_onboarding_complete") çağrılır
+OBSERVABILITY:
+  - Sentry entegrasyonu: @sentry/react kurulu, Sentry.init() VITE_SENTRY_DSN ile başlatılıyor (tracesSampleRate: 0.1, sadece prod'da aktif)
+  - ErrorBoundary: Sentry.ErrorBoundary ile App.tsx wrap edildi; ErrorFallback bileşeni "Bir şeyler ters gitti" + "Sayfayı Yenile" butonu + dev modda teknik detay accordion
+  - Global error listeners: unhandledrejection ve window.error listener'ları Sentry'ye raporluyor
+  - Edge Functions observability: _shared/observability.ts ile logObservability() RPC'si kullanılıyor; manage-order ve AI fonksiyonlarında hata durumlarında observability_log tablosuna yazılıyor
+  - Frontend observability.ts: Sentry captureException + captureMessage entegrasyonu mevcut
+TEST COVERAGE:
+  - manage-order test dosyası: supabase/functions/__tests__/manage-order.test.ts — 7 senaryo (place valid/invalid/auth/rate-limit, cancel valid/forbidden/not-open)
+  - Breakpoint senaryoları: 375px (iPhone SE), 768px (iPad), 1280px (laptop), 1920px (desktop) — mobile Tabs layout, desktop ResizablePanelGroup
 ## BÖLÜM 4 — BİLİNEN SORUNLAR
 SORUN 1:
   - Belirti: npm ve birden fazla lockfile aynı repoda var
@@ -153,6 +162,34 @@ SORUN 4:
   - Kök neden tahmini: sadece trade-mirror'a özel AbortController + OpenRouter error mapping eklendi; diğer AI fonksiyonlarında henüz kontrol edilmedi
   - Öncelik: yüksek
   - Durum: ÇÖZÜLDÜ — 7 AI edge function'ında tutarlı error envelope ({error, code, retryable} / {skipped, reason, code, retryable}) uygulandı
+SORUN 5:
+  - Belirti: manage-order Edge Function'ı yeni yazıldı, production'da test edilmedi
+  - Hata mesajı: potansiyel request validation, auth, ownership hataları
+  - Etkilenen dosya/fonksiyon: supabase/functions/manage-order/index.ts
+  - Kök neden: yeni fonksiyon için test coverage yoktu
+  - Öncelik: kritik
+  - Durum: ÇÖZÜLDÜ — 7 senaryo için unit test oluşturuldu (supabase/functions/__tests__/manage-order.test.ts); OrderTicket.tsx'e retry butonu eklendi
+SORUN 6:
+  - Belirti: Sentry DSN env var'ları tanımlı ama SDK kullanılmıyordu; observability_log tablosu boştu
+  - Hata mesajı: production hataları izlenemiyor
+  - Etkilenen dosya/fonksiyon: src/lib/observability.ts, src/App.tsx, supabase/functions/_shared/
+  - Kök neden: Sentry SDK kurulmamış, ErrorBoundary yoktu
+  - Öncelik: yüksek
+  - Durum: ÇÖZÜLDÜ — @sentry/react kuruldu, Sentry.init() eklendi, ErrorFallback bileşeni yazıldı, edge function'larda observability_log entegrasyonu sağlandı
+SORUN 7:
+  - Belirti: Realtime subscription'lar component unmount'ta cleanup edilmeyebilir → memory leak + duplicate event
+  - Hata mesajı: konsolda "channel already exists" uyarıları, memory artışı
+  - Etkilenen dosya/fonksiyon: src/hooks/useAlertNotifications.ts, src/components/trading/OrderTicket.tsx
+  - Kök neden: channel isimleri generic (price_alerts_user, orders_user) — userId içermiyordu
+  - Öncelik: yüksek
+  - Durum: ÇÖZÜLDÜ — tüm channel isimlerine userId suffix eklendi; cleanup fonksiyonları zaten mevcuttu doğrulandı
+SORUN 8:
+  - Belirti: lg altında (<1024px) ResizablePanelGroup dikey modda mobile'da kullanışsız
+  - Hata mesajı: drag handle mobilde işlevsiz, içeriğe erişim zor
+  - Etkilenen dosya/fonksiyon: src/pages/Index.tsx
+  - Kök neden: responsive layout için mobile-specific UI yoktu
+  - Öncelik: orta
+  - Durum: ÇÖZÜLDÜ — lg altında ResizablePanelGroup yerine Tabs (Pozisyonlar/AI) ile tek alanda geçiş; useLocalStorage hook'u ile son sekme hatırlanıyor
 ## BÖLÜM 5 — ORTAM DEĞİŞKENLERİ
 .env dosyasındaki KEY isimleri ve açıklamaları:
 - NODE_ENV

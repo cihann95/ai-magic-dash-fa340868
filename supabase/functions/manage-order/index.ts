@@ -3,6 +3,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { rateLimit } from "../_shared/rate-limit.ts";
 import { checkBodySize } from "../_shared/body-size-limit.ts";
+import { logObservability, logger } from "../_shared/logger.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -136,6 +137,7 @@ async function cancelOrder(admin: ReturnType<typeof createClient>, userId: strin
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  const start = Date.now();
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
@@ -185,6 +187,13 @@ Deno.serve(async (req) => {
 
     if (!result.ok) {
       const status = result.code === "FORBIDDEN" || result.code === "ORDER_NOT_FOUND" ? 403 : 400;
+      const durationMs = Date.now() - start;
+      logObservability(admin, "manage-order", result.error, {
+        error_code: result.code,
+        user_id: user.id,
+        action: parsed.data.action,
+        duration_ms: durationMs,
+      });
       return new Response(JSON.stringify({ error: result.error, code: result.code, retryable: (result as any).retryable ?? false }), {
         status, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -194,7 +203,8 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("manage-order error", e);
+    const durationMs = Date.now() - start;
+    logger.error("manage-order unhandled", { error: String(e), duration_ms: durationMs });
     return new Response(JSON.stringify({ error: "Sunucu hatası oluştu", code: "INTERNAL_ERROR" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

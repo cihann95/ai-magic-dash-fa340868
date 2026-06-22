@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { rateLimit } from "../_shared/rate-limit.ts";
+import { logObservability, logger } from "../_shared/logger.ts";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
@@ -82,15 +83,21 @@ Deno.serve(async (req) => {
     }).finally(() => clearTimeout(timeoutId));
 
     if (resp.status === 429) {
+      const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      logObservability(admin, "ai-chat", "Rate limited", { error_code: "RATE_LIMITED", duration_ms: Date.now() - start });
       console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
       return new Response(JSON.stringify({ skipped: true, reason: "rate_limit", code: "RATE_LIMITED", retryable: true }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     if (resp.status === 402) {
+      const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      logObservability(admin, "ai-chat", "Quota exceeded", { error_code: "QUOTA_EXCEEDED", duration_ms: Date.now() - start });
       console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
       return new Response(JSON.stringify({ skipped: true, reason: "credits", code: "QUOTA_EXCEEDED", retryable: false }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     if (!resp.ok) {
       const t = await resp.text(); console.error("AI gateway:", resp.status, t);
+      const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      logObservability(admin, "ai-chat", "AI gateway error", { error_code: "AI_UNAVAILABLE", status: resp.status, duration_ms: Date.now() - start });
       console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
       return new Response(JSON.stringify({ skipped: true, reason: "ai_error", code: "AI_UNAVAILABLE", retryable: true }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
@@ -106,12 +113,16 @@ Deno.serve(async (req) => {
   } catch (e) {
     if (e instanceof DOMException && e.name === "AbortError") {
       console.error("ai-chat timeout");
+      const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      logObservability(admin, "ai-chat", "Timeout", { error_code: "AI_TIMEOUT", duration_ms: start ? Date.now() - start : 0 });
       console.error(JSON.stringify({ event: "request", duration_ms: start ? Date.now() - start : 0 }));
       return new Response(JSON.stringify({ skipped: true, reason: "timeout", code: "AI_TIMEOUT", retryable: true }), {
         status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
     console.error("ai-chat error", e);
+    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    logObservability(admin, "ai-chat", String(e), { error_code: "INTERNAL_ERROR", duration_ms: start ? Date.now() - start : 0 });
     console.error(JSON.stringify({ event: "request", duration_ms: start ? Date.now() - start : 0 }));
     return new Response(JSON.stringify({ error: "Sunucu hatası oluştu", code: "INTERNAL_ERROR" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },

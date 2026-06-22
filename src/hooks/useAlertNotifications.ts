@@ -10,7 +10,7 @@ export function useAlertNotifications() {
   useEffect(() => {
     if (!user) return;
     const channel = supabase
-      .channel("price_alerts_user")
+      .channel(`price_alerts_${user.id}`)
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "price_alerts", filter: `user_id=eq.${user.id}` },
