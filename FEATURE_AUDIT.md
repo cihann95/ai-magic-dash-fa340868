@@ -1,4 +1,4 @@
-# Feature Audit — Faz 6
+# Feature Audit — Faz 7
 
 ## Sayfa Durum Tablosu
 
@@ -6,13 +6,13 @@
 |-------|-------------|---------------|-------------|---------------|-------|
 | / (Index) | useLivePrices + SymbolList + ChartPanel + OpenPositionsPanel + AccountAIPanel | ✅ | ❌ | execute-trade, manage-order, ai-* | ✅ Çalışıyor |
 | /portfolio | positions + trades + profiles + useLivePrices | ✅ (Promise.all) | ❌ | — | ✅ Çalışıyor |
-| /history | trades | ❌ (sadece empty) | ❌ | — | ⚠️ Eksik: loading/error state yok |
+| /history | trades | ✅ (Skeleton) | ❌ | — | ✅ Çalışıyor |
 | /watchlist | watchlist + useLivePrices | ✅ (callback load) | ❌ | — | ✅ Çalışıyor |
 | /settings | profiles + public_profiles + push | ✅ | ❌ (toast ile) | reset-demo-account | ✅ Çalışıyor |
 | /leaderboard | get_leaderboard RPC + public_profiles | ❌ | ❌ | — | ✅ Çalışıyor |
 | /achievements | achievements + user_achievements | ❌ | ❌ | — | ✅ Çalışıyor |
 | /heatmap | useLivePrices | ✅ (hook) | ❌ | — | ✅ Çalışıyor |
-| /social | followers + activity_feed + copy_settings + get_leaderboard | ✅ | ❌ | — | ⚠️ Eksik: client-side write, error state yok |
+| /social | followers + activity_feed + copy_settings + get_leaderboard | ✅ (Skeleton) | ✅ (retry) | manage-follow, manage-copy-settings | ✅ Çalışıyor |
 | /coach | coach_insights + ai-trade-coach | ✅ | ✅ (toast) | ai-trade-coach | ✅ Çalışıyor |
 | /journal | trade_journal + trades | ✅ | ❌ | — | ✅ Çalışıyor |
 | /insights | trades + emotional_logs | ✅ | ❌ | — | ✅ Çalışıyor |
@@ -22,38 +22,50 @@
 | /auth | Supabase Auth | — | ✅ (toast) | — | ✅ Çalışıyor |
 | /reset-password | Supabase Auth | — | ✅ (toast) | — | ✅ Çalışıyor |
 
-## Kritik Bulgular
+**Skor: 17/17 (%100)**
 
-### ⚠️ Eksik Sayfalar
+## Copy Trading Flow Durumu (Faz 7 Sonrası)
 
-**1. /history — Loading/Error State Eksik**
-- Sorun: Sayfa açıldığında veri yüklenirken boş tablo gösteriyor
-- Düzeltme: Skeleton loading ekle, fetch hatasında error message göster
-
-**2. /social — Client-Side Write + Error State Eksik**
-- Sorun: followers ve copy_settings tablolarına direkt client-side INSERT/UPDATE/DELETE yapıyor
-- Risk: Düşük — RLS ile korunuyor, ama Faz 1 prensibiyle edge function üzerinden olmalı
-- Düzeltme: Bu fazda sadece error state ekle, copy trading flow'u belgele
-
-### ✅ Çalışan Sayfalar
-
-Tüm diğer sayfalar temel fonksiyonlarını yerine getiriyor:
-- Veri çekme: Supabase'den doğru tablolar
-- Loading: Çoğu sayfada mevcut (sadece /history ve /leaderboard eksik)
-- Empty state: Çoğu sayfada mevcut
-- Edge function: Tüm AI ve transaction sayfalarında doğru kullanılıyor
-
-## Copy Trading Flow Durumu
-
-1. **Follow**: /social'da "Takip" butonu → followers tablosuna INSERT ✅ (client-side)
-2. **Copy Settings**: /social'da "Copy" butonu → copy_settings tablosuna UPSERT ✅ (client-side)
+1. **Follow**: /social → `manage-follow` edge function → followers INSERT ✅
+2. **Copy Settings**: /social → `manage-copy-settings` edge function → copy_settings UPSERT ✅
 3. **Trade Mirror**: trade-mirror edge function → leader trade yaptığında follower'a mirror ✅
-4. **Trigger**: pg_trigger veya edge function subscription ile tetikleniyor ✅
+4. **Trigger**: pg_trigger ile tetikleniyor ✅
 
-**Not**: Copy trading flow'u çalışıyor ama client-side write kullanıyor. Bu Faz 1 prensibiyle uyumsuz ama fonksiyonel.
+**Not**: Tüm write'lar edge function üzerinden yapılıyor. Client-side write yok.
 
-## Öneriler
+## Edge Function Listesi
 
-1. **Kısa Vade (Bu Faz)**: /history loading state ekle, /social error state ekle
-2. **Orta Vade (Faz 7)**: Client-side write'ları edge function'lara taşı
-3. **Uzun Vade**: Tüm sayfalarda error boundary ekle
+| Fonksiyon | Kullanım | JWT | Rate Limit |
+|-----------|----------|-----|------------|
+| execute-trade | /, /portfolio | ✅ | 10/dk |
+| manage-order | / | ✅ | 30/dk |
+| manage-follow | /social | ✅ | 10/dk |
+| manage-copy-settings | /social | ✅ | 5/dk |
+| ai-chat | / | ✅ | 20/dk |
+| ai-analyze | / | ✅ | 10/dk |
+| ai-strategy | / | ✅ | 15/dk |
+| ai-trade-coach | /coach | ✅ | 15/dk |
+| ai-risk-monitor | / | ✅ | 15/dk |
+| blitz-matchmake | /blitz | ✅ | 5/dk |
+| blitz-join-private | /blitz | ✅ | 5/dk |
+| blitz-tick-order | /blitz/:roomId | ✅ | 30/dk |
+| blitz-settle-room | /blitz/:roomId | ✅ | 3/dk |
+| blitz-admin-topup | /admin/blitz | ✅ | 2/dk |
+| trade-mirror | pg_trigger | ✅ | — |
+| reset-demo-account | /settings | ✅ | 2/dk |
+| health | CI/monitoring | ❌ | — |
+| price-feed | pg_cron | ❌ | — |
+| news-feed | pg_cron | ❌ | — |
+
+## RLS Durumu
+
+- `followers`: INSERT/DELETE policy (self only) ✅
+- `copy_settings`: INSERT/UPDATE/DELETE policy (self + follower check) ✅
+- `guard_copy_settings_update` trigger: leader_id/follower_id immutability ✅
+- Edge function'lar service_role kullanıyor → RLS bypass ✅
+
+## Öneriler (Kalan)
+
+1. **Kısa Vade**: /leaderboard loading state ekle
+2. **Orta Vade**: Tüm sayfalarda error boundary ekle
+3. **Uzun Vade**: /history, /watchlist, /settings error state ekle

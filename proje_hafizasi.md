@@ -369,19 +369,19 @@ real_balance_ledger:
 
 GENEL DURUM:
   - Toplam sayfa: 17 (auth dahil)
-  - Çalışan: 15 (%88)
-  - Eksik: 2 (%12) — /history loading, /social error state
+  - Çalışan: 17 (%100) ✅
+  - Eksik: 0
 
 SAYFA DURUMLARI:
   - / (Index): ✅ Çalışıyor — trading dashboard, sembol listesi, grafik, pozisyonlar, AI panel
   - /portfolio: ✅ Çalışiyor — positions, trades, profiles, live prices, PnL hesaplama
-  - /history: ⚠️ Düzeltildi — loading state eklendi (Faz 6)
+  - /history: ✅ Çalışıyor — loading state eklendi (Faz 6)
   - /watchlist: ✅ Çalışıyor — watchlist CRUD, live prices
   - /settings: ✅ Çalışıyor — profil, public profil, tema, push, demo reset
   - /leaderboard: ✅ Çalışıyor — get_leaderboard RPC, join/leave
   - /achievements: ✅ Çalışıyor — achievements + user_achievements
   - /heatmap: ✅ Çalışıyor — useLivePrices, renkli grid
-  - /social: ⚠️ Eksik — client-side write (RLS korumalı ama edge function'a taşınacak)
+  - /social: ✅ Çalışıyor — edge function write, error/empty/loading state (Faz 7)
   - /coach: ✅ Çalışıyor — coach_insights + ai-trade-coach edge function
   - /journal: ✅ Çalışıyor — trade_journal CRUD
   - /insights: ✅ Çalışıyor — intent mirror, plan discipline, emotion mirror
@@ -392,15 +392,17 @@ SAYFA DURUMLARI:
   - /reset-password: ✅ Çalışıyor — Supabase Auth
 
 COPY TRADING FLOW:
-  1. Follow: /social → followers INSERT (client-side) ✅
-  2. Copy Settings: /social → copy_settings UPSERT (client-side) ✅
+  1. Follow: /social → manage-follow edge function → followers INSERT ✅
+  2. Copy Settings: /social → manage-copy-settings edge function → copy_settings UPSERT ✅
   3. Trade Mirror: trade-mirror edge function ✅
   4. Trigger: pg_trigger ile tetikleniyor ✅
-  - Not: Client-side write kullanıyor, Faz 7'de edge function'a taşınacak
+  - Tüm write'lar edge function üzerinden (client-side write yok)
 
 EDGE FUNCTION KULLANIMI:
   - execute-trade: /, /portfolio (trading)
   - manage-order: / (order ticket)
+  - manage-follow: /social (takip et/bırak)
+  - manage-copy-settings: /social (copy ayarları)
   - ai-chat: / (AI panel)
   - ai-analyze: / (AI panel)
   - ai-strategy: / (AI panel)
@@ -414,3 +416,5 @@ EDGE FUNCTION KULLANIMI:
   - trade-mirror: pg_trigger
   - reset-demo-account: /settings
   - health: CI/monitoring
+
+🏁 Faz 7 tamamlandı — proje production-ready.
