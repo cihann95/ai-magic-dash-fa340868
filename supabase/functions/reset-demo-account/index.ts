@@ -36,13 +36,8 @@ Deno.serve(async (req) => {
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    const { data: profile } = await admin
-      .from("profiles")
-      .select("is_admin, demo_balance")
-      .eq("id", user.id)
-      .single();
-
-    if (!profile || profile.is_admin !== true) {
+    const { data: isAdmin } = await admin.rpc("has_role", { _user_id: user.id, _role: "admin" });
+    if (!isAdmin) {
       console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
       return new Response(JSON.stringify({ error: "Bu işlem için yetkiniz yok", code: "NOT_ADMIN" }), {
         status: 403,
@@ -50,7 +45,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (profile.demo_balance === 100000) {
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("demo_balance")
+      .eq("id", user.id)
+      .single();
+
+    if (profile?.demo_balance === 100000) {
       console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
       return new Response(JSON.stringify({ success: true, changes: 0 }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
