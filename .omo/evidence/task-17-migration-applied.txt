@@ -1,0 +1,3 @@
+Initialising login role...
+unexpected login role status 400: {"message":"Resource has been removed"}
+Connect to your database by setting the env var correctly: SUPABASE_DB_PASSWORD

@@ -1,0 +1,5 @@
+
+> vite_react_shadcn_ts@1.0.0 smoke-test
+> tsx scripts/smoke-test.ts
+
+sh: 1: tsx: not found

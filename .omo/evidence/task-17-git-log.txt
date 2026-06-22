@@ -1,0 +1,15 @@
+84cc4c2 feat(deploy): deploy-all.sh'a 6 yeni admin fonksiyon ekle
+40fe305 docs: critical-prod-fixes güncelleme
+9ce7514 fix(blitz): cancel bakiye leak + Redis check 503 + stale queue TTL
+902030f feat(admin): top-up UI + revenue dashboard zenginleştir
+473b57b feat(settings): gerçek bakiye kartı + ledger geçmişi
+75a6eef fix(blitz): catch toast + davet kodu kalıcı UI + ön kontrol + etiket
+bcf4ddc feat(admin): /admin/{users,rooms,settings} sayfaları + CommandPalette admin links
+ea3a436 feat(admin): admin-list-users + admin-set-user-role + admin-ban-user edge functions
+8c64fa2 feat(db): RLS admin policies + blitz_payout_trigger DROP + reset-demo-account fix
+e06c487 chore: critical-prod-fixes evidence + notepad
+b3a3b13 feat(app): /admin/users route + ProtectedRoute guard + lazy load
+8e7e6e5 feat(admin): admin-cancel-room + admin-settle-room + admin-slippage-config edge functions
+8a290c8 fix(ai): trade-mirror prompt fiyat verisi + sert kurallar + JSON schema
+b6004d1 feat(app): isAdmin state + useIsAdmin hook + ProtectedRoute requiredRole + TopBar admin links
+a18e3b4 fix(ai): execute-trade notification dolar + yüzde
