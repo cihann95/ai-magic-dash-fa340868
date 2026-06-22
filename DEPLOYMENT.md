@@ -28,34 +28,11 @@ Edge function'lar Supabase'e manuel deploy edilmeli. CI deploy için SUPABASE_AC
 ### Deploy Adımları
 
 ```bash
-# 1. Login
-supabase login
-
-# 2. Proje ile linkle
-supabase link --project-ref <PROJECT_REF>
-
-# 3. Tüm fonksiyonları deploy et
-supabase functions deploy ai-chat
-supabase functions deploy ai-analyze
-supabase functions deploy ai-risk-monitor
-supabase functions deploy ai-strategy
-supabase functions deploy ai-trade-coach
-supabase functions deploy blitz-admin-topup
-supabase functions deploy blitz-analytics-writer
-supabase functions deploy blitz-join-private
-supabase functions deploy blitz-matchmake
-supabase functions deploy blitz-settle-room
-supabase functions deploy blitz-tick-order
-supabase functions deploy daily-brief
-supabase functions deploy execute-trade
-supabase functions deploy manage-order
-supabase functions deploy news-feed
-supabase functions deploy price-feed
-supabase functions deploy reset-demo-account
-supabase functions deploy send-push
-supabase functions deploy trade-mirror
-supabase functions deploy weekly-digest
+# Tüm fonksiyonları tek komutla deploy et
+bash supabase/deploy-all.sh --project-ref <PROJECT_REF>
 ```
+
+Script `--no-verify-jwt` flag'ini `price-feed` ve `news-feed` için otomatik ekler, diğerlerini auth-required olarak deploy eder. `SUPABASE_ACCESS_TOKEN` environment variable'ı set edilmelidir.
 
 ### JWT Doğrulama Gereksinimleri
 

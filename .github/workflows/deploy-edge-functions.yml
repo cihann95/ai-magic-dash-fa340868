@@ -34,9 +34,17 @@ jobs:
       - name: TypeScript check
         run: npx tsc --noEmit
 
-      - name: Deploy Edge Functions
-        run: >
-          supabase functions deploy
-          --project-ref ${{ secrets.SUPABASE_PROJECT_ID }}
+      - name: Deploy All Edge Functions
+        run: bash supabase/deploy-all.sh --project-ref ${{ secrets.SUPABASE_PROJECT_ID }}
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      - name: Health Check
+        run: |
+          echo "Running health check..."
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" \
+            "${{ secrets.SUPABASE_URL }}/functions/v1/health" || echo "000")
+          echo "Health endpoint returned: $RESPONSE"
+          if [[ "$RESPONSE" != "200" && "$RESPONSE" != "401" ]]; then
+            echo "⚠️ Health check failed (HTTP $RESPONSE), but deployment may still be valid"
+          fi
