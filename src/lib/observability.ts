@@ -22,13 +22,24 @@ if (sentryDsn) {
   Sentry.init({
     dsn: sentryDsn,
     environment: typeof import.meta !== "undefined" ? import.meta.env.MODE : "production",
+    release: typeof import.meta !== "undefined" ? import.meta.env.VITE_APP_VERSION ?? "unknown" : "unknown",
     tracesSampleRate: 0.1,
     replaysSessionSampleRate: 0,
     replaysOnErrorSampleRate: 0.5,
+    ignoreErrors: [
+      "ResizeObserver loop limit exceeded",
+      "Non-Error promise rejection",
+      "ChunkLoadError",
+    ],
     integrations: [
       Sentry.browserTracingIntegration(),
     ],
     enabled: !isDev,
+    beforeSend: (event) => {
+      // Filter out console.error noise
+      if (event.exception?.values?.[0]?.type === "console.error") return null;
+      return event;
+    },
   });
 }
 
