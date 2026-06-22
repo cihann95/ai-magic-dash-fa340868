@@ -220,7 +220,7 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
 
   return (
     <div className="flex flex-col h-full gap-3">
-      <Card className="p-4 glass border-border/40 shadow-card">
+      <Card className="p-4 glass border-border/40 shadow-card shrink-0">
         <div className="text-xs text-muted-foreground uppercase tracking-wide">{tr.balance}</div>
         <div className="font-mono text-2xl font-bold mt-1">${totalEquity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
         <div className={cn("text-xs font-mono mt-0.5", totalChange >= 0 ? "text-bull" : "text-bear")}>
@@ -243,11 +243,11 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
       <Card className="flex-1 min-h-0 flex flex-col glass border-border/40 shadow-card overflow-hidden">
         <Tabs defaultValue="analysis" className="flex flex-col flex-1 min-h-0">
           <TabsList className="grid grid-cols-5 m-3 mb-0 shrink-0">
-            <TabsTrigger value="analysis" className="text-[10px]"><Sparkles className="size-3 mr-0.5" />{tr.analysis}</TabsTrigger>
-            <TabsTrigger value="brief" className="text-[10px]">📊</TabsTrigger>
-            <TabsTrigger value="strategy" className="text-[10px]"><Brain className="size-3" /></TabsTrigger>
-            <TabsTrigger value="news" className="text-[10px]">{tr.news}</TabsTrigger>
-            <TabsTrigger value="chat" className="text-[10px]">{tr.chat}</TabsTrigger>
+            <TabsTrigger value="analysis" className="text-xs"><Sparkles className="size-3 mr-0.5" />{tr.analysis}</TabsTrigger>
+            <TabsTrigger value="brief" className="text-xs">📊</TabsTrigger>
+            <TabsTrigger value="strategy" className="text-xs"><Brain className="size-3" /></TabsTrigger>
+            <TabsTrigger value="news" className="text-xs">{tr.news}</TabsTrigger>
+            <TabsTrigger value="chat" className="text-xs">{tr.chat}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="analysis" className="flex-1 m-0 mt-3 p-3 pt-0 overflow-y-auto scrollbar-thin">

@@ -9,6 +9,7 @@ import SymbolList from "@/components/trading/SymbolList";
 import ChartPanel from "@/components/trading/ChartPanel";
 import AccountAIPanel from "@/components/trading/AccountAIPanel";
 import OpenPositionsPanel from "@/components/trading/OpenPositionsPanel";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { AnaSahne } from "@/components/AnaSahne";
 import { useAnaSahne } from "@/hooks/useAnaSahne";
 import { hasFeature } from "@/lib/feature-flags";
@@ -87,25 +88,28 @@ export default function Index() {
 
   return (
     <AppShell>
-      <div className="grid grid-cols-1 lg:grid-cols-[300px_minmax(0,1fr)_360px] gap-3 p-3 h-[calc(100vh-4rem)]">
+      <div className="grid grid-cols-1 lg:grid-cols-[300px_minmax(0,1fr)_380px] gap-3 p-3 h-[calc(100vh-4rem)]">
         <aside className="rounded-2xl glass border border-border/40 shadow-card overflow-hidden order-2 lg:order-1 min-h-[400px] lg:min-h-0">
           <SymbolList active={active} onSelect={setActive} />
         </aside>
         <section className="rounded-2xl glass border border-border/40 shadow-card overflow-hidden order-1 lg:order-2 min-h-[600px] lg:min-h-0">
           <ChartPanel symbol={active} onTradeDone={() => setRefresh((r) => r + 1)} />
         </section>
-        <aside className="order-3 min-h-[600px] lg:min-h-0 flex flex-col gap-3">
-          <div className="h-[58%] min-h-[340px] shrink-0">
-            <OpenPositionsPanel
-              refreshKey={refresh}
-              onTradeDone={() => setRefresh((r) => r + 1)}
-              onSelectSymbol={setActive}
-              activeSymbol={active.symbol}
-            />
-          </div>
-          <div className="flex-1 min-h-0">
-            <AccountAIPanel symbol={active} refreshKey={refresh} onTradeDone={() => setRefresh((r) => r + 1)} />
-          </div>
+        <aside className="order-3 min-h-[600px] lg:min-h-0 flex flex-col">
+          <ResizablePanelGroup direction="vertical" className="flex-1 min-h-0">
+            <ResizablePanel defaultSize={52} minSize={28} className="flex flex-col min-h-0">
+              <OpenPositionsPanel
+                refreshKey={refresh}
+                onTradeDone={() => setRefresh((r) => r + 1)}
+                onSelectSymbol={setActive}
+                activeSymbol={active.symbol}
+              />
+            </ResizablePanel>
+            <ResizableHandle withHandle className="my-1" />
+            <ResizablePanel defaultSize={48} minSize={24} className="flex flex-col min-h-0">
+              <AccountAIPanel symbol={active} refreshKey={refresh} onTradeDone={() => setRefresh((r) => r + 1)} />
+            </ResizablePanel>
+          </ResizablePanelGroup>
         </aside>
       </div>
     </AppShell>
