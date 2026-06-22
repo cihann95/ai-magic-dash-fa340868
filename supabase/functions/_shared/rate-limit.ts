@@ -29,6 +29,8 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
   "ai-trade-coach": { windowMs: ONE_MINUTE_MS, maxRequests: 15, keyPrefix: "rl:ai" },
   "ai-risk-monitor": { windowMs: ONE_MINUTE_MS, maxRequests: 15, keyPrefix: "rl:ai" },
   "manage-order": { windowMs: ONE_MINUTE_MS, maxRequests: 30, keyPrefix: "rl:order" },
+  "manage-follow": { windowMs: ONE_MINUTE_MS, maxRequests: 10, keyPrefix: "rl:follow" },
+  "manage-copy-settings": { windowMs: ONE_MINUTE_MS, maxRequests: 5, keyPrefix: "rl:copy" },
   "reset-demo-account": { windowMs: ONE_MINUTE_MS, maxRequests: 2, keyPrefix: "rl:reset-demo" },
 };
 

@@ -44,6 +44,8 @@ AUTH_FUNCTIONS=(
   "send-push"
   "trade-mirror"
   "reset-demo-account"
+  "manage-follow"
+  "manage-copy-settings"
   "health"
 )
 

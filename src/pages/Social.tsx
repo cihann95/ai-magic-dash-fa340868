@@ -8,13 +8,12 @@ import { useApp } from "@/contexts/AppContext";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { TrendingUp, Trophy, Users, Copy, X, Activity } from "lucide-react";
+import { TrendingUp, Trophy, Users, Copy, X, Activity, AlertTriangle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 
@@ -36,6 +35,14 @@ interface CopySetting {
   ratio: number; max_position_usd: number;
 }
 
+async function callEdgeFunction(name: string, body: Record<string, unknown>) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error("No session");
+  const res = await supabase.functions.invoke(name, { body });
+  if (res.error) throw res.error;
+  return res.data;
+}
+
 function SocialInner() {
   const { user, lang } = useApp();
   const [feed, setFeed] = useState<Activity[]>([]);
@@ -43,47 +50,58 @@ function SocialInner() {
   const [following, setFollowing] = useState<Set<string>>(new Set());
   const [copySettings, setCopySettings] = useState<Record<string, CopySetting>>({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [copyDialog, setCopyDialog] = useState<Leader | null>(null);
   const [ratio, setRatio] = useState("1.0");
   const [maxPos, setMaxPos] = useState("5000");
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!user) return;
     setLoading(true);
+    setError(null);
 
-    const { data: followsRows } = await supabase.from("followers")
-      .select("following_id").eq("follower_id", user.id);
-    const followIds = new Set((followsRows ?? []).map((r) => r.following_id));
-    setFollowing(followIds);
+    try {
+      const { data: followsRows, error: followErr } = await supabase.from("followers")
+        .select("following_id").eq("follower_id", user.id);
+      if (followErr) throw new Error("Takip listesi yüklenemedi");
+      const followIds = new Set((followsRows ?? []).map((r) => r.following_id));
+      setFollowing(followIds);
 
-    const ids = Array.from(followIds);
-    let feedRows: Activity[] = [];
-    if (ids.length > 0) {
-      // activity_feed is a View — cast table name to satisfy .from() constraint
-      const VIEW_TABLE = "activity_feed" as keyof Database["public"]["Tables"];
-      const { data: f } = await supabase.from(VIEW_TABLE)
-        .select("*").in("user_id", ids).order("event_at", { ascending: false }).limit(50);
-      feedRows = (f as unknown as Activity[]) ?? [];
+      const ids = Array.from(followIds);
+      let feedRows: Activity[] = [];
+      if (ids.length > 0) {
+        const VIEW_TABLE = "activity_feed" as keyof Database["public"]["Tables"];
+        const { data: f, error: feedErr } = await supabase.from(VIEW_TABLE)
+          .select("*").in("user_id", ids).order("event_at", { ascending: false }).limit(50);
+        if (feedErr) throw new Error("Akış yüklenemedi");
+        feedRows = (f as unknown as Activity[]) ?? [];
+      }
+      setFeed(feedRows);
+
+      const { data: lb, error: lbErr } = await supabase.rpc("get_leaderboard", { _limit: 30 });
+      if (lbErr) throw new Error("Trader listesi yüklenemedi");
+      const lbRows = (lb ?? []) as Leader[];
+      if (lbRows.length > 0) {
+        const userIds = lbRows.map((r) => r.user_id);
+        const { data: pps } = await supabase.from("public_profiles")
+          .select("user_id, copyable").in("user_id", userIds);
+        const copyMap = new Map((pps ?? []).map((p) => [p.user_id, p.copyable]));
+        lbRows.forEach((r) => { r.copyable = copyMap.get(r.user_id) ?? false; });
+      }
+      setLeaders(lbRows);
+
+      const { data: cs } = await supabase.from("copy_settings").select("*").eq("follower_id", user.id);
+      const csMap: Record<string, CopySetting> = {};
+      (cs ?? []).forEach((c) => { csMap[c.leader_id] = c as CopySetting; });
+      setCopySettings(csMap);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Bilinmeyen hata";
+      setError(msg);
+      console.error("[Social] load error:", e);
+    } finally {
+      setLoading(false);
     }
-    setFeed(feedRows);
-
-    const { data: lb } = await supabase.rpc("get_leaderboard", { _limit: 30 });
-    const lbRows = (lb ?? []) as Leader[];
-    if (lbRows.length > 0) {
-      const userIds = lbRows.map((r) => r.user_id);
-      const { data: pps } = await supabase.from("public_profiles")
-        .select("user_id, copyable").in("user_id", userIds);
-      const copyMap = new Map((pps ?? []).map((p) => [p.user_id, p.copyable]));
-      lbRows.forEach((r) => { r.copyable = copyMap.get(r.user_id) ?? false; });
-    }
-    setLeaders(lbRows);
-
-    const { data: cs } = await supabase.from("copy_settings").select("*").eq("follower_id", user.id);
-    const csMap: Record<string, CopySetting> = {};
-    (cs ?? []).forEach((c) => { csMap[c.leader_id] = c as CopySetting; });
-    setCopySettings(csMap);
-
-    setLoading(false);
   }, [user]);
 
   useEffect(() => { load(); }, [load]);
@@ -99,17 +117,27 @@ function SocialInner() {
 
   const toggleFollow = async (leaderId: string) => {
     if (!user) return;
-    if (following.has(leaderId)) {
-      await supabase.from("followers").delete()
-        .eq("follower_id", user.id).eq("following_id", leaderId);
-      following.delete(leaderId); setFollowing(new Set(following));
-      toast({ title: lang === "tr" ? "Takipten çıkıldı" : "Unfollowed" });
-    } else {
-      await supabase.from("followers").insert({ follower_id: user.id, following_id: leaderId });
-      following.add(leaderId); setFollowing(new Set(following));
-      toast({ title: lang === "tr" ? "Takip edildi" : "Followed" });
+    const isFollowing = following.has(leaderId);
+    setActionLoading(`follow-${leaderId}`);
+    try {
+      await callEdgeFunction("manage-follow", {
+        action: isFollowing ? "unfollow" : "follow",
+        leader_id: leaderId,
+      });
+      if (isFollowing) {
+        following.delete(leaderId); setFollowing(new Set(following));
+        toast({ title: lang === "tr" ? "Takipten çıkıldı" : "Unfollowed" });
+      } else {
+        following.add(leaderId); setFollowing(new Set(following));
+        toast({ title: lang === "tr" ? "Takip edildi" : "Followed" });
+      }
+      load();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "İşlem başarısız";
+      toast({ title: msg, variant: "destructive" });
+    } finally {
+      setActionLoading(null);
     }
-    load();
   };
 
   const openCopyDialog = (l: Leader) => {
@@ -126,21 +154,41 @@ function SocialInner() {
       toast({ title: lang === "tr" ? "Geçersiz değer" : "Invalid value", variant: "destructive" });
       return;
     }
-    await supabase.from("copy_settings").upsert({
-      follower_id: user.id, leader_id: copyDialog.user_id,
-      ratio: r, max_position_usd: m, enabled: true,
-    }, { onConflict: "follower_id,leader_id" });
-    setCopyDialog(null);
-    toast({ title: lang === "tr" ? "Copy aktif" : "Copy active" });
-    load();
+    setActionLoading("copy-save");
+    try {
+      await callEdgeFunction("manage-copy-settings", {
+        leader_id: copyDialog.user_id,
+        enabled: true,
+        ratio: r,
+        max_position_usd: m,
+      });
+      setCopyDialog(null);
+      toast({ title: lang === "tr" ? "Copy aktif" : "Copy active" });
+      load();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Copy ayarları kaydedilemedi";
+      toast({ title: msg, variant: "destructive" });
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   const stopCopy = async (leaderId: string) => {
     if (!user) return;
-    await supabase.from("copy_settings").delete()
-      .eq("follower_id", user.id).eq("leader_id", leaderId);
-    toast({ title: lang === "tr" ? "Copy durduruldu" : "Copy stopped" });
-    load();
+    setActionLoading(`copy-${leaderId}`);
+    try {
+      await callEdgeFunction("manage-copy-settings", {
+        leader_id: leaderId,
+        enabled: false,
+      });
+      toast({ title: lang === "tr" ? "Copy durduruldu" : "Copy stopped" });
+      load();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Copy durdurulamadı";
+      toast({ title: msg, variant: "destructive" });
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   return (
@@ -155,6 +203,23 @@ function SocialInner() {
             {lang === "tr" ? "Takip ettiklerinin işlemlerini gör, başarılı trader'ları kopyala." : "See your follows' trades, copy top traders."}
           </p>
         </header>
+
+        {error && (
+          <Card className="p-4 glass border-border/40 bg-destructive/10">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="size-5 text-destructive shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-medium">{error}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {lang === "tr" ? "Veriler yüklenirken bir hata oluştu." : "An error occurred while loading data."}
+                </p>
+              </div>
+              <Button size="sm" variant="outline" onClick={load}>
+                {lang === "tr" ? "Tekrar Dene" : "Retry"}
+              </Button>
+            </div>
+          </Card>
+        )}
 
         <Tabs defaultValue="feed" className="w-full">
           <TabsList className="grid grid-cols-2 max-w-md">
@@ -218,6 +283,18 @@ function SocialInner() {
           <TabsContent value="leaders" className="mt-4 space-y-2">
             {loading ? (
               <div className="space-y-2">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-20" />)}</div>
+            ) : leaders.length === 0 ? (
+              <Card className="p-8 text-center glass border-border/40">
+                <Trophy className="size-10 mx-auto mb-3 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">
+                  {lang === "tr" ? "Henüz trader yok." : "No traders yet."}
+                </p>
+                <Link to="/leaderboard">
+                  <Button size="sm" className="mt-3 gradient-primary text-primary-foreground">
+                    {lang === "tr" ? "Trader'ları Keşfet" : "Discover Traders"}
+                  </Button>
+                </Link>
+              </Card>
             ) : leaders.map((l, idx) => {
               const isMe = l.user_id === user?.id;
               const isFollowed = following.has(l.user_id);
@@ -244,16 +321,33 @@ function SocialInner() {
                   </div>
                   {!isMe && (
                     <div className="flex gap-1.5 shrink-0">
-                      <Button size="sm" variant={isFollowed ? "default" : "outline"} onClick={() => toggleFollow(l.user_id)}>
-                        {isFollowed ? (lang === "tr" ? "Takip ✓" : "Following") : (lang === "tr" ? "Takip" : "Follow")}
+                      <Button
+                        size="sm"
+                        variant={isFollowed ? "default" : "outline"}
+                        onClick={() => toggleFollow(l.user_id)}
+                        disabled={actionLoading === `follow-${l.user_id}`}
+                      >
+                        {actionLoading === `follow-${l.user_id}` ? "..." : (
+                          isFollowed ? (lang === "tr" ? "Takip ✓" : "Following") : (lang === "tr" ? "Takip" : "Follow")
+                        )}
                       </Button>
                       {l.copyable && (
                         isCopying ? (
-                          <Button size="sm" variant="destructive" onClick={() => stopCopy(l.user_id)}>
-                            <X className="size-3" /> {lang === "tr" ? "Copy Durdur" : "Stop"}
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => stopCopy(l.user_id)}
+                            disabled={actionLoading === `copy-${l.user_id}`}
+                          >
+                            <X className="size-3" /> {actionLoading === `copy-${l.user_id}` ? "..." : (lang === "tr" ? "Copy Durdur" : "Stop")}
                           </Button>
                         ) : (
-                          <Button size="sm" className="gradient-primary text-primary-foreground" onClick={() => openCopyDialog(l)}>
+                          <Button
+                            size="sm"
+                            className="gradient-primary text-primary-foreground"
+                            onClick={() => openCopyDialog(l)}
+                            disabled={actionLoading === "copy-save"}
+                          >
                             <Copy className="size-3" /> Copy
                           </Button>
                         )
@@ -293,7 +387,9 @@ function SocialInner() {
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setCopyDialog(null)}>{lang === "tr" ? "İptal" : "Cancel"}</Button>
-            <Button onClick={saveCopy} className="gradient-primary text-primary-foreground">{lang === "tr" ? "Aktif Et" : "Activate"}</Button>
+            <Button onClick={saveCopy} className="gradient-primary text-primary-foreground" disabled={actionLoading === "copy-save"}>
+              {actionLoading === "copy-save" ? "..." : (lang === "tr" ? "Aktif Et" : "Activate")}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
