@@ -1,331 +1,91 @@
-# Lumen Trade - AI Tabanlı Kripto Para Yatırım Platformu
+# Lumen Trade
 
-## Proje Genel Bakış
+AI destekli kripto para yatırım platformu. Gerçek zamanlı fiyatlar, TradingView grafikleri, AI analiz, sosyal trading ve "Blitz" 1v1 oyun modu.
 
-Lumen Trade, yapay zeka destekli kripto para yatırım platformudur. Platform, AI algoritmaları kullanarak kripto para piyasalarını analiz eder, yatırım fırsatları önerir ve otomatik alım satım stratejileri uygular. Kullanıcı dostu arayüzü ile hem yeni başlayanlar hem de deneyimli yatırımcılar için idealdir.
+## Tech Stack
 
-## Özellikler
-
-- **AI Destekli Analiz**: Kripto para piyasalarını gerçek zamanlı analiz eder
-- **Yatırım Önerileri**: Kişiselleştirilmiş yatırım fırsatları sunar
-- **Otomatik İşlemler**: Seçilen stratejilere göre otomatik alım satım yapar
-- **Portföy Takibi**: Tüm yatırımlarınızı tek bir yerden takip eder
-- **Risk Yönetimi**: Gelişmiş risk analizi ve kontrol mekanizmaları
-- **Sosyal İşlemler**: Toplulukla etkileşim ve en iyi stratejileri paylaşır
+- **Frontend**: React 18 + TypeScript + Vite
+- **UI**: shadcn/ui (Radix UI + Tailwind CSS)
+- **Backend**: Supabase (PostgreSQL + Edge Functions + Auth + Realtime)
+- **Grafikler**: TradingView Advanced Chart Widget + Recharts
+- **AI**: OpenRouter API (7 edge function)
+- **Deploy**: Vercel (frontend) + Supabase (backend)
+- **Monitoring**: Sentry + GitHub Actions uptime check
 
 ## Kurulum
 
-### Ön Koşullar
-
-- Node.js v18 veya üzeri
-- npm veya yarn
-- Supabase hesabı (tercihen xynpcusbbjfoyphtfcgz)
-
-### Adım Adım Kurulum
-
-1. **Depoyu Klonla**
-   ```bash
-   git clone https://github.com/your-username/lumen-trade.git
-   cd lumen-trade
-   ```
-
-2. **Bağımlılıkları Yükle**
-   ```bash
-   npm install
-   # veya
-   yarn install
-   ```
-
-3. **Çevre Değişkenlerini Yapılandır**
-   ```bash
-   cp .env.example .env
-   ```
-   `.env` dosyasını düzenleyerek Supabase URL'lerinizi ve API anahtarlarınızı girin.
-
-4. **Supabase Bağlantısını Yapılandır**
-   - Supabase projenize gidin: https://supabase.co
-   - Edge Functions için gerekli ortam değişkenlerini ayarlayın
-   - Gerekli veritabanı tablolarını oluşturun
-
-5. **Bağlantıyı Test Et**
-   ```bash
-   npm run dev
-   ```
-
-   Uygulama http://localhost:5173 adresinde çalışmaya başlayacaktır.
-
-## Proje Yapısı
-
+```bash
+git clone https://github.com/cihann95/ai-magic-dash-fa340868.git
+cd ai-magic-dash-fa340868
+npm install
+cp .env.example .env  # değerleri doldur
+npm run dev
 ```
-.
-├── src/
-│   ├── components/          # React bileşenleri
-│   ├── contexts/           # React context'ler
-│   ├── hooks/              # özel hook'lar
-│   ├── integrations/       # üçüncü taraf entegrasyonları
-│   ├── lib/                # yardımcı fonksiyonlar
-│   ├── pages/              # sayfa bileşenleri
-│   ├── test/               # birim testleri
-│   └── types/              # TypeScript tür tanımları
-├── supabase/               # Supabase yapılandırması ve fonksiyonları
-├── public/                 # statik dosyalar
-├── scripts/                # yardımcı script'ler
-└── .env.example           # ortam değişkenleri şablonu
+
+### Gerekli Env Var'lar
+
+| Değişken | Açıklama |
+|----------|----------|
+| VITE_SUPABASE_URL | Supabase proje URL'i |
+| VITE_SUPABASE_PUBLISHABLE_KEY | Supabase anon key |
+| SUPABASE_SERVICE_ROLE_KEY | Edge Functions için service role key |
+| OPENROUTER_API_KEY | AI analiz için OpenRouter API key |
+| UPSTASH_REDIS_REST_URL | Rate limiting için Redis (opsiyonel) |
+
+## Geliştirme
+
+```bash
+npm run dev          # Vite dev server (port 8080)
+npm run build        # Production build
+npm test             # Vitest unit tests
+npm run test:e2e     # Playwright E2E tests
+npm run smoke-test   # Deploy sonrası doğrulama
+```
+
+### Edge Functions
+
+```bash
+# Tümünü deploy et
+bash supabase/deploy-all.sh --project-ref <PROJECT_REF>
+
+# Tek fonksiyon deploy et
+supabase functions deploy execute-trade --project-ref <PROJECT_REF>
 ```
 
 ## Mimari
 
-### Frontend (Client-Side)
+### Frontend
 
-- **Framework**: React 18 + TypeScript
-- **UI Library**: shadcn/ui + Tailwind CSS
-- **Routing**: React Router DOM
-- **State Management**: TanStack Query (önceki React Query)
-- **Form Yönetimi**: React Hook Form + Zod
-- **Tema**: next-themes
-- **Bildirimler**: sonner
-- **Hata Sınırı**: ErrorBoundary bileşeni
+Sayfa tabanlı routing (React Router). Ana sayfa `/` trading dashboard'u — sol tarafta sembol listesi, ortada TradingView grafik, sağ tarafta pozisyonlar + AI paneli. Mobilde tabs ile geçiş.
 
-### Backend (Supabase)
+15+ korumalı sayfa: portfolio, history, watchlist, settings, leaderboard, achievements, heatmap, social, coach, journal, insights, blitz, admin/blitz.
 
-- **Veritabanı**: PostgreSQL (Supabase ile yönetiliyor)
-- **Edge Functions**: Deno tabanlı fonksiyonlar
-- **Auth**: Supabase Auth
-- **Storage**: Supabase Storage
-- **Realtime**: Supabase Realtime kanalı
+### Backend
 
-### AI Entegrasyonu
+20 Supabase Edge Function (Deno). Tüm write işlemleri edge function üzerinden yapılıyor (RLS ile korunuyor). AI fonksiyonları OpenRouter API kullanıyor.
 
-- **AI Servisleri**: OpenAI veya benzeri yapay zeka API'leri
-- **Algoritmalar**: Kendi yatırım stratejisi algoritmalarımız
-- **Veri Kaynakları**: Birden çok kripto para borsasından veri çeker
+Kritik edge function'lar:
+- `execute-trade` / `manage-order` — işlem açma/kapama
+- `blitz-matchmake` / `blitz-tick-order` — Blitz oyun modu
+- `ai-chat` / `ai-analyze` / `ai-strategy` — AI analiz
+- `trade-mirror` — copy trading
 
-## Ortam Değişkenleri
+### Veritabanı
 
-`.env.example` dosyasındaki tüm ortam değişkenlerini `.env` dosyasına kopyalayın ve değerlerini düzenleyin:
+RLS aktif tüm tablolarda. Client-side write yok (edge function authoritativeness). Kritik tablolar: positions, trades, orders, user_stats, blitz_rooms, real_balance_ledger.
 
-### Node.js Ortamı
+## Bilinen Sınırlamalar
 
-```
-NODE_ENV=development
-```
+- Copy trading: client-side write kullanıyor (edge function'a taşınacak)
+- /history sayfasında loading state yok
+- /social sayfasında error state yok
+- AI fonksiyonları timeout alabilir (OpenRouter API bağımlılığı)
+- Blitz modu beta aşamasında
 
-### Frontend (Vite)
+## Deploy
 
-```
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=your_anon_key
-VITE_ANA_SAHNE_ENABLED=true
-```
+- **Frontend**: Vercel — main branch'e push otomatik deploy tetikler
+- **Edge Functions**: `SUPABASE_ACCESS_TOKEN` secret'ı eklendiğinde CI otomatik deploy eder
+- **Monitoring**: GitHub Actions her 15 dakikada health check çalıştırır
 
-### Edge Functions (Deno / Supabase)
-
-```
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-SUPABASE_ANON_KEY=your_anon_key
-OPENROUTER_API_KEY=your_openrouter_api_key
-```
-
-### Upstash Redis (isteğe bağlı, fail-open)
-
-```
-UPSTASH_REDIS_REST_URL=https://your-upstash-redis-instance.upstash.io
-UPSTASH_REDIS_REST_TOKEN=your_upstash_redis_token
-```
-
-### Web Push VAPID Anahtarları (isteğe bağlı, push bildirimler için gerekli)
-
-```
-VAPID_PUBLIC_KEY=your_vapid_public_key
-VAPID_PRIVATE_KEY=your_vapid_private_key
-VAPID_SUBJECT=mailto:your-email@domain.com
-```
-
-### Gözlem
-
-```
-SENTRY_DSN=https://your-sentry-dsn@sentry.example.com/project-id
-LOG_LEVEL=info
-```
-
-## Test Çalıştırma
-
-### Birim Testleri
-
-```bash
-npm run test
-# veya
-npm run test:watch
-```
-
-### Test Çıktısı
-
-- Testler `src/test/` dizininde bulunur
-- Vitest tarafından çalıştırılır
-- Jest benzeri API kullanır
-- React bileşenleri için @testing-library/react kullanır
-
-### Test Örneği
-
-```typescript
-// src/test/components/Portfolio.test.tsx
-import { render, screen } from '@testing-library/react';
-import { QueryClientProvider } from '@tanstack/react-query';
-import { Portfolio } from '@/pages/Portfolio';
-
-describe('Portfolio', () => {
-  it('bakiyeyi doğru şekilde gösterir', () => {
-    render(
-      <QueryClientProvider client={queryClient}>
-        <Portfolio />
-      </QueryClientProvider>
-    );
-    expect(screen.getByText(/bakiye:/i)).toBeInTheDocument();
-  });
-});
-```
-
-## Geliştirme İş Akışı
-
-### 1. Geliştirme Modu
-
-```bash
-npm run dev
-```
-
-### 2. Derleme Modu
-
-```bash
-npm run build
-# veya geliştirme modunda derle
-npm run build:dev
-```
-
-### 3. Önizleme
-
-```bash
-npm run preview
-```
-
-### 4. Kod Kalitesi
-
-```bash
-npm run lint
-```
-
-### 5. Otomatik Yenileme
-
-```bash
-npm run test:watch
-```
-
-## Dağıtım
-
-### Vercel ile Dağıtım
-
-```bash
-npm run build
-# dist klasörünü Vercel'e yükleyin
-```
-
-### Docker ile Dağıtım
-
-```dockerfile
-FROM node:18-alpine AS builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
-
-FROM node:18-alpine AS runner
-WORKDIR /app
-RUN npm ci --only=production
-COPY --from=builder /app/dist ./dist
-EXPOSE 3000
-CMD ["npm", "run", "preview"]
-```
-
-## API Dokümantasyonu
-
-Platformumuz aşağıdaki API uç noktalarını sağlar:
-
-### Yatırım API'leri
-
-- `POST /api/investments` - Yeni yatırım oluştur
-- `GET /api/investments` - Tüm yatırımları getir
-- `GET /api/investments/{id}` - Belirli bir yatırımı getir
-- `PUT /api/investments/{id}` - Yatırımı güncelle
-- `DELETE /api/investments/{id}` - Yatırımı sil
-
-### Portföy API'leri
-
-- `GET /api/portfolio` - Portföy özetini getir
-- `GET /api/portfolio/{id}` - Belirli bir portföyü getir
-- `POST /api/portfolio` - Yeni portföy oluştur
-
-### AI Analiz API'leri
-
-- `POST /api/analyze` - Kripto para analizi yap
-- `GET /api/analyze/{id}` - Analiz sonucunu getir
-
-## Katkıda Bulunma
-
-### Git İş Akışı
-
-1. `main` dalını fork edin
-2. `feature/` dalını oluşturun
-3. Geliştirmelerinizi yapın
-4. Testleri çalıştırın
-5. `main` dalına push yapın
-6. Pull request oluşturun
-
-### Kod Kalitesi
-
-- Tüm kod TypeScript ile yazılmıştır
-- ESLint ile kod kalitesi kontrolü
-- Prettier ile kod biçimlendirme
-- Jest/Vitest ile birim testleri
-- React Testing Library ile test kütüphanesi
-
-### Commit Kuralları
-
-- Kısa ve açıklayıcı commit mesajları kullanın
-- Conventional Commits formatını takip edin
-- Açıklayıcı commit mesajları yazın
-
-## Destek
-
-### Sorunlar
-
-GitHub Issues bölümünde sorun bildirin: https://github.com/your-username/lumen-trade/issues
-
-### Dokümantasyon
-
-En son dokümantasyon için GitHub Pages sitesine göz atın: https://your-username.github.io/lumen-trade
-
-### Topluluk
-
-Discord sunucumuza katılın: https://discord.gg/lumen-trade
-
-## Lisans
-
-Bu proje MIT Lisansı altında lisanslanmıştır. Daha fazla bilgi için LISANS dosyasına bakın.
-
-## Teşekkürler
-
-- Supabase - Backend hizmetleri için
-- Vercel - Dağıtım platformu için
-- shadcn/ui - UI bileşenleri için
-- Tüm katkıda bulunanlar için
-
-## İletişim
-
-Lumen Trade ekibiyle iletişime geçmek için:
-- E-posta: hello@lumen.trade
-- Web sitesi: https://lumen.trade
-- GitHub: https://github.com/your-username/lumen-trade
-
----
-*Bu README.md dosyası otomatik olarak oluşturulmuştur. En son güncellemeler için GitHub deposunu takip edin.*
+Detaylı deploy rehberi için `DEPLOYMENT.md` dosyasına bakın.
