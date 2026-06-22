@@ -168,7 +168,7 @@ Deno.serve(async (req) => {
   } catch (e) {
     console.error("weekly-digest error", e);
     console.log(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
-    return json({ error: "Sunucu hatası oluştu", code: "DIGEST_ERROR" }, 500);
+    return json({ error: "Sunucu hatası oluştu", code: "INTERNAL_ERROR" }, 500);
   }
 });
 

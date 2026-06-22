@@ -180,7 +180,7 @@ Deno.serve(async (req) => {
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error(JSON.stringify({event: "ai_risk_monitor_error", error: e instanceof Error ? e.message : String(e)}));
-    return new Response(JSON.stringify({ error: "Sunucu hatası oluştu", code: "RISK_MONITOR_ERROR" }), {
+    return new Response(JSON.stringify({ error: "Sunucu hatası oluştu", code: "INTERNAL_ERROR" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

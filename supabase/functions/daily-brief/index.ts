@@ -90,17 +90,21 @@ Deno.serve(async (req) => {
 
     if (aiResp.status === 429) {
       console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
-      return new Response(JSON.stringify({ error: "Çok fazla istek, lütfen bekleyin", code: "RATE_LIMITED", retryable: true }), { status: 429, headers: corsHeaders });
+      return new Response(JSON.stringify({ skipped: true, reason: "rate_limit", code: "RATE_LIMITED", retryable: true }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     if (aiResp.status === 402) {
       console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
-      return new Response(JSON.stringify({ error: "AI kredisi yetersiz", code: "QUOTA_EXCEEDED" }), { status: 503, headers: corsHeaders });
+      return new Response(JSON.stringify({ skipped: true, reason: "credits", code: "QUOTA_EXCEEDED", retryable: false }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     if (aiResp.status >= 500) {
       console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
-      return new Response(JSON.stringify({ error: "AI servisi geçici olarak kullanılamıyor", code: "AI_UNAVAILABLE" }), { status: 503, headers: corsHeaders });
+      return new Response(JSON.stringify({ skipped: true, reason: "ai_error", code: "AI_UNAVAILABLE", retryable: true }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    if (!aiResp.ok) throw new Error("AI error");
+    if (!aiResp.ok) {
+      const t = await aiResp.text(); console.error("AI gateway:", aiResp.status, t);
+      console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+      return new Response(JSON.stringify({ skipped: true, reason: "ai_error", code: `AI_${aiResp.status}`, retryable: false }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     const aiData = await aiResp.json();
     const content = aiData.choices?.[0]?.message?.content ?? "Brief unavailable";
@@ -119,7 +123,7 @@ Deno.serve(async (req) => {
     const elapsed = Date.now() - start;
     if ((e as Error)?.name === "AbortError") {
       console.error(JSON.stringify({ event: "request", duration_ms: elapsed }));
-      return new Response(JSON.stringify({ error: "AI isteği zaman aşımına uğradı", code: "AI_TIMEOUT" }), {
+      return new Response(JSON.stringify({ skipped: true, reason: "timeout", code: "AI_TIMEOUT", retryable: true }), {
         status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

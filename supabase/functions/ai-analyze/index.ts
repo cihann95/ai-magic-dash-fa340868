@@ -79,21 +79,21 @@ Deno.serve(async (req) => {
 
     if (resp.status === 429) {
       console.error(JSON.stringify({event: "request", duration_ms: Date.now() - start}));
-      return new Response(JSON.stringify({ error: "AI istek limiti doldu", code: "AI_RATE_LIMITED", retryable: true }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ skipped: true, reason: "rate_limit", code: "AI_RATE_LIMITED", retryable: true }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     if (resp.status === 402) {
       console.error(JSON.stringify({event: "request", duration_ms: Date.now() - start}));
-      return new Response(JSON.stringify({ error: "AI kredisi yetersiz", code: "QUOTA_EXCEEDED" }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ skipped: true, reason: "credits", code: "QUOTA_EXCEEDED", retryable: false }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     if (resp.status === 500 || resp.status === 502 || resp.status === 503) {
       const t = await resp.text(); console.error("AI gateway:", resp.status, t);
       console.error(JSON.stringify({event: "request", duration_ms: Date.now() - start}));
-      return new Response(JSON.stringify({ error: "AI servisi kullanılamıyor", code: "AI_UNAVAILABLE" }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ skipped: true, reason: "ai_error", code: "AI_UNAVAILABLE", retryable: true }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     if (!resp.ok) {
       const t = await resp.text(); console.error("AI gateway:", resp.status, t);
       console.error(JSON.stringify({event: "request", duration_ms: Date.now() - start}));
-      return new Response(JSON.stringify({ error: "AI servisi hatası" }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ skipped: true, reason: "ai_error", code: `AI_${resp.status}`, retryable: false }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const data = await resp.json();
@@ -107,10 +107,10 @@ Deno.serve(async (req) => {
     console.error("ai-analyze error", e);
     if (e instanceof DOMException && e.name === "AbortError") {
       console.error(JSON.stringify({event: "request", duration_ms: Date.now() - start}));
-      return new Response(JSON.stringify({ error: "AI zaman aşımı", code: "AI_TIMEOUT" }), { status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ skipped: true, reason: "timeout", code: "AI_TIMEOUT", retryable: true }), { status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     console.error(JSON.stringify({event: "request", duration_ms: Date.now() - start}));
-    return new Response(JSON.stringify({ error: "Sunucu hatası oluştu" }), {
+    return new Response(JSON.stringify({ error: "Sunucu hatası oluştu", code: "INTERNAL_ERROR" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

@@ -258,7 +258,8 @@ Deno.serve(async (req) => {
           : code === "AI_TIMEOUT" ? "AI servisi zaman aşımı"
           : code === "AI_UNAVAILABLE" ? "AI servisi geçici olarak kullanılamıyor"
           : "AI servisi hatası";
-        return new Response(JSON.stringify({ error: message, code, event: "request", duration_ms: elapsed }), {
+        const retryable = code === "RATE_LIMITED" || code === "AI_TIMEOUT" || code === "AI_UNAVAILABLE";
+        return new Response(JSON.stringify({ skipped: true, reason: "ai_error", error: message, code, retryable, event: "request", duration_ms: elapsed }), {
           status, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -290,7 +291,7 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error("ai-trade-coach error", e);
-    return new Response(JSON.stringify({ error: "Sunucu hatası oluştu", event: "request", duration_ms: Date.now() - start }), {
+    return new Response(JSON.stringify({ error: "Sunucu hatası oluştu", code: "INTERNAL_ERROR", event: "request", duration_ms: Date.now() - start }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
