@@ -1,0 +1,30 @@
+Task 9 — Settings Ledger Table Evidence
+=========================================
+File: src/pages/Settings.tsx (lines 283-317)
+Component: "Bakiye Geçmişi" Card
+
+Query: real_balance_ledger with JOIN profiles(granted_by → display_name)
+- .from("real_balance_ledger")
+- .select("id, amount, reason, created_at, granted_by:profiles(display_name)")
+- .eq("user_id", user.id)
+- .order("created_at", { ascending: false })
+- .limit(50)
+
+Table columns:
+1. Tarih (Date) — formatted with locale date
+2. Miktar (Amount) — green for positive, red for negative, $ prefix
+3. Açıklama (Reason) — truncated, "—" if null
+4. Yükleyen (Granted by) — display_name from profiles JOIN, "—" if null
+
+States:
+- Loading: 3 Skeleton rows
+- Empty: "Henüz işlem yok" centered text
+- Data: Table with rows
+
+Meets acceptance criteria:
+- Ledger query correct ✓
+- All 4 columns present ✓
+- Newest first (ORDER BY created_at DESC) ✓
+- Limit 50 ✓
+- Loading skeleton ✓
+- Empty state ✓

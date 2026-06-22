@@ -1,0 +1,3 @@
+src/pages/Settings.tsx:111:        { event: "INSERT", schema: "public", table: "real_balance_ledger", filter: `user_id=eq.${user.id}` } as never,
+src/contexts/AppContext.tsx:55:          if (payload.new.real_balance !== undefined) setRealBalance(Number(payload.new.real_balance));
+src/contexts/AppContext.tsx:56:          if (payload.new.real_balance_locked !== undefined) setRealBalanceLocked(Number(payload.new.real_balance_locked));

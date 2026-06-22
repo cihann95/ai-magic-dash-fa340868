@@ -1,0 +1,30 @@
+Task 11: Ban Sistemi
+================================
+Durum: TAMAMLANDI
+
+UI:
+- DropdownMenuItem: "Banla" veya "Banı Kaldır" (mevcut duruma göre)
+- Icon: Ban
+- Dialog başlık: "Kullanıcıyı Banla" veya "Banı Kaldır"
+- Dialog açıklama: "X banlanacak. Bu kullanıcı artık siteye erişemez."
+- Ban sebebi input: "Ban Sebebi (min 5 karakter)" — sadece banlama sırasında görünür
+- Banı kaldırma: sebep input GÖRÜNMEZ, direkt onay
+- Butonlar: İptal + Banla/Banı Kaldır (destructive variant)
+- Validation: banReason.length < 5 → buton disabled
+
+Edge function çağrısı:
+- admin-ban-user: {user_id: string, banned: boolean, reason?: string}
+- Response: AdminBanUserResponse {success, user_id, banned, refunded_rooms}
+- Başarı: toast.success("X banlandı" veya "X banı kaldırıldı")
+- Hata: callEdgeFunction toast.error gösterir
+
+Ban mekanizması:
+- public_profiles.is_active = false (ban)
+- public_profiles.is_active = true (ban kaldırma)
+- Blitz odaları: banlanan kullanıcının waiting/active odaları → cancelled
+
+Tablo gösterimi:
+- Badge: "Aktif" (secondary) veya "Banlı" (destructive)
+- is_active !== false → Aktif, else → Banlı
+
+Refresh: Rol değişimdeki aynı mekanizma.

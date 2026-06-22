@@ -1,0 +1,72 @@
+
+> vite_react_shadcn_ts@1.0.0 build
+> vite build
+
+vite v5.4.19 building for production...
+transforming...
+Browserslist: browsers data (caniuse-lite) is 12 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+
+warn - The class `duration-[3000ms]` is ambiguous and matches multiple utilities.
+warn - If this is content and not a class, replace it with `duration-&lsqb;3000ms&rsqb;` to silence this warning.
+[plugin:vite:esbuild] [plugin vite:esbuild] src/lib/i18n.ts: Duplicate key "partial_close" in object literal
+99 |      weekly_mirror: "Haftalık Ayna", plan_adherence: "Plan Uyumu",
+100|      total_pnl: "Toplam K/Z", exposure: "Maruziyet", win_loss: "Kazan/Kayıp",
+101|      held: "Tutulma", focus_chart: "Grafiğe Git", partial_close: "Kısmi Kapat",
+   |                                                    ^
+102|      intent: "Niyet", sort_by: "Sırala",
+103|      // command palette / shortcuts
+
+[plugin:vite:esbuild] [plugin vite:esbuild] src/lib/i18n.ts: Duplicate key "partial_close" in object literal
+183|      weekly_mirror: "Weekly Mirror", plan_adherence: "Plan Adherence",
+184|      total_pnl: "Total P&L", exposure: "Exposure", win_loss: "Win/Loss",
+185|      held: "Held", focus_chart: "Focus Chart", partial_close: "Partial Close",
+   |                                                ^
+186|      intent: "Intent", sort_by: "Sort by",
+187|      search_placeholder: "Search symbols, pages or commands...", more: "More", shortcuts: "Shortcuts",
+
+✓ 4295 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                            3.31 kB │ gzip:   1.22 kB
+dist/assets/index-Dd45ttm4.css            79.36 kB │ gzip:  14.10 kB
+dist/assets/chevron-left-B0VkGwp1.js       0.30 kB │ gzip:   0.25 kB
+dist/assets/plus-fpguTvXT.js               0.32 kB │ gzip:   0.25 kB
+dist/assets/ban-CEYHwS7r.js                0.34 kB │ gzip:   0.27 kB
+dist/assets/copy-BsArWQa0.js               0.40 kB │ gzip:   0.31 kB
+dist/assets/download-DGLLzwzF.js           0.43 kB │ gzip:   0.32 kB
+dist/assets/textarea-E6eFgEx8.js           0.66 kB │ gzip:   0.43 kB
+dist/assets/badge-ClElwtCs.js              0.88 kB │ gzip:   0.49 kB
+dist/assets/switch-BpCw8F2Q.js             1.12 kB │ gzip:   0.55 kB
+dist/assets/NotFound-CcwJ67y5.js           1.41 kB │ gzip:   0.56 kB
+dist/assets/ResetPassword-TbQnAbtF.js      2.70 kB │ gzip:   1.02 kB
+dist/assets/table-BgA2Ezd3.js              2.72 kB │ gzip:   0.68 kB
+dist/assets/Achievements-C8DPnNXw.js       3.78 kB │ gzip:   1.29 kB
+dist/assets/Watchlist--RaYtBic.js          4.97 kB │ gzip:   1.53 kB
+dist/assets/Heatmap-UF8oE3Ld.js            7.15 kB │ gzip:   1.69 kB
+dist/assets/History-bTKwd5Qb.js            7.64 kB │ gzip:   1.67 kB
+dist/assets/Leaderboard-DdxSUm2F.js        9.14 kB │ gzip:   2.06 kB
+dist/assets/Coach-BEjN5efH.js              9.52 kB │ gzip:   2.40 kB
+dist/assets/Portfolio-aLvs1dNu.js         15.88 kB │ gzip:   3.42 kB
+dist/assets/Journal-BQe2GcY_.js           15.92 kB │ gzip:   2.93 kB
+dist/assets/AdminSettings-BskHtwXK.js     16.42 kB │ gzip:   3.08 kB
+dist/assets/Blitz-C1zZL4kr.js             18.49 kB │ gzip:   3.66 kB
+dist/assets/Insights-BYWKci0Y.js          18.94 kB │ gzip:   3.87 kB
+dist/assets/Social-Ces26NEM.js            21.00 kB │ gzip:   4.28 kB
+dist/assets/Settings-BLI8Lui2.js          24.88 kB │ gzip:   4.74 kB
+dist/assets/AdminUsers-DF6gyJ4a.js        25.47 kB │ gzip:   4.16 kB
+dist/assets/AdminRooms-CWWmTS_P.js        31.51 kB │ gzip:   4.71 kB
+dist/assets/BlitzRoom-B3y60lUk.js         33.11 kB │ gzip:   9.68 kB
+dist/assets/AdminBlitz-BEWSVcDA.js       110.44 kB │ gzip:  26.43 kB
+dist/assets/vendor-supabase-CdFETCVR.js  197.51 kB │ gzip:  52.01 kB
+dist/assets/vendor-ui-BgiAw_OX.js        262.07 kB │ gzip:  85.20 kB
+dist/assets/vendor-react-CKHZb2IH.js     340.90 kB │ gzip: 104.40 kB
+dist/assets/vendor-charts-CFeRxXAW.js    404.47 kB │ gzip: 118.91 kB
+dist/assets/index-ChkK9-N3.js            615.34 kB │ gzip: 158.37 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 11.33s

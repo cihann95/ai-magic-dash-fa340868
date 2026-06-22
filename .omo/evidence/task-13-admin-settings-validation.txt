@@ -1,0 +1,25 @@
+Task 13 — Validasyon Kuralları
+
+Client-side validasyon (AdminSettings.tsx):
+- Sembol: trim + uppercase, boş olamaz
+- max_slippage_pct: number, 0.01 <= x <= 100, step 0.1
+- Mode: sadece 'fixed' veya 'dynamic' (Select ile sınırlı)
+
+Server-side validasyon (admin-slippage-config/index.ts):
+- symbol: required, string
+- max_slippage_pct: required, number, 0 < x <= 100
+- mode: required, 'fixed' veya 'dynamic'
+
+Yapılmayacaklar (YASAK):
+- mode='off' ekleme → DB schema sadece 'fixed'/'dynamic'
+- max_slippage_pct 0-5 aralığı → DB CHECK constraint 0-100
+- Yeni CHECK constraint ekleme → mevcut schema korunur
+- Client-side direct slippage_config update → sadece edge function kullanılır
+
+DB Schema: slippage_config
+- symbol: text PK
+- max_slippage_pct: numeric (CHECK 0-100)
+- mode: text ('fixed'|'dynamic')
+- updated_at: timestamp
+
+Build: 0 error ✓

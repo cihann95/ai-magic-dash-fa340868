@@ -1,0 +1,47 @@
+Task 14: AdminBlitz Revenue Dashboard — Bileşen Listesi
+=====================================================
+
+Dosya: src/pages/AdminBlitz.tsx (518 satır)
+
+Revenue Dashboard Bileşenleri:
+1. Tarih Aralığı Seçici (Card)
+   - Select: Son 7 gün, Son 30 gün (default), Son 90 gün, Özel aralık
+   - Custom: 2 ayrı Calendar Popover (başlangıç/bitiş) + "Uygula" butonu
+   - Refresh butonu (animasyonlu spinner)
+   - Tarih aralığı gösterimi (text)
+
+2. KPI Kartları (4'lü responsive grid)
+   - Toplam Revenue: toplam fee_collected (tarih aralığında)
+   - Toplam Oda: unique room_id sayısı
+   - Ort. Fee/Oda: toplam revenue / oda sayısı
+   - En Yüksek Fee: tekil max amount
+
+3. Line Chart (Recharts LineChart)
+   - X ekseni: tarih (dd MMM formatında, Türkçe)
+   - Y ekseni: günlük fee_collected toplamı
+   - Monotone çizgi, dots, active dots
+   - Boş durum: "Henüz veri yok"
+
+4. Pie Chart 1 — Sembol Bazlı Gelir
+   - platform_revenue JOIN blitz_rooms GROUP BY symbol
+   - 8+ sembol (BTCUSD, ETHUSD, vb.)
+   -外 label: sembol + yüzde
+
+5. Pie Chart 2 — Kaynak Bazlı Gelir
+   - platform_revenue GROUP BY source
+   -外 label: kaynak + yüzde
+
+6. Top-up Form (Task 10 — DEĞİŞTİRİLMEDİ)
+   - Kullanıcı arama autocomplete
+   - Miktar input
+   - Reason kategori select
+   - Onay dialog
+   - Son 10 top-up geçmişi tablosu
+
+7. Detay Tablo (Revenue — Pagination)
+   - Sütunlar: Tarih, Sembol, Kaynak, Miktar, Oda ID
+   - 50 kayıt/sayfa
+   - Geri/İleri butonları
+   - "Sayfa X / Y" göstergesi
+
+Eksiksiz: Tüm 7 bileşen mevcut.

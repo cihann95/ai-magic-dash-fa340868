@@ -1,0 +1,23 @@
+Task 10 - Admin Top-up Reason Validation
+=========================================
+Date: 2026-06-22
+File: src/pages/AdminBlitz.tsx
+
+Changes implemented:
+1. Reason field changed from free text Input to Select dropdown
+2. Categories: Karşılama Bonusu, Manuel İade, Promosyon, Yarışma Ödülü, Diğer
+3. "Diğer" selected → additional text input appears for custom reason
+4. Form validation: reason category MUST be selected
+   - If no category: "Uygula" button click shows toast "Açıklama kategorisi zorunlu"
+   - If "Diğer" but no custom text: finalReason empty, canSubmit false
+5. canSubmit guard: requires selectedUser + amount > 0 + finalReason non-empty
+6. canSubmit=false → "Uygula" button disabled
+
+Implementation details:
+- REASON_CATEGORIES constant array with value/label pairs
+- Select component (shadcn @radix-ui/react-select) for category
+- Conditional Input for custom reason when category="diger"
+- finalReason derived: category label for fixed, customReason.trim() for diğer
+- handleApplyClick validates then sets confirmOpen
+
+Evidence: src/pages/AdminBlitz.tsx (reason validation)

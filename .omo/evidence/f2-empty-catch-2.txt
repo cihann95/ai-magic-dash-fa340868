@@ -1,0 +1,11 @@
+src/pages/BlitzRoom.tsx:61:      callEdgeFunction("blitz-settle-room", { room_id: room.id }).catch(() => {});
+src/pages/BlitzRoom.tsx:146:    } catch {}
+src/pages/BlitzRoom.tsx:156:    } catch {}
+supabase/functions/ai-trade-coach/index.ts:224:    const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
+supabase/functions/news-feed/index.ts:14:    const { symbol, language = "tr" } = await req.json().catch(() => ({}));
+supabase/functions/ai-analyze/index.ts:37:    const body = await req.json().catch(() => ({}));
+supabase/functions/daily-brief/index.ts:29:    const { language = "tr" } = await req.json().catch(() => ({}));
+supabase/functions/ai-strategy/index.ts:33:    const body = await req.json().catch(() => ({}));
+supabase/functions/blitz-join-private/index.ts:34:  try { rawBody = await req.json(); } catch { rawBody = {}; }
+supabase/functions/ai-chat/index.ts:40:    const body = await req.json().catch(() => ({}));
+supabase/functions/ai-risk-monitor/index.ts:47:  const body = await req.json().catch(() => ({}));

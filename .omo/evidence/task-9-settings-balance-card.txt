@@ -1,0 +1,21 @@
+Task 9 — Settings Balance Card Evidence
+=========================================
+File: src/pages/Settings.tsx (lines 261-281)
+Component: "Gerçek Bakiye" Card (Wallet icon)
+
+3-Column Grid Layout:
+- Column 1: "Mevcut Bakiye" (Available) = realBalance - realBalanceLocked
+- Column 2: "Toplam Bakiye" (Total) = realBalance
+- Column 3: "Kilitli" (Locked) = realBalanceLocked
+
+Data source: useApp() hook → AppContext (realBalance, realBalanceLocked)
+Realtime: AppContext has postgres_changes subscription on profiles UPDATE (Task 2)
+Format: $X.XX (.toFixed(2))
+Info banner: "Bakiyeniz yönetici tarafından yüklenir. Detaylı bilgi için destek ile iletişime geçin."
+
+Meets acceptance criteria:
+- 3 values displayed in grid ✓
+- Dollar format with .toFixed(2) ✓
+- Data from useApp() only ✓
+- No payment integration (info text only) ✓
+- No client-side real_balance write ✓

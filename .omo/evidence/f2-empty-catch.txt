@@ -1,0 +1,2 @@
+supabase/functions/ai-trade-coach/index.ts:224:    const body = req.method === "POST" ? await req.json().catch(() => ({})) : {};
+supabase/functions/blitz-join-private/index.ts:34:  try { rawBody = await req.json(); } catch { rawBody = {}; }

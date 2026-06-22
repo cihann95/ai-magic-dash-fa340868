@@ -1,0 +1,13 @@
+src/lib/observability.ts:78:        if (entry.metadata) console.log(prefix, entry.metadata);
+src/lib/observability.ts:79:        else console.log(prefix);
+src/test-utils/setup.ts:30:    console.log(
+src/test-utils/setup.ts:36:  console.log(`[test-utils] Starting mock server on ${MOCK_URL}...`);
+src/test-utils/setup.ts:50:      console.log(`[test-utils] Mock server ready on port ${port}`);
+src/test-utils/setup.ts:73:    console.log(`[test-utils] Mock server confirmed responsive at ${url}`);
+src/test-utils/setup.ts:86:    console.log("[test-utils] No mock server process to stop");
+src/test-utils/setup.ts:90:  console.log("[test-utils] Stopping mock server...");
+src/test-utils/setup.ts:94:      console.log("[test-utils] Mock server stopped");
+src/test-utils/mocks.ts:357:  /** Spy on console.log */
+src/test-utils/health-check.ts:35: * console.log("Server is ready!");
+src/test-utils/health-check.ts:128:  console.log(`[health-check] Probing ${url}...`);
+src/test-utils/health-check.ts:132:    console.log(`[health-check] OK — server is responsive at ${url}`);

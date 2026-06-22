@@ -1,0 +1,29 @@
+Task 11: /admin/users Sayfası
+================================
+Durum: TAMAMLANDI
+Dosya: src/pages/AdminUsers.tsx
+Build: 0 error (npm run build ✓)
+
+Sayfa yapısı:
+- Üst kısım: header (başlık + açıklama)
+- Filtre kartı: arama input (debounce 300ms, min 3 karakter) + rol select (all/admin/user) + ban select (all/active/banned)
+- Tablo: 7 sütun (Kullanıcı, Rol, Gerçek Bakiye, Demo Bakiye, Kayıt Tarihi, Durum, Aksiyon)
+- Pagination: 50/sayfa, Prev/Next butonları, X–Y / Z göstergesi
+- Boş state: "Kullanıcı bulunamadı" + Users ikonu
+- Loading: 5 satırlık skeleton
+- Aksiyon dropdown: Rol Değiştir, Banla/Banı Kaldır, Bakiye Yükle
+- Onay dialogları: Rol değişimi + Ban (sebep input, min 5 karakter)
+- Korumalı route: ProtectedRoute requiredRole="admin" (App.tsx'te Task 15'te eklenecek)
+
+Edge function çağrıları:
+- admin-list-users: {search, role, status, limit, offset} → {users, total}
+- admin-set-user-role: {user_id, role} → {success, user_id, role}
+- admin-ban-user: {user_id, banned, reason} → {success, user_id, banned, refunded_rooms}
+
+Veri modelleri (edge-function-types.ts):
+- AdminUser: id, display_name, avatar_url, demo_balance, real_balance, real_balance_locked, created_at, role, username, is_active
+- AdminListUsersResponse: users[], total, limit, offset
+- AdminSetUserRoleResponse: success, user_id, role
+- AdminBanUserResponse: success, user_id, banned, refunded_rooms
+
+Kontrol: has_role guard sayfa içinde YOK — ProtectedRoute'a bırakıldı.

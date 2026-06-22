@@ -1,0 +1,9 @@
+Task 12: /admin/rooms Sayfası — Manuel Settle
+=============================================
+
+Kabul: Settle dialog + edge function çağrısı.
+- active durumundaki odalarda "Sonuçlandır" butonu (CheckCircle ikonu).
+- Dialog: "Bu oda manuel sonuçlandırılacak. Sistem otomatik kazanan belirleyecek."
+- callEdgeFunction("admin-settle-room", {room_id}).
+- Başarılı → toast.success, fetchRooms() ile tablo yenilenir.
+- Button disabled + Loader2 animasyonu durante işlem.

@@ -1,0 +1,83 @@
+b3a3b13 feat(app): /admin/users route + ProtectedRoute guard + lazy load
+ .omo/evidence/task-15-admin-routes-redirect.txt | 14 +++++++++++++
+ .omo/evidence/task-15-admin-routes.txt          | 11 +++++++++++
+ .omo/evidence/task-15-admin-unknown-route.txt   | 13 +++++++++++++
+ .omo/evidence/task-15-lazy-bundle.txt           | 12 ++++++++++++
+ .omo/plans/critical-prod-fixes.md               | 26 ++++++++++++-------------
+ src/App.tsx                                     |  9 ++++++++-
+ 6 files changed, 71 insertions(+), 14 deletions(-)
+8e7e6e5 feat(admin): admin-cancel-room + admin-settle-room + admin-slippage-config edge functions
+ .omo/evidence/task-8-admin-cancel-room.txt        |  38 +++++++
+ .omo/evidence/task-8-admin-settle-idempotent.txt  |  39 +++++++
+ .omo/evidence/task-8-admin-settle-room.txt        |  37 ++++++
+ .omo/evidence/task-8-admin-slippage.txt           |  45 ++++++++
+ .omo/plans/critical-prod-fixes.md                 |   2 +-
+ src/lib/edge-function-types.ts                    |  89 +++++++++++++++
+ supabase/functions/_shared/rate-limit.ts          |   6 +
+ supabase/functions/admin-cancel-room/index.ts     | 130 ++++++++++++++++++++++
+ supabase/functions/admin-settle-room/index.ts     | 119 ++++++++++++++++++++
+ supabase/functions/admin-slippage-config/index.ts | 104 +++++++++++++++++
+ supabase/functions/blitz-settle-room/index.ts     |   2 +-
+ 11 files changed, 609 insertions(+), 2 deletions(-)
+8a290c8 fix(ai): trade-mirror prompt fiyat verisi + sert kurallar + JSON schema
+ .omo/evidence/task-5-fiyat-verisi.txt     |  30 +++++++++
+ .omo/evidence/task-5-pnl-notification.txt |  27 ++++++++
+ .omo/plans/critical-prod-fixes.md         |   2 +-
+ supabase/functions/trade-mirror/index.ts  | 103 +++++++++++++++++-------------
+ 4 files changed, 115 insertions(+), 47 deletions(-)
+b6004d1 feat(app): isAdmin state + useIsAdmin hook + ProtectedRoute requiredRole + TopBar admin links
+ .omo/evidence/task-2-appcontext-isadmin.txt    |   11 +
+ .omo/evidence/task-2-protected-route-admin.txt |   12 +
+ .omo/evidence/task-2-topbar-admin-link.txt     |   16 +
+ .omo/evidence/task-2-use-isadmin-hook.txt      |   11 +
+ .omo/evidence/task-4-cancel-idempotent.txt     |   29 +
+ .omo/evidence/task-4-cancel-unlock.txt         |   32 +
+ .omo/evidence/task-4-redis-503.txt             |   29 +
+ .omo/evidence/task-4-stale-cleanup.txt         |   43 +
+ .omo/evidence/task-5-ai-prompt-rewritten.txt   |   31 +
+ .omo/plans/critical-prod-fixes.md              | 1925 ++++++++++++++++++++++++
+ src/components/ProtectedRoute.tsx              |   15 +-
+ src/components/TopBar.tsx                      |   28 +-
+ src/contexts/AppContext.tsx                    |   32 +
+ src/hooks/useIsAdmin.ts                        |    6 +
+ 14 files changed, 2216 insertions(+), 4 deletions(-)
+a18e3b4 fix(ai): execute-trade notification dolar + yüzde
+ supabase/functions/execute-trade/index.ts | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
+def16aa feat(ai): shared context builder + AI panel height fix
+ proje_hafizasi.md                              |  34 ++++--
+ src/components/trading/AccountAIPanel.tsx      |  12 +-
+ src/pages/Index.tsx                            |   4 +-
+ supabase/functions/_shared/build-ai-context.ts | 161 +++++++++++++++++++++++++
+ supabase/functions/ai-analyze/index.ts         |  13 +-
+ supabase/functions/ai-chat/index.ts            |  13 +-
+ supabase/functions/ai-strategy/index.ts        |  41 ++-----
+ supabase/functions/ai-trade-coach/index.ts     |  14 ++-
+ 8 files changed, 241 insertions(+), 51 deletions(-)
+0883b12 feat(error): global edge function error handler + Blitz error codes
+ src/components/trading/AccountAIPanel.tsx     |  37 ++++----
+ src/components/trading/ChartPanel.tsx         |  22 +----
+ src/components/trading/OpenPositionsPanel.tsx |  20 +---
+ src/components/trading/OrderTicket.tsx        |  73 ++++----------
+ src/lib/edge-error.ts                         | 132 ++++++++++++++++++++++++++
+ src/pages/AdminBlitz.tsx                      |  24 +++--
+ src/pages/Blitz.tsx                           |  73 +++++++-------
+ src/pages/BlitzRoom.tsx                       |  19 ++--
+ src/pages/Coach.tsx                           |  28 +++---
+ src/pages/Settings.tsx                        |  19 ++--
+ src/pages/Social.tsx                          |  24 ++---
+ 11 files changed, 274 insertions(+), 197 deletions(-)
+1df7f00 docs: Faz 7 audit — 17/17 pages, production-ready
+ FEATURE_AUDIT.md  | 70 ++++++++++++++++++++++++++++++++-----------------------
+ proje_hafizasi.md | 20 +++++++++-------
+ 2 files changed, 53 insertions(+), 37 deletions(-)
+a3891e6 feat(social): migrate copy trading to edge functions
+ src/pages/Social.tsx                             | 214 ++++++++++++++++-------
+ supabase/deploy-all.sh                           |   2 +
+ supabase/functions/_shared/rate-limit.ts         |   2 +
+ supabase/functions/manage-copy-settings/index.ts | 123 +++++++++++++
+ supabase/functions/manage-follow/index.ts        | 133 ++++++++++++++
+ 5 files changed, 415 insertions(+), 59 deletions(-)
+6179cb1 docs: add BÖLÜM 9 — FEATURE STATUS to proje_hafizasi
+ proje_hafizasi.md | 52 +++++++++++++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 51 insertions(+), 1 deletion(-)

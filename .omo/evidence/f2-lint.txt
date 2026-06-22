@@ -1,0 +1,60 @@
+
+> vite_react_shadcn_ts@1.0.0 lint
+> eslint .
+
+
+/home/user/projects/ai-magic-dash-fa340868/src/components/trading/ChartPanel.tsx
+  11:10  error  'supabase' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/user/projects/ai-magic-dash-fa340868/src/pages/AdminRooms.tsx
+  4:32  error  'Search' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  4:40  error  'X' is defined but never used. Allowed unused vars must match /^_/u       @typescript-eslint/no-unused-vars
+
+/home/user/projects/ai-magic-dash-fa340868/src/pages/AdminSettings.tsx
+  59:40  warning  React Hook useEffect has a missing dependency: 'fetchConfigs'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  85:15  error    'data' is assigned a value but never used. Allowed unused vars must match /^_/u                                  @typescript-eslint/no-unused-vars
+
+/home/user/projects/ai-magic-dash-fa340868/src/pages/AdminUsers.tsx
+   1:31  error    'useCallback' is defined but never used. Allowed unused vars must match /^_/u                                       @typescript-eslint/no-unused-vars
+  68:6   warning  React Hook useEffect has a missing dependency: 'setSearchParams'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  98:9   error    'totalPages' is assigned a value but never used. Allowed unused vars must match /^_/u                               @typescript-eslint/no-unused-vars
+
+/home/user/projects/ai-magic-dash-fa340868/src/pages/Blitz.tsx
+   77:13  error  Empty block statement  no-empty
+  118:13  error  Empty block statement  no-empty
+
+/home/user/projects/ai-magic-dash-fa340868/src/pages/BlitzRoom.tsx
+  146:13  error  Empty block statement  no-empty
+  156:13  error  Empty block statement  no-empty
+
+/home/user/projects/ai-magic-dash-fa340868/src/pages/Settings.tsx
+  103:6  warning  React Hook useEffect has a missing dependency: 'fetchLedger'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  116:6  warning  React Hook useEffect has a missing dependency: 'fetchLedger'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/home/user/projects/ai-magic-dash-fa340868/supabase/functions/__tests__/manage-order.test.ts
+   10:36  error  'beforeEach' is defined but never used. Allowed unused vars must match /^_/u                     @typescript-eslint/no-unused-vars
+   86:16  error  'placeOrder' is defined but never used. Allowed unused vars must match /^_/u                     @typescript-eslint/no-unused-vars
+  215:7   error  'VALID_CANCEL_PAYLOAD' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/user/projects/ai-magic-dash-fa340868/supabase/functions/admin-ban-user/index.ts
+  64:28  error  'reason' is assigned a value but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/user/projects/ai-magic-dash-fa340868/supabase/functions/admin-list-users/index.ts
+  98:7  error  'users' is never reassigned. Use 'const' instead  prefer-const
+
+/home/user/projects/ai-magic-dash-fa340868/supabase/functions/ai-chat/index.ts
+  3:28  error  'logger' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/user/projects/ai-magic-dash-fa340868/supabase/functions/execute-trade/index.ts
+  103:10  error  'parsePublicTradeRequest' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+  220:11  error  'closeAmount' is assigned a value but never used. Allowed unused vars must match /^_/u     @typescript-eslint/no-unused-vars
+
+/home/user/projects/ai-magic-dash-fa340868/supabase/functions/manage-order/index.ts
+  48:10  error  'parseRequest' is defined but never used. Allowed unused vars must match /^_/u  @typescript-eslint/no-unused-vars
+
+/home/user/projects/ai-magic-dash-fa340868/supabase/functions/trade-mirror/index.ts
+  170:13  error  Empty block statement  no-empty
+
+✖ 24 problems (20 errors, 4 warnings)
+  1 error and 0 warnings potentially fixable with the `--fix` option.
+

@@ -1,0 +1,15 @@
+src/hooks/useAnalytics.ts:7: * the contract we need, avoiding `as any`.
+src/pages/AdminBlitz.tsx:132:      (symRes.data as any[])?.forEach((r) => {
+src/components/trading/AccountAIPanel.tsx:122:      if (!((e as any)?.code)) {
+src/components/trading/AccountAIPanel.tsx:135:      if (!((e as any)?.code)) {
+src/components/trading/AccountAIPanel.tsx:148:      if (!((e as any)?.code)) {
+src/components/trading/AccountAIPanel.tsx:161:      if (!((e as any)?.code)) {
+supabase/functions/manage-order/index.ts:212:      return new Response(JSON.stringify({ error: result.error, code: result.code, retryable: (result as any).retryable ?? false }), {
+supabase/functions/blitz-settle-room/__tests__/blitz-settle-room.test.ts:130:      let priceRaw = await (this as any).redis?.get(`blitz:price:${room.symbol}`) ?? null;
+supabase/functions/blitz-settle-room/__tests__/blitz-settle-room.test.ts:190:      } as any);
+supabase/functions/blitz-settle-room/__tests__/blitz-settle-room.test.ts:208:      } as any);
+supabase/functions/blitz-settle-room/__tests__/blitz-settle-room.test.ts:224:    (engine as any).redis = redis;
+supabase/functions/DEPENDENCY_MAP.md:400:| **Notes** | 3 `as any` casts (lines 53, 69, 71, 79, 81, 85). Throttled: max once per 6 days. |
+supabase/functions/blitz-analytics-writer/__tests__/blitz-analytics-writer.test.ts:274:      await expect(flushAnalytics(failingDb as any)).rejects.toThrow("DB connection lost");
+supabase/functions/blitz-analytics-writer/__tests__/blitz-analytics-writer.test.ts:285:      await expect(flushAnalytics(failingDb as any)).rejects.toThrow("Insert constraint violation");
+supabase/functions/blitz-analytics-writer/__tests__/blitz-analytics-writer.test.ts:296:      await expect(flushAnalytics(failingDb as any)).rejects.toThrow("Update failed");

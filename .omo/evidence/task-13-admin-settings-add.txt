@@ -1,0 +1,22 @@
+Task 13 — Yeni Ekleme Dialog
+
+Yeni ekleme akışı:
+1. "Yeni Ekle" butonuna tıkla → openAddDialog()
+2. Dialog açılır: sembol (input, boş), max_slippage_pct (0.5 default), mod (fixed default)
+3. Form validasyonu:
+   - Sembol: boş olamaz, uppercased
+   - max_slippage_pct: 0.01-100 arası (step 0.1)
+   - Mode: fixed veya dynamic
+4. "Kaydet" → POST: supabase.functions.invoke("admin-slippage-config", {
+     method: "POST",
+     body: {symbol: "BTCUSD", max_slippage_pct: 0.5, mode: "fixed"}
+   })
+5. Toast: "${symbol} kaydedildi"
+6. Dialog kapanır, tablo yenilenir
+
+Dikkat:
+- Sembol uppercased otomatik
+- Custom sembol desteği (8 listeden farklı)
+- Endpoint POST UPSERT kullanır (aynı sembol üzerine yazar)
+
+Kaynak: src/pages/AdminSettings.tsx:112-118, 132-148

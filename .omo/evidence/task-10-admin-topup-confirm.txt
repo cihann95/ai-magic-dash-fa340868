@@ -1,0 +1,24 @@
+Task 10 - Admin Top-up Confirmation Dialog
+===========================================
+Date: 2026-06-22
+File: src/pages/AdminBlitz.tsx
+
+Changes implemented:
+1. AlertDialog (shadcn @radix-ui/react-alert-dialog) added
+2. "Uygula" button now opens AlertDialog instead of direct submit
+3. Dialog shows:
+   - "Kullanıcı: {display_name} ({id})"
+   - "Miktar: ${amount}"
+   - "Açıklama: {reason}"
+   - "Bu işlemi onaylıyor musunuz?"
+4. "Onayla" → calls blitz-admin-topup edge function
+5. "İptal" → closes dialog, no action taken
+6. Top-up NOT executed without confirmation
+
+Implementation details:
+- confirmOpen state controls AlertDialog visibility
+- handleApplyClick() validates form then opens dialog
+- confirmTopup() executes the actual top-up after confirmation
+- AlertDialogAction onClick triggers confirmTopup()
+
+Evidence: src/pages/AdminBlitz.tsx (AlertDialog implementation)

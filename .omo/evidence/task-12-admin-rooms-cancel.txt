@@ -1,0 +1,9 @@
+Task 12: /admin/rooms Sayfası — Oda İptal
+=========================================
+
+Kabul: Cancel dialog + edge function çağrısı.
+- waiting/active durumundaki odalarda "İptal Et" butonu (Ban ikonu).
+- Dialog: "Bu oda iptal edilecek. Katılımcı bakiyeleri iade edilecek." + sebep input.
+- callEdgeFunction("admin-cancel-room", {room_id, reason}).
+- Başarılı → toast.success, fetchRooms() ile tablo yenilenir.
+- Button disabled + Loader2 animasyonu durante iptal işlemi.

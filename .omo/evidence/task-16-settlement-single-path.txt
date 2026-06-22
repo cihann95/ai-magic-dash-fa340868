@@ -1,0 +1,59 @@
+# Task 16: Settlement Tek Yol — Çifte Ödeme Yok
+
+## settlement_ledger Schema (supabase/migrations/20260610000002_settlement_integrity.sql)
+
+```sql
+CREATE TABLE IF NOT EXISTS public.settlement_ledger (
+  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  room_id           uuid REFERENCES public.blitz_rooms(id) ON DELETE SET NULL,
+  idempotency_key   text NOT NULL UNIQUE,  -- ← UNIQUE constraint prevents duplicates
+  settlement_type   text NOT NULL CHECK (settlement_type IN ('edge_function', 'db_trigger', 'cron')),
+  ...
+);
+```
+
+## settleRoom Idempotency (blitz-settle-room/index.ts:11-12)
+
+```typescript
+export async function settleRoom(admin: Admin, roomId: string): Promise<...> {
+  const idempotencyKey = `${roomId}:edge_function`;
+```
+
+## lock_and_validate_room RPC (settlement_integrity.sql:236-274)
+
+```sql
+-- Fast path: already settled?
+IF public.settlement_already_processed(p_idempotency_key) THEN
+  RETURN jsonb_build_object('already_settled', true);
+END IF;
+```
+
+## settlement_already_processed Helper (settlement_integrity.sql:35-46)
+
+```sql
+CREATE OR REPLACE FUNCTION public.settlement_already_processed(
+  p_idempotency_key text
+) RETURNS boolean
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.settlement_ledger
+    WHERE idempotency_key = p_idempotency_key
+      AND status = 'completed'
+  );
+$$;
+```
+
+## Settlement Single Path Analysis
+
+1. blitz_payout_trigger → DROPPED (no DB trigger payout)
+2. blitz-settle-room edge function → ONLY settlement path
+3. settlement_ledger INSERT with idempotency_key UNIQUE → prevents duplicate settlement
+4. lock_and_validate_room checks already_settled FIRST → fast reject on 2nd call
+5. Advisory lock (try_advisory_lock) → serializes concurrent settlement attempts
+
+## Conclusion
+
+Settlement has ONE path: blitz-settle-room edge function.
+Idempotency enforced at TWO levels:
+  1. DB level: idempotency_key UNIQUE constraint on settlement_ledger
+  2. Application level: lock_and_validate_room checks settlement_already_processed()

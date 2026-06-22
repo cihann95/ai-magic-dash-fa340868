@@ -1,0 +1,24 @@
+Task 10 - Admin Top-up Autocomplete
+====================================
+Date: 2026-06-22
+File: src/pages/AdminBlitz.tsx
+
+Changes implemented:
+1. UUID manual input REMOVED (line 158-159 old code → replaced)
+2. New "Kullanıcı" input with autocomplete dropdown:
+   - Typing ≥3 chars triggers debounced (300ms) search
+   - Calls admin-list-users edge function with ?search= query param
+   - Dropdown shows: display_name, @username, user id
+   - Selecting a user sets selectedUser state (id + display_name)
+   - Selected user shows check icon in dropdown
+3. Search results appear in popover below input
+4. "Sonuç bulunamadı" shown when no results
+5. Loading spinner shown during search
+
+Implementation details:
+- Debounce via useRef + setTimeout (300ms)
+- Fetch via supabase.functions.invoke with ?search= URL param
+- Dropdown closes on outside click
+- Search query displays display_name after selection
+
+Evidence: src/pages/AdminBlitz.tsx (autocomplete implementation)

@@ -1,0 +1,22 @@
+Task 10 - Admin Top-up History
+===============================
+Date: 2026-06-22
+File: src/pages/AdminBlitz.tsx
+
+Changes implemented:
+1. New section: "Son Top-up İşlemleri"
+2. Query: real_balance_ledger table, ORDER BY created_at DESC, LIMIT 10
+3. JOIN profiles table for display_name (target_name)
+4. Table columns: Tarih | Kullanıcı | Miktar (+/-) | Açıklama
+5. Miktar coloring: green for positive, red for negative
+6. History refreshes after successful top-up
+7. Loading state with spinner
+8. Empty state: "Henüz top-up işlemi yok"
+
+Implementation details:
+- useEffect fetches top-up history on admin check
+- Separate query to profiles for display_name resolution
+- Fresh data fetched after each successful top-up (confirmTopup function)
+- Uses Supabase client query (RLS admin SELECT policy allows)
+
+Evidence: src/pages/AdminBlitz.tsx (history implementation)

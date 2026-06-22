@@ -1,0 +1,11 @@
+Task 12: /admin/rooms Sayfası — Sayfa Oluşturma
+================================================
+
+Kabul: src/pages/AdminRooms.tsx oluşturuldu.
+- AdminBlitz.tsx pattern'i takip edildi (useEffect + has_role check + AppShell).
+- ProtectedRoute pattern: admin check sayfa içinde yapılıyor (AppContext.isAdmin).
+- RLS admin SELECT üzerinden direkt client query: blitz_rooms tablosundan select.
+- Katılımcı sayısı: blitz_participants'tan room_id IN (...) ile ayrı query, map'e yazıldı.
+- Tablo: oda ID (8 char), symbol, entry_fee, status (badge), mode, katılımcı/pot/fee/kazanan/tarih.
+- Route eklendi: /admin/rooms → AdminRooms (App.tsx:28-29, 65).
+- Build: 0 error, 0 type error.

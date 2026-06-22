@@ -1,0 +1,12 @@
+Task 12: /admin/rooms Sayfası — Detay Modal
+===========================================
+
+Kabul: Detay modal + katılımcılar + settlement kayıtları.
+- finished/cancelled durumundaki odalarda "Detay" butonu (Eye ikonu).
+- Modal open: paralel query blitz_participants + settlement_ledger.
+- Katılımcılar tablosu: user_id (8 char), joined_at, final_pnl (renk: yeşil/kırmızı), rank.
+- Settlement tablosu: settlement_type (badge), status (badge), prize_amount, fee_collected, created_at.
+- Boş durum: "Katılımcı yok" / "Settlement kaydı yok" mesajları.
+- Loading: Loader2 spinner.
+- Modal max-w-2xl, max-h-[80vh], overflow-y-auto.
+- Sadece detayı görüntülenen odanın verisi gösteriliyor (diğer oda verisi yok).

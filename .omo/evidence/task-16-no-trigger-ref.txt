@@ -1,0 +1,20 @@
+# Task 16: No Trigger Reference in Edge Functions
+
+## Grep Result
+
+Command: grep -rn "blitz_payout_trigger" supabase/functions/
+
+Result: 0 matches
+
+## Files Checked
+
+All files under supabase/functions/ — none reference blitz_payout_trigger.
+
+## Conclusion
+
+Edge function blitz-settle-room is completely independent of the DB trigger.
+- Trigger was the OLD payout mechanism (DB-level, AFTER UPDATE ON blitz_rooms)
+- Edge function is the NEW/ONLY payout mechanism (application-level)
+- No trigger reference means no hidden dependency
+- If trigger was not dropped, it would fire on status='finished' UPDATE → DUPLICATE PAYMENT
+- With trigger dropped, only edge function handles payout → SINGLE PATH confirmed

@@ -1,0 +1,10 @@
+Task 12: /admin/rooms Sayfası — Filtreleme
+===========================================
+
+Kabul: 4 filtre mekanizması eklendi.
+- Status: all/waiting/active/settling/finished/cancelled (Select component).
+- Sembol: 8 kripto (BTCUSD..AVAXUSD) + all.
+- Mod: all/public/private.
+- Tarih: son 7/30/90 gün + tümü (dateRange state, ISO string comparison).
+- Filter değişiminde useCallback + useEffect ile yeniden fetch.
+- Her filtre change → fetchRooms çağrısı.

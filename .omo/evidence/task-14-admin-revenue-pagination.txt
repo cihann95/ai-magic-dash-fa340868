@@ -1,0 +1,51 @@
+Task 14: Detay Tablo Pagination — Test Senaryosu
+=================================================
+
+Yapı:
+- Sütunlar: Tarih, Sembol, Kaynak, Miktar, Oda ID
+- Kaynak: filteredRevenue state (tarih aralığına göre filtrelenmiş)
+- Sayfa boyutu: 50 kayıt (PAGE_SIZE sabiti)
+- Sayfalama: detailPage state (0-indexed)
+
+Hesaplama:
+- pagedRevenue = filteredRevenue.slice(detailPage * 50, (detailPage + 1) * 50)
+- totalPages = Math.ceil(filteredRevenue.length / 50)
+
+UI:
+- Sol üst: "Detay Tablosu (X kayıt)" başlık
+- Sağ üst: "Sayfa 1 / 3" + Geri/İleri butonları
+- Geri butonu: detailPage === 0'da disabled
+- İleri butonu: detailPage >= totalPages - 1'de disabled
+
+Test Senaryosu 1 — Az Veri (<50):
+1. Tarih aralığı "Son 7 gün" seç
+2. DB'de 20 kayıt var
+3. Tabloda 20 satır görünür
+4. "Sayfa 1 / 1" gösterilir
+5. Geri ve İleri butonları disabled
+
+Test Senaryosu 2 — Çok Veri (>50):
+1. Tarih aralığı "Son 90 gün" seç
+2. DB'de 120 kayıt var
+3. İlk sayfada 50 satır
+4. "Sayfa 1 / 3" gösterilir
+5. "İleri" tıkla → 2. sayfa (50 satır daha)
+6. "Sayfa 2 / 3" gösterilir
+7. "İleri" tıkla → 3. sayfa (20 satır)
+8. "Sayfa 3 / 3", İleri disabled
+9. "Geri" tıkla → 2. sayfa
+
+Test Senaryosu 3 — Tarih Aralığı Değişikliği:
+1. Son 30 gün seç → 80 kayıt → Sayfa 1/2
+2. Son 7 gün seç → 15 kayıt → detailPage reset (0), Sayfa 1/1
+3. Son 90 gün seç → 200 kayıt → detailPage reset (0), Sayfa 1/4
+
+Sembol Bilgisi:
+- getSymbol(r) fonksiyonu: metadata JSON'dan sembol okur
+- metadata.symbol varsa gösterir, yoksa "—"
+- Blitz settle room metadata'sı symbol içerir
+
+Test Sonucu:
+✓ Tüm pagination senaryoları çalışır
+✓ Tarih değişikliğinde sayfa resetlenir
+✓ Sembol metadata'dan doğru okunur

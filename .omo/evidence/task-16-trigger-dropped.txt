@@ -1,0 +1,37 @@
+# Task 16: blitz_payout_trigger DROP Verification
+
+## Migration File: supabase/migrations/2026060622133500_critical_prod_fixes_rls.sql
+
+Lines 80-84:
+```sql
+-- 3) DROP blitz_payout_trigger (dual settlement risk)
+DROP TRIGGER IF EXISTS trg_blitz_payout ON public.blitz_rooms;
+DROP FUNCTION IF EXISTS public.blitz_payout_trigger();
+```
+
+## Original Trigger Definition: supabase/migrations/20260609234136_ana_sahne.sql:142-212
+
+```sql
+-- 4) FAZ 4: blitz_payout_trigger — records revenue, pays winner
+CREATE OR REPLACE FUNCTION public.blitz_payout_trigger()
+...
+CREATE TRIGGER trg_blitz_payout
+  AFTER UPDATE OF status ON public.blitz_rooms
+  FOR EACH ROW
+  WHEN (NEW.status = 'finished' AND OLD.status IS DISTINCT FROM 'finished')
+  EXECUTE FUNCTION public.blitz_payout_trigger();
+```
+
+## Verification Status
+
+- [x] DROP TRIGGER IF EXISTS trg_blitz_payout — PRESENT in migration
+- [x] DROP FUNCTION IF EXISTS blitz_payout_trigger — PRESENT in migration
+- [ ] pg_trigger query — LOCAL DB UNAVAILABLE (test environment). Migration file verified via grep.
+- [ ] pg_proc query — LOCAL DB UNAVAILABLE. Migration file verified via grep.
+
+## Notes
+
+- Local Supabase not running. Remote DB query not executed.
+- Migration file correctly DROPs both trigger and function.
+- After migration applied: pg_trigger WHERE tgname='blitz_payout_trigger' → 0 rows expected
+- After migration applied: pg_proc WHERE proname='blitz_payout_trigger' → 0 rows expected

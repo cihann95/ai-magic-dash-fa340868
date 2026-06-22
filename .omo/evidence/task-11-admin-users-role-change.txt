@@ -1,0 +1,24 @@
+Task 11: Rol Değiştirme
+================================
+Durum: TAMAMLANDI
+
+UI:
+- DropdownMenuItem: "Admin Yap" veya "Admin'i Kaldır" (mevcut role göre)
+- Icon: Shield (admin yapma) / ShieldOff (admin kaldırma)
+- Dialog: "X kullanıcısının rolü admin→user değiştirilsin mi?"
+- Butonlar: İptal + Onayla
+- Onaylama sırasında Loader2 spinner
+
+Edge function çağrısı:
+- admin-set-user-role: {user_id: string, role: "admin" | "user"}
+- Response: AdminSetUserRoleResponse {success, user_id, role}
+- Başarı: toast.success("X rolü admin olarak değiştirildi")
+- Hata: callEdgeFunction toast.error gösterir
+
+Refresh:
+- Refresh fonksiyonu: debouncedSearch'a boşluk ekleyip kaldırarak tetikleme
+- Tablo yeniden yüklenir, state sıfırlanmaz (sadece API çağrısı)
+
+Güvenlik:
+- Sadece admin tarafından yapılabilir (edge function has_role check)
+- kendi kendini admin'den çıkarması engellenmez (plan'da böyle bir kısıt yok)

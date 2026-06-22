@@ -1,0 +1,33 @@
+Task 14: Tarih Aralığı Seçici — Test Senaryosu
+================================================
+
+Preset Seçenekleri:
+- "7" → son 7 gün (from = today - 7)
+- "30" → son 30 gün (default, from = today - 30)
+- "90" → son 90 gün (from = today - 90)
+- "custom" → 2 Calendar Popover + "Uygula" butonu
+
+Davranış:
+1. Select'ten preset değiştir → dateRange state güncellenir
+2. detailPage 0'a resetlenir (sayfa değişince)
+3. useEffect tetiklenir → 3 paralel supabase query çalışır:
+   a) platform_revenue (tüm kayıtlar)
+   b) platform_revenue JOIN blitz_rooms (sembol breakdown)
+   c) platform_revenue_daily (günlük data)
+4. Tüm KPI'lar, grafikler, tablolar otomatik güncellenir
+
+Custom Aralık:
+1. "Özel aralık" seç → 2 calendar popover açılır
+2. Başlangıç tarihi seç (customFrom state)
+3. Bitiş tarihi seç (customTo state)
+4. "Uygula" butonuna bas → dateRange = {startOfDay(customFrom), endOfDay(customTo)}
+5. Calendar kapanır, tüm veriler yenilenir
+
+Refresh:
+- Refresh butonu mevcut dateRange ile tekrar çeker
+- Animasyonlu spinner (refreshing state)
+
+Tarih Formatı:
+- Select placeholder: "Son 30 gün"
+- Calendar button: "22 Haz 2026" (date-fns format + tr locale)
+- Alt bilgi: "22 May 2026 — 22 Haz 2026"

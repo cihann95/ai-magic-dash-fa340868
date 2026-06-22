@@ -1,0 +1,22 @@
+Task 13 — Düzenleme Dialog
+
+Düzenleme akışı:
+1. Tabloda "Düzenle" butonuna tıkla → openEditDialog(cfg)
+2. Dialog açılır: sembol (readonly, disabled input), max_slippage_pct (number input), mod (Select: fixed/dynamic)
+3. "Kaydet" → POST UPSERT: supabase.functions.invoke("admin-slippage-config", {
+     method: "POST",
+     body: {symbol, max_slippage_pct, mode}
+   })
+4. Dialog kapanır, tablo yenilenir
+
+Validasyon:
+- Sembol boş olamaz
+- max_slippage_pct: 0.01-100 arası (step 0.1)
+- Mode: sadece 'fixed' veya 'dynamic'
+
+Düzenleme özellikleri:
+- Sembol readonly (değiştirilemez)
+- Mevcut değerler dialog açılışında doldurulur
+- UPSERT: aynı sembol üzerine yazar
+
+Kaynak: src/pages/AdminSettings.tsx:120-130

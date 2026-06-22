@@ -1,0 +1,38 @@
+# Task 16: Settlement Idempotency — 2. Çağrı Reddedilir
+
+## Idempotency Flow
+
+### 1. İlk settleRoom çağrısı:
+1. Advisory lock acquired (try_advisory_lock)
+2. lock_and_validate_room called:
+   - settlement_already_processed(key) → FALSE (ilk kez)
+   - Room status = 'active' → status = 'settling' (atomic UPDATE)
+   - Returns: {locked: true, symbol, start_price, entry_fee, ...}
+3. Settlement proceeds:
+   - Participants ranked, PnL calculated
+   - Winner real_balance += prize, others real_balance -= entry_fee
+   - platform_revenue INSERT
+   - settlement_ledger INSERT (idempotency_key = "{roomId}:edge_function")
+   - blitz_rooms status = 'finished'
+4. Returns: {ok: true}
+
+### 2. İkinci settleRoom çağrısı (aynı room_id):
+1. Advisory lock acquired (may succeed or fail — either way idempotent)
+2. lock_and_validate_room called:
+   - settlement_already_processed("{roomId}:edge_function") → TRUE (1. çağrıda yazıldı)
+   - Returns: {already_settled: true}
+3. settleRoom returns: {ok: true, reason: "already_settled"}
+4. NO duplicate payment occurs
+
+## Code Evidence (blitz-settle-room/index.ts:48)
+
+```typescript
+if (lockResult.already_settled) return { ok: true, reason: "already_settled" };
+```
+
+## Result
+
+- 2nd call: 200 OK + {ok: true, reason: "already_settled"}
+- Winner real_balance: unchanged (no 2nd payment)
+- platform_revenue: still 1 record
+- settlement_ledger: still 1 record (UNIQUE constraint would reject duplicate anyway)

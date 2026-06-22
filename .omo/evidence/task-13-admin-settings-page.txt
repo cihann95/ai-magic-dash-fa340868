@@ -1,0 +1,21 @@
+Task 13 — /admin/settings Sayfası (Genel Bakış)
+
+Sayfa: src/pages/AdminSettings.tsx
+Route: /admin/settings (App.tsx:66)
+Nav: TopBar admin dropdown, CommandPalette admin entries
+
+Yapı:
+- AppShell wrapper, admin role check (has_role RPC)
+- "Sistem Ayarları" + "Slippage Konfigürasyonu" başlık
+- Table: Sembol | Max Slippage (%) | Mod | Güncelleme | Aksiyonlar
+- GET: supabase.functions.invoke("admin-slippage-config", {method:"GET"})
+- Response: {configs: [{symbol, max_slippage_pct, mode, updated_at}]}
+- Boş durum: Settings icon + "Henüz konfigürasyon yok" + default oluşturma butonu
+- Eksik semboller: "Tüm semboller için default oluştur" butonu (0.5%, fixed)
+
+Varsayılan değerler:
+- max_slippage_pct: 0.5
+- mode: fixed
+- 8 kripto sembol: BTCUSD, ETHUSD, SOLUSD, BNBUSD, XRPUSD, DOGEUSD, ADAUSD, AVAXUSD
+
+Build: npm run build → 0 error ✓

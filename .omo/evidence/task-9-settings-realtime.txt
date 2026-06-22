@@ -1,0 +1,25 @@
+Task 9 — Settings Realtime Subscription Evidence
+==================================================
+File: src/pages/Settings.tsx (lines 105-116)
+
+Realtime subscription:
+- Channel: `ledger_${user.id}`
+- Event: INSERT on real_balance_ledger
+- Filter: user_id=eq.${user.id}
+- Handler: fetchLedger() — re-fetches entire ledger on INSERT
+- Cleanup: supabase.removeChannel(ch) in useEffect return
+
+On new ledger INSERT:
+1. Realtime fires → fetchLedger() called
+2. Ledger re-fetched from DB (fresh data with JOIN)
+3. Table re-renders with new entry at top (ORDER BY created_at DESC)
+
+Note: realBalance/realBalanceLocked are already kept in sync by AppContext
+realtime subscription (profiles UPDATE). The ledger realtime here ensures
+new top-up entries appear in the history table immediately.
+
+Meets acceptance criteria:
+- Realtime subscription on real_balance_ledger INSERT ✓
+- User-filtered (user_id=eq.userId) ✓
+- Cleanup on unmount ✓
+- Ledger refreshes on new entry ✓

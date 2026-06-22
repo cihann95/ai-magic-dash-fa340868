@@ -1,0 +1,30 @@
+Task 11: Arama + Filtre Sistemi
+================================
+Durum: TAMAMLANDI
+
+Arama:
+- Input: placeholder "İsim veya kullanıcı adı ara..."
+- Debounce: 300ms (useEffect + setTimeout)
+- Min karakter: 3 (boş veya <3 karakterde arama yapılmaz)
+- Search ikonu: Sol tarafta Search ikonu
+- URL sync: searchParams.get("search") ile sync
+
+Rol Filtresi:
+- Select component: Tümü / Admin / Kullanıcı
+- URL param: "role"
+- Edge function'a: role parametresi gönderilir
+
+Ban Filtresi:
+- Select component: Tümü / Aktif / Banlı
+- URL param: "ban"
+- Edge function'a: status parametresi ("active" veya "banned")
+
+Filtre Değişiminde:
+- Offset otomatik sıfırlanır (sayfa 1'e döner)
+- useEffect tetiklenir → admin-list-users çağrılır
+
+URL parametreleri:
+- search: arama metni
+- role: all/admin/user
+- ban: all/active/banned
+- offset: sayfalama offseti

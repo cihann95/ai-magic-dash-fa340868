@@ -1,0 +1,30 @@
+Task 11: Pagination
+================================
+Durum: TAMAMLANDI
+
+Mekanizma:
+- PAGE_SIZE: 50 sabit
+- URL param: offset (sayfalama başlangıcı)
+- Edge function: {limit: 50, offset: N}
+
+UI:
+- Tablo altı: "1–50 / 1234" formatında gösterim
+- Butonlar: Prev (ChevronLeft) / Next (ChevronRight)
+- Prev: offset > 0 ise aktif
+- Next: offset + 50 < total ise aktif
+- Buton variant: outline, size: sm
+
+Filtre değişiminde:
+- Offset otomatik sıfırlanır (sayfa 1'e döner)
+- useEffect ile debounce search, role, ban değişimi tetikler
+
+Edge function çağrısı:
+- admin-list-users: {search, role, status, limit: 50, offset: N}
+- Response: AdminListUsersResponse {users, total, limit, offset}
+
+Örnek:
+- Toplam 123 kullanıcı
+- Sayfa 1: offset=0, "1–50 / 123"
+- Sayfa 2: offset=50, "51–100 / 123"
+- Sayfa 3: offset=100, "101–123 / 123"
+- Next butonu sayfa 3'te disabled

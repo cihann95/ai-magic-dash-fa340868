@@ -1,0 +1,38 @@
+Task 14: Pie Chart Breakdown — Test Senaryosu
+==============================================
+
+Sembol Bazlı Pie Chart:
+- Veri kaynağı: platform_revenue JOIN blitz_rooms (RLS admin SELECT)
+- Query: SELECT amount, room_id, blitz_rooms!inner(symbol) WHERE created_at BETWEEN $from AND $to
+- Group: JavaScript Map ile (symMap)
+- Sort: Toplam tutara göre azalan
+- Renk: PIE_COLORS dizisinden (8 renk, döngüsel)
+- Label: "BTCUSD %40" formatında (semol + percentage)
+
+Kaynak Bazlı Pie Chart:
+- Veri kaynağı: platform_revenue (RLS admin SELECT)
+- Group: JavaScript Map ile (srcMap) — source alanına göre
+- Sort: Toplam tutara göre azalan
+- Renk: Aynı PIE_COLORS
+- Label: "blitz_settle %80" formatında
+
+Beklenen Semboller (8 kripto):
+BTCUSD, ETHUSD, SOLUSD, BNBUSD, XRPUSD, DOGEUSD, ADAUSD, AVAXUSD
+
+Beklenen Kaynaklar:
+blitz_settle, manual_topup, trade_commission, vb.
+
+Tooltip:
+- Hover'da "$X.XX" formatında tutar gösterir
+- recharts Tooltip component, custom contentStyle
+
+Boş Durum:
+- Pie chart verisi yoksa "Veri yok" mesajı (centered)
+
+Test Adımları:
+1. Admin login → /admin/blitz
+2. Tarih aralığı "Son 30 gün" seç
+3. Pie chart'ların loaded olduğunu doğrula (SVG rendered)
+4. Pie chart'lara hover → tooltip görünür
+5. Tarih aralığını "Son 7 gün" değiştir → pie chart'lar güncellenir
+6. DB'den BTCUSD amount'u değiştir → pie chart güncellenir (refresh ile)

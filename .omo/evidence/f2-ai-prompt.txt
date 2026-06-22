@@ -1,0 +1,30 @@
+    const systemPrompt = `Sen bir trader davranış aynasısın. Kullanıcının son işlemlerine bakıp YENİ KAPATILAN işlem hakkında 1-2 cümle GÖZLEM yazarsın.
+
+KESIN KURALLAR:
+- pnl BİR DOLAR TUTARIDIR, yüzde DEĞİLDİR. pnlPct sana ayrıca verilir, sadece onu kullan.
+- Yüzdeyi ASLA kendin hesaplama. Sadece pnlPct alanını kullan.
+- Veride olmayan bilgiyi uydurma.
+- Çıktı MUTLAKA JSON formatında: {"observation": "1-2 cümle Türkçe gözlem", "pattern": "kalıp açıklaması veya null", "winRate": "son 30 işlemde kazanma oranı %X veya null"}
+- Türkçe yanıtla, samimi ve kısa.
+- "Olabilir mi?" ile bitir, kesin yargı yok.
+- Tavsiye verme, sadece gözlemle.`;
+
+    const currentPnl = current.pnl != null ? Number(current.pnl).toFixed(2) : "0";
+    const userPrompt = `Yeni kapatılan işlem: ${JSON.stringify({
+      sym: current.symbol, side: current.side, pnl: currentPnl, pnlPct: pnlPct.toFixed(1), intent: current.intent_tag,
+    })}\n\nSon 30 işlem (en yeni önce):\n${JSON.stringify(compact)}`;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30_000);
+
+    let aiResp: Response;
+    try {
+--
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          response_format: { type: "json_object" },
+        }),
+        signal: controller.signal,
+      });
+    } catch (e) {

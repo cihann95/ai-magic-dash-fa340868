@@ -1,0 +1,12 @@
+Task 11: ProtectedRoute Yönü
+================================
+Durum: KORUNDU
+AdminUsers.tsx içinde has_role() kontrolü YAPILMADI.
+ProtectedRoute requiredRole="admin" App.tsx'te Task 15'te eklenecek.
+
+Kanıt:
+- src/pages/AdminBlitz.tsx:38-39 → has_role check kendi içinde (mevcut pattern)
+- src/pages/AdminUsers.tsx → Hiçbir has_role veya isAdmin check YOK
+- ProtectedRoute.tsx:16 → requiredRole === "admin" && !isAdmin → redirect + toast
+
+Sonuç: Sayfa sadece ProtectedRoute'a güvendi. Korumalı route Pattern korundu.
