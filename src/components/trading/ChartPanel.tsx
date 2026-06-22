@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import TradingViewChart from "@/components/TradingViewChart";
 import { SymbolDef, isMarketOpen, formatPrice, isStale } from "@/lib/symbols";
 import { useLivePrice } from "@/hooks/useLivePrices";
@@ -45,6 +45,8 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
   const [qty, setQty] = useState("1");
   const [submitting, setSubmitting] = useState<"buy" | "sell" | null>(null);
   const [intentOpen, setIntentOpen] = useState<null | { side: "buy" | "sell"; signal: EmotionalSignal }>(null);
+  const [timeframe, setTimeframe] = useState<string>("1h");
+  const [volume24h, setVolume24h] = useState<number | null>(null);
   const lp = useLivePrice(symbol.symbol);
   const price = lp?.price ?? null;
   const stale = isStale(lp?.updated_at);
@@ -106,6 +108,28 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
   const change = lp?.change_pct_24h ?? null;
   const tradeDisabled = !!submitting || noPrice || stale || !open;
 
+  const TF_MAP: Record<string, string> = { "1m": "1", "5m": "5", "15m": "15", "1h": "60", "4h": "240", "1D": "D" };
+
+  const prevPriceRef = useRef<number | null>(null);
+  const flashClass = useMemo(() => {
+    if (price == null || prevPriceRef.current == null || prevPriceRef.current === price) return "";
+    const cls = price > prevPriceRef.current ? "animate-tick-flash-up" : "animate-tick-flash-down";
+    return cls;
+  }, [price]);
+  useEffect(() => {
+    if (price != null) prevPriceRef.current = price;
+  }, [price]);
+
+  useEffect(() => {
+    if (!symbol?.symbol) return;
+    supabase
+      .from("price_cache")
+      .select("volume_24h")
+      .eq("symbol", symbol.symbol)
+      .single()
+      .then(({ data }) => setVolume24h(data?.volume_24h ?? null));
+  }, [symbol?.symbol]);
+
   return (
     <div className="flex flex-col h-full">
       <Tabs defaultValue="chart" className="flex flex-col flex-1 min-h-0">
@@ -147,6 +171,40 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
           </div>
         </div>
 
+        <div className="flex items-center gap-4 px-3 h-9 border-b border-border-subtle bg-surface-1/50 text-sm shrink-0">
+          <span className={cn("font-price text-lg font-semibold", flashClass)}>
+            {price != null ? formatPrice(price) : "—"}
+          </span>
+          <span className={cn("text-xs font-medium", (change ?? 0) >= 0 ? "text-up" : "text-down")}>
+            {(change ?? 0) >= 0 ? "+" : ""}{change?.toFixed(2)}%
+          </span>
+          <span className="text-xs text-muted-foreground">
+            24h H: <span className="font-price">—</span>
+          </span>
+          <span className="text-xs text-muted-foreground">
+            24h L: <span className="font-price">—</span>
+          </span>
+          <span className="text-xs text-muted-foreground">
+            Vol: <span className="font-price">{volume24h != null ? formatPrice(volume24h) : "—"}</span>
+          </span>
+          <div className="ml-auto flex gap-1">
+            {(["1m","5m","15m","1h","4h","1D"] as const).map(tf => (
+              <button
+                key={tf}
+                onClick={() => setTimeframe(tf)}
+                className={cn(
+                  "px-2 py-0.5 text-xs rounded transition-colors duration-panel",
+                  timeframe === tf
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {tf}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <TabsList className="mx-3 mt-3 w-fit">
           <TabsTrigger value="chart">{tr.chart}</TabsTrigger>
           <TabsTrigger value="orders">{tr.orders}</TabsTrigger>
@@ -156,7 +214,7 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
 
         <TabsContent value="chart" className="flex-1 m-0 mt-3 px-3 min-h-0">
           <div className="rounded-xl overflow-hidden border border-border/40 h-full min-h-[400px]">
-            <TradingViewChart symbol={symbol.tv} theme={theme} />
+            <TradingViewChart symbol={symbol.tv} theme={theme} interval={TF_MAP[timeframe]} />
           </div>
         </TabsContent>
 

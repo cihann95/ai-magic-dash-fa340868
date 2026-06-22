@@ -4,9 +4,10 @@ interface Props {
   symbol: string; // e.g. "BINANCE:BTCUSDT"
   theme?: "dark" | "light";
   height?: number | string;
+  interval?: string; // TradingView interval (1, 5, 15, 60, 240, D)
 }
 
-export default function TradingViewChart({ symbol, theme = "dark", height = "100%" }: Props) {
+export default function TradingViewChart({ symbol, theme = "dark", height = "100%", interval }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const [error, setError] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
@@ -33,7 +34,7 @@ export default function TradingViewChart({ symbol, theme = "dark", height = "100
     script.innerHTML = JSON.stringify({
       autosize: true,
       symbol,
-      interval: "60",
+      interval: interval ?? "60",
       timezone: "Etc/UTC",
       theme,
       style: "1",
@@ -66,7 +67,7 @@ export default function TradingViewChart({ symbol, theme = "dark", height = "100
     return () => {
       clearTimeout(timeoutId);
     };
-  }, [symbol, theme, retryKey]);
+  }, [symbol, theme, interval, retryKey]);
 
   if (error) {
     return (

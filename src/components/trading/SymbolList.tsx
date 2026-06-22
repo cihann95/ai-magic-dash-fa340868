@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Search, Star, StarOff } from "lucide-react";
 import { ASSET_LABELS, AssetClass, isMarketOpen, formatPrice, SymbolDef, SYMBOLS } from "@/lib/symbols";
 import { useLivePrices } from "@/hooks/useLivePrices";
@@ -9,6 +9,8 @@ import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { LineChart, Line, ResponsiveContainer } from "recharts";
+import { Badge } from "@/components/ui/badge";
 
 interface Props {
   active: SymbolDef;
@@ -37,6 +39,28 @@ export default function SymbolList({ active, onSelect }: Props) {
       (q === "" || s.symbol.toLowerCase().includes(q.toLowerCase()) || s.name.toLowerCase().includes(q.toLowerCase()))
     );
   }, [q, cat]);
+
+  // Local sparkline rolling window (max 20 points). Hook NOT modified.
+  const priceHistoryRef = useRef<Record<string, number[]>>({});
+  useEffect(() => {
+    Object.entries(livePrices).forEach(([sym, lp]) => {
+      const hist = priceHistoryRef.current[sym] ?? [];
+      const newPrice = lp?.price;
+      if (newPrice != null && hist[hist.length - 1] !== newPrice) {
+        priceHistoryRef.current[sym] = [...hist, newPrice].slice(-20);
+      }
+    });
+  }, [livePrices]);
+
+  // Tick flash detection
+  const prevPricesRef = useRef<Record<string, number>>({});
+  const getFlashClass = (sym: string, currentPrice: number | null): string => {
+    if (currentPrice == null) return "";
+    const prev = prevPricesRef.current[sym];
+    prevPricesRef.current[sym] = currentPrice;
+    if (prev == null || prev === currentPrice) return "";
+    return currentPrice > prev ? "animate-tick-flash-up" : "animate-tick-flash-down";
+  };
 
   const toggleWatch = async (s: SymbolDef, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -76,11 +100,16 @@ export default function SymbolList({ active, onSelect }: Props) {
           const open = isMarketOpen(s);
           const isActive = active.symbol === s.symbol;
           const watched = watch.has(s.symbol);
+          const history = priceHistoryRef.current[s.symbol] ?? [];
+          const flashClass = getFlashClass(s.symbol, price);
           return (
             <button key={s.symbol} onClick={() => onSelect(s)}
               className={cn(
-                "w-full px-3 py-3 flex items-center gap-3 border-b border-border/30 text-left transition-colors hover:bg-accent/40",
-                isActive && "bg-primary/10 hover:bg-primary/15 border-l-2 border-l-primary"
+                "w-full h-[52px] px-3 flex items-center gap-3 border-b border-border/30 text-left transition-colors duration-panel",
+                "hover:bg-surface-1",
+                isActive && (change !== null && change >= 0
+                  ? "bg-up/5 hover:bg-up/10 border-l-2 border-l-up"
+                  : "bg-down/5 hover:bg-down/10 border-l-2 border-l-down")
               )}>
               <div className="size-9 rounded-lg gradient-primary shadow-glow shrink-0 flex items-center justify-center text-xs font-bold text-primary-foreground">
                 {s.symbol.slice(0, 2)}
@@ -88,18 +117,36 @@ export default function SymbolList({ active, onSelect }: Props) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-sm truncate">{s.symbol}</span>
-                  <span className={cn("size-1.5 rounded-full", open ? "bg-bull animate-pulse" : "bg-muted-foreground/40")} />
+                  <Badge variant="outline" className="text-[10px] h-4 px-1 py-0">
+                    {ASSET_LABELS[s.asset_class]?.[lang] ?? s.asset_class}
+                  </Badge>
                 </div>
                 <div className="text-xs text-muted-foreground truncate">{s.name}</div>
               </div>
+              <div className="w-12 h-6 shrink-0">
+                {history.length >= 3 && (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={history.map(p => ({ price: p }))}>
+                      <Line
+                        type="monotone"
+                        dataKey="price"
+                        stroke={change !== null && change >= 0 ? "hsl(var(--color-up))" : "hsl(var(--color-down))"}
+                        strokeWidth={1}
+                        dot={false}
+                        isAnimationActive={false}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
               <div className="text-right shrink-0">
-                <div className="font-mono text-sm font-semibold">{formatPrice(price)}</div>
+                <div className={cn("font-price text-sm font-semibold", flashClass)}>{formatPrice(price)}</div>
                 {change !== null ? (
-                  <div className={cn("text-xs font-mono", change >= 0 ? "text-bull" : "text-bear")}>
+                  <div className={cn("text-xs font-price", change >= 0 ? "text-up" : "text-down")}>
                     {change >= 0 ? "+" : ""}{change.toFixed(2)}%
                   </div>
                 ) : (
-                  <div className="text-xs font-mono text-muted-foreground">—</div>
+                  <div className="text-xs font-price text-muted-foreground">—</div>
                 )}
               </div>
               <button onClick={(e) => toggleWatch(s, e)} className="ml-1 text-muted-foreground hover:text-primary transition-colors p-1">
