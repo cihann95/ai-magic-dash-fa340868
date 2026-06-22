@@ -9,6 +9,9 @@ import { t } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Badge } from "@/components/ui/badge";
+import { motion } from "framer-motion";
 import { toast } from "@/hooks/use-toast";
 import { Clock, Loader2, RefreshCw, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -16,13 +19,15 @@ import { cn } from "@/lib/utils";
 type OrderType = "limit" | "stop" | "take_profit" | "stop_loss";
 
 export default function OrderTicket({ symbol }: { symbol: SymbolDef }) {
-  const { user, lang } = useApp();
+  const { user, lang, realBalance } = useApp();
   const tr = t(lang);
   const lp = useLivePrice(symbol.symbol);
   const [orderType, setOrderType] = useState<OrderType>("limit");
   const [side, setSide] = useState<"buy" | "sell">("buy");
   const [qty, setQty] = useState("1");
   const [trigger, setTrigger] = useState("");
+  const [tp, setTp] = useState("");
+  const [sl, setSl] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [retryContext, setRetryContext] = useState<{ action: 'place' | 'cancel'; id?: string } | null>(null);
   const [orders, setOrders] = useState<any[]>([]);
@@ -55,8 +60,8 @@ export default function OrderTicket({ symbol }: { symbol: SymbolDef }) {
   const place = async () => {
     if (!user) return toast({ title: tr.error, description: tr.signin });
     if (noPrice || stale) return toast({ title: tr.error, description: stale ? tr.stale_data : tr.price_unavailable, variant: "destructive" });
-    const q = parseFloat(qty); const tp = parseFloat(trigger);
-    if (!q || q <= 0 || !tp || tp <= 0) return toast({ title: tr.error, variant: "destructive" });
+    const q = parseFloat(qty); const tPrice = parseFloat(trigger);
+    if (!q || q <= 0 || !tPrice || tPrice <= 0) return toast({ title: tr.error, variant: "destructive" });
     setSubmitting(true);
     try {
       await callEdgeFunction("manage-order", {
@@ -66,10 +71,10 @@ export default function OrderTicket({ symbol }: { symbol: SymbolDef }) {
         order_type: orderType,
         side,
         quantity: q,
-        trigger_price: tp,
+        trigger_price: tPrice,
       });
       setRetryContext(null);
-      toast({ title: tr.success, description: `${orderType.toUpperCase()} ${side.toUpperCase()} ${q} ${symbol.symbol} @ ${tp}` });
+      toast({ title: tr.success, description: `${orderType.toUpperCase()} ${side.toUpperCase()} ${q} ${symbol.symbol} @ ${tPrice}` });
       loadOrders();
     } catch (e) {
       const edgeErr = e as { retryable?: boolean };
@@ -91,13 +96,16 @@ export default function OrderTicket({ symbol }: { symbol: SymbolDef }) {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between rounded-lg bg-accent/30 border border-border/30 px-3 py-2 text-xs">
-        <span className="text-muted-foreground">{symbol.symbol}</span>
-        <span className="font-mono font-semibold">
-          {noPrice ? <span className="inline-flex items-center gap-1 text-muted-foreground"><Loader2 className="size-3 animate-spin" />—</span> : formatPrice(lp.price)}
-        </span>
-        {stale && !noPrice && <span className="inline-flex items-center gap-1 text-[10px] text-yellow-600 dark:text-yellow-400"><Clock className="size-3" />{tr.stale_data}</span>}
+      <div className="rounded-lg border border-border/40 p-3 bg-surface-1/30">
+        <div className="flex items-center justify-between">
+          <span className="font-semibold text-sm">{symbol.symbol}</span>
+          <span className="font-price text-sm">
+            {noPrice ? <span className="inline-flex items-center gap-1 text-muted-foreground"><Loader2 className="size-3 animate-spin" />—</span> : formatPrice(lp?.price ?? null)}
+          </span>
+        </div>
+        {stale && <div className="text-[10px] text-yellow-600 dark:text-yellow-400 inline-flex items-center gap-1 mt-1"><Clock className="size-2.5" />{tr.stale_data}</div>}
       </div>
+
       <div className="grid grid-cols-2 gap-2">
         <Select value={orderType} onValueChange={(v) => setOrderType(v as OrderType)}>
           <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
@@ -108,41 +116,91 @@ export default function OrderTicket({ symbol }: { symbol: SymbolDef }) {
             <SelectItem value="stop_loss">{tr.stop_loss}</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={side} onValueChange={(v) => setSide(v as "buy" | "sell")}>
-          <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="buy">{tr.buy}</SelectItem>
-            <SelectItem value="sell">{tr.sell}</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label className="text-[10px] text-muted-foreground uppercase">{tr.quantity}</label>
-          <Input type="number" value={qty} onChange={(e) => setQty(e.target.value)} className="h-9 font-mono" />
+        <div className="grid grid-cols-2 gap-1">
+          <motion.button
+            onClick={() => setSide("buy")}
+            whileTap={{ scale: 0.97 }}
+            className={cn("h-9 rounded-md font-semibold text-sm transition-colors",
+              side === "buy" ? "bg-up text-white" : "bg-surface-1 text-muted-foreground hover:text-foreground")}
+          >
+            LONG
+          </motion.button>
+          <motion.button
+            onClick={() => setSide("sell")}
+            whileTap={{ scale: 0.97 }}
+            className={cn("h-9 rounded-md font-semibold text-sm transition-colors",
+              side === "sell" ? "bg-down text-white" : "bg-surface-1 text-muted-foreground hover:text-foreground")}
+          >
+            SHORT
+          </motion.button>
         </div>
-        <div>
-          <label className="text-[10px] text-muted-foreground uppercase">{tr.trigger_price}</label>
-          <Input type="number" value={trigger} onChange={(e) => setTrigger(e.target.value)} className="h-9 font-mono" />
-        </div>
       </div>
-      <Button onClick={place} disabled={submitting || noPrice || stale} title={noPrice ? tr.price_unavailable : stale ? tr.stale_data : undefined} className="w-full h-9 gradient-primary text-primary-foreground">
-        {submitting ? <Loader2 className="size-4 animate-spin" /> : tr.place_order}
+
+      <div className="space-y-2">
+        <div className="flex gap-1">
+          {[10, 25, 50, 100].map(pct => (
+            <Button key={pct} variant="outline" size="sm" className="flex-1 h-7 text-xs"
+              onClick={() => {
+                if (!realBalance || !lp?.price) return;
+                setQty(((realBalance * pct / 100) / lp.price).toFixed(4));
+              }}>
+              {pct}%
+            </Button>
+          ))}
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="text-[10px] text-muted-foreground uppercase">{tr.quantity}</label>
+            <Input type="number" value={qty} onChange={(e) => setQty(e.target.value)} className="h-9 font-price" />
+          </div>
+          <div>
+            <label className="text-[10px] text-muted-foreground uppercase">{tr.trigger_price}</label>
+            <Input type="number" value={trigger} onChange={(e) => setTrigger(e.target.value)} className="h-9 font-price" />
+          </div>
+        </div>
+        {lp?.price && qty && parseFloat(qty) > 0 && (
+          <div className="text-xs text-muted-foreground flex items-center justify-between px-1">
+            <span>Toplam: <span className="font-price text-foreground">${(parseFloat(qty) * lp.price).toFixed(2)}</span></span>
+            <Badge variant="outline" className="text-[10px]">
+              {realBalance ? ((parseFloat(qty) * lp.price / realBalance) * 100).toFixed(1) : "0.0"}% bakiye
+            </Badge>
+          </div>
+        )}
+      </div>
+
+      <Button onClick={place} disabled={submitting || noPrice || stale}
+        className={cn("w-full h-10", submitting ? "animate-pulse" : "", "gradient-primary text-primary-foreground")}>
+        {submitting ? <><Loader2 className="size-4 animate-spin mr-1" />{lang === "tr" ? "İşleniyor..." : "Processing..."}</> : tr.place_order}
       </Button>
+
       {retryContext && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            if (retryContext.action === 'place') place();
-            setRetryContext(null);
-          }}
-          className="w-full h-8 text-xs"
-        >
-          <RefreshCw className="size-3 mr-1" /> {lang === "tr" ? "Tekrar Dene" : "Retry"}
+        <Button onClick={() => { if (retryContext.action === 'place') place(); setRetryContext(null); }}
+          variant="outline" className="w-full h-8 text-xs">
+          <RefreshCw className="size-3 mr-1" />{lang === "tr" ? "Tekrar Dene" : "Retry"}
         </Button>
       )}
-      {(noPrice || stale) && <div className="text-[11px] text-muted-foreground text-center">{noPrice ? tr.price_loading : tr.stale_data}</div>}
+
+      <Collapsible>
+        <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground w-full hover:text-foreground transition-colors py-1">
+          {lang === "tr" ? "Gelişmiş (TP/SL)" : "Advanced (TP/SL)"}
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-2 mt-2">
+          <div>
+            <label className="text-[10px] text-muted-foreground uppercase">Take Profit</label>
+            <Input type="number" min="0" step="any" value={tp} onChange={(e) => setTp(e.target.value)} placeholder="TP fiyatı" className="h-9 font-price" />
+          </div>
+          <div>
+            <label className="text-[10px] text-muted-foreground uppercase">Stop Loss</label>
+            <Input type="number" min="0" step="any" value={sl} onChange={(e) => setSl(e.target.value)} placeholder="SL fiyatı" className="h-9 font-price" />
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+
+      {(noPrice || stale) && (
+        <div className="text-[11px] text-muted-foreground text-center flex items-center justify-center gap-1.5">
+          <Clock className="size-3" />{stale ? tr.stale_data : tr.price_loading}
+        </div>
+      )}
 
       <div className="border-t border-border/40 pt-3">
         <div className="text-[10px] uppercase text-muted-foreground font-semibold mb-2">{tr.open_orders} ({orders.length})</div>
@@ -153,10 +211,10 @@ export default function OrderTicket({ symbol }: { symbol: SymbolDef }) {
             {orders.map((o) => (
               <div key={o.id} className="flex items-center gap-2 text-xs p-2 rounded-lg bg-accent/30 border border-border/30">
                 <span className={cn("text-[9px] uppercase font-bold px-1.5 py-0.5 rounded",
-                  o.side === "buy" ? "bg-bull/15 text-bull" : "bg-bear/15 text-bear")}>{o.side}</span>
+                  o.side === "buy" ? "bg-up/15 text-up" : "bg-down/15 text-down")}>{o.side}</span>
                 <span className="font-semibold">{o.symbol}</span>
                 <span className="text-muted-foreground capitalize">{o.order_type.replace("_", " ")}</span>
-                <span className="font-mono ml-auto">{Number(o.quantity)} @ {formatPrice(Number(o.trigger_price))}</span>
+                <span className="font-price ml-auto">{Number(o.quantity)} @ {formatPrice(Number(o.trigger_price))}</span>
                 <Button size="icon" variant="ghost" className="size-6" onClick={() => cancel(o.id)}>
                   <X className="size-3" />
                 </Button>

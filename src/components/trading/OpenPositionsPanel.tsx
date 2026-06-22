@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { callEdgeFunction } from "@/lib/edge-error";
 import { useApp } from "@/contexts/AppContext";
@@ -12,6 +12,8 @@ import {
   ArrowUpDown, ChevronDown, ChevronUp, Loader2, Sparkles, Target,
   TrendingDown, TrendingUp, X, Crosshair, Clock, Layers, Inbox,
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { findSymbol, formatPrice, SymbolDef } from "@/lib/symbols";
 import { useLivePrices } from "@/hooks/useLivePrices";
@@ -64,7 +66,7 @@ const ASSET_LABEL: Record<string, string> = {
 };
 
 export default function OpenPositionsPanel({ refreshKey, onTradeDone, onSelectSymbol, activeSymbol }: Props) {
-  const { user, lang } = useApp();
+  const { user, lang, realBalance, realBalanceLocked } = useApp();
   const tr = t(lang);
   const [positions, setPositions] = useState<DbPosition[]>([]);
   const [tradeMeta, setTradeMeta] = useState<Record<string, { tp?: number | null; sl?: number | null; intent?: string | null; note?: string | null }>>({});
@@ -72,6 +74,8 @@ export default function OpenPositionsPanel({ refreshKey, onTradeDone, onSelectSy
   const [expanded, setExpanded] = useState<string | null>(null);
   const [sort, setSort] = useState<SortKey>("pnl");
   const [loading, setLoading] = useState(true);
+
+  const prevPnlRef = useRef<Record<string, number>>({});
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -164,6 +168,12 @@ export default function OpenPositionsPanel({ refreshKey, onTradeDone, onSelectSy
     return { totalPnl, totalNotional, winners, losers: enriched.length - winners };
   }, [enriched]);
 
+  useEffect(() => {
+    sorted.forEach(p => {
+      prevPnlRef.current[p.id] = enriched.find(e => e.id === p.id)?.pnl ?? 0;
+    });
+  }, [enriched, sorted]);
+
   const closePos = async (p: typeof enriched[number], fraction = 1) => {
     setClosing((c) => ({ ...c, [p.id]: true }));
     try {
@@ -232,17 +242,17 @@ export default function OpenPositionsPanel({ refreshKey, onTradeDone, onSelectSy
           <div className="grid grid-cols-3 gap-2 pt-1">
             <div className="rounded-lg bg-accent/30 px-2 py-1.5">
               <div className="text-[9px] uppercase text-muted-foreground tracking-wide">{lang === "tr" ? "Toplam K/Z" : "Total P&L"}</div>
-              <div className={cn("font-mono font-bold text-sm tabular-nums", totals.totalPnl >= 0 ? "text-bull" : "text-bear")}>
+              <div className={cn("font-price font-bold text-sm tabular-nums", totals.totalPnl >= 0 ? "text-bull" : "text-bear")}>
                 {totals.totalPnl >= 0 ? "+" : ""}${totals.totalPnl.toFixed(2)}
               </div>
             </div>
             <div className="rounded-lg bg-accent/30 px-2 py-1.5">
               <div className="text-[9px] uppercase text-muted-foreground tracking-wide">{lang === "tr" ? "Maruziyet" : "Exposure"}</div>
-              <div className="font-mono font-bold text-sm tabular-nums">${totals.totalNotional.toFixed(0)}</div>
+              <div className="font-price font-bold text-sm tabular-nums">${totals.totalNotional.toFixed(0)}</div>
             </div>
             <div className="rounded-lg bg-accent/30 px-2 py-1.5">
               <div className="text-[9px] uppercase text-muted-foreground tracking-wide">{lang === "tr" ? "Kazan/Kayıp" : "Win/Loss"}</div>
-              <div className="font-mono font-bold text-sm tabular-nums">
+              <div className="font-price font-bold text-sm tabular-nums">
                 <span className="text-bull">{totals.winners}</span>
                 <span className="text-muted-foreground mx-0.5">/</span>
                 <span className="text-bear">{totals.losers}</span>
@@ -259,14 +269,13 @@ export default function OpenPositionsPanel({ refreshKey, onTradeDone, onSelectSy
             <Loader2 className="size-4 animate-spin mr-2" /> {tr.ai_loading}
           </div>
         ) : sorted.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-12 px-6 text-center gap-2">
-            <div className="size-12 rounded-full bg-muted/40 flex items-center justify-center">
-              <Inbox className="size-5 text-muted-foreground" />
-            </div>
-            <div className="text-sm font-medium">{tr.no_positions}</div>
-            <div className="text-[11px] text-muted-foreground max-w-[220px]">
-              {lang === "tr" ? "İlk pozisyonunu açtığında burada gerçek zamanlı izleyeceksin." : "When you open your first position, you'll track it here in real time."}
-            </div>
+          <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+            <svg className="size-12 mb-3 opacity-40" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <rect x="6" y="10" width="36" height="28" rx="3" />
+              <path d="M14 22h20M14 28h14" strokeLinecap="round" />
+              <circle cx="38" cy="28" r="1.5" fill="currentColor" />
+            </svg>
+            <p className="text-sm">{tr.no_positions ?? "Açık pozisyon yok"}</p>
           </div>
         ) : (
           <div className="divide-y divide-border/30">
@@ -276,7 +285,6 @@ export default function OpenPositionsPanel({ refreshKey, onTradeDone, onSelectSy
               const meta = tradeMeta[p.symbol] || {};
               const tp = meta.tp ? Number(meta.tp) : null;
               const sl = meta.sl ? Number(meta.sl) : null;
-              // progress bar between SL and TP based on current price
               let progressPct: number | null = null;
               if (tp && sl) {
                 const lo = Math.min(tp, sl), hi = Math.max(tp, sl);
@@ -297,7 +305,6 @@ export default function OpenPositionsPanel({ refreshKey, onTradeDone, onSelectSy
                     isActive && "bg-primary/5 border-l-2 border-l-primary",
                   )}
                 >
-                  {/* Row */}
                   <button
                     onClick={() => setExpanded(isExpanded ? null : p.id)}
                     className="w-full text-left flex items-center gap-2.5"
@@ -310,7 +317,11 @@ export default function OpenPositionsPanel({ refreshKey, onTradeDone, onSelectSy
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <span className="font-semibold text-sm truncate">{p.symbol}</span>
+                        <Badge variant="outline" className={cn("text-[10px] h-4 px-1 py-0",
+                          p.side === "long" ? "border-up text-up" : "border-down text-down")}>
+                          {p.side === "long" ? "LONG" : "SHORT"}
+                        </Badge>
+                        <span className="font-medium">{p.symbol}</span>
                         <span className="text-[9px] uppercase font-medium px-1 py-0.5 rounded bg-muted/60 text-muted-foreground shrink-0">
                           {ASSET_LABEL[p.asset_class] || p.asset_class}
                         </span>
@@ -325,9 +336,18 @@ export default function OpenPositionsPanel({ refreshKey, onTradeDone, onSelectSy
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <div className={cn("font-mono font-bold text-sm tabular-nums", p.pnl >= 0 ? "text-bull" : "text-bear")}>
-                        {p.pnl >= 0 ? "+" : ""}${p.pnl.toFixed(2)}
-                      </div>
+                      <AnimatePresence mode="popLayout" initial={false}>
+                        <motion.div
+                          key={(p.pnl ?? 0).toFixed(2)}
+                          initial={{ y: (prevPnlRef.current[p.id] ?? 0) < (p.pnl ?? 0) ? -8 : 8, opacity: 0 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          exit={{ y: (prevPnlRef.current[p.id] ?? 0) < (p.pnl ?? 0) ? 8 : -8, opacity: 0 }}
+                          transition={{ duration: 0.3, type: "spring", stiffness: 320, damping: 26 }}
+                          className={cn("font-price text-sm font-semibold", (p.pnl ?? 0) >= 0 ? "text-up" : "text-down")}
+                        >
+                          {(p.pnl ?? 0) >= 0 ? "+" : ""}{(p.pnl ?? 0).toFixed(2)}$
+                        </motion.div>
+                      </AnimatePresence>
                       <div className={cn("text-[10px] font-mono tabular-nums", p.pnl >= 0 ? "text-bull/80" : "text-bear/80")}>
                         {p.pnlPct >= 0 ? "+" : ""}{p.pnlPct.toFixed(2)}%
                       </div>
@@ -335,7 +355,12 @@ export default function OpenPositionsPanel({ refreshKey, onTradeDone, onSelectSy
                     {isExpanded ? <ChevronUp className="size-3.5 text-muted-foreground shrink-0" /> : <ChevronDown className="size-3.5 text-muted-foreground shrink-0" />}
                   </button>
 
-                  {/* TP/SL progress bar (compact, always-on if planned) */}
+                  <div className="h-1 bg-surface-2 rounded-full overflow-hidden mt-1.5">
+                    <div className={cn("h-full rounded-full transition-all duration-panel",
+                      (p.pnl ?? 0) >= 0 ? "bg-up" : "bg-down")}
+                      style={{ width: `${Math.min(100, ((p.quantity * (p.current_price ?? p.entry_price)) / (realBalance + realBalanceLocked + 1)) * 100)}%` }} />
+                  </div>
+
                   {progressPct !== null && (
                     <div className="mt-2 pl-10">
                       <div className="relative h-1 rounded-full bg-muted/40 overflow-hidden">
@@ -352,7 +377,6 @@ export default function OpenPositionsPanel({ refreshKey, onTradeDone, onSelectSy
                     </div>
                   )}
 
-                  {/* Expanded actions / details */}
                   {isExpanded && (
                     <div className="mt-3 pl-10 space-y-2 animate-fade-in">
                       <div className="grid grid-cols-2 gap-2 text-[10px]">
