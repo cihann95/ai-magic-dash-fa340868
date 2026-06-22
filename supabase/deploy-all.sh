@@ -47,6 +47,12 @@ AUTH_FUNCTIONS=(
   "manage-follow"
   "manage-copy-settings"
   "health"
+  "admin-list-users"
+  "admin-set-user-role"
+  "admin-ban-user"
+  "admin-cancel-room"
+  "admin-settle-room"
+  "admin-slippage-config"
 )
 
 DEPLOYED=0
