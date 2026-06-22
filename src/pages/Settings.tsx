@@ -11,20 +11,33 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
-import { Moon, Sun, RotateCcw, Bell, Download, Users } from "lucide-react";
+import { Moon, Sun, RotateCcw, Bell, Download, Users, Wallet, Info } from "lucide-react";
 import { enablePushNotifications, disablePushNotifications } from "@/lib/pushSubscribe";
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY ?? ""; // Server tarafından enjekte edilecek; boşsa push devre dışı
 
+interface LedgerEntry {
+  id: string;
+  amount: number;
+  reason: string | null;
+  created_at: string;
+  granted_by_name: string | null;
+}
+
 function SettingsInner() {
-  const { user, lang, setLang, theme, setTheme } = useApp();
+  const { user, lang, setLang, theme, setTheme, realBalance, realBalanceLocked } = useApp();
   const tr = t(lang);
   const [displayName, setDisplayName] = useState("");
   const [saving, setSaving] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [pushOn, setPushOn] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<{ prompt(): Promise<{ outcome: string }>; userChoice: Promise<{ outcome: string }> } | null>(null);
+
+  const [ledger, setLedger] = useState<LedgerEntry[]>([]);
+  const [ledgerLoading, setLedgerLoading] = useState(true);
 
   // Public profile state
   const [username, setUsername] = useState("");
@@ -60,6 +73,46 @@ function SettingsInner() {
     const handler = (e: Event) => { e.preventDefault(); setInstallPrompt(e as unknown as { prompt(): Promise<{ outcome: string }>; userChoice: Promise<{ outcome: string }> }); };
     window.addEventListener("beforeinstallprompt", handler);
     return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, [user]);
+
+  const fetchLedger = async () => {
+    if (!user) return;
+    setLedgerLoading(true);
+    const { data } = await supabase
+      .from("real_balance_ledger" as never)
+      .select("id, amount, reason, created_at, granted_by:profiles(display_name)")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (data) {
+      setLedger(
+        (data as unknown as { id: string; amount: number; reason: string | null; created_at: string; granted_by: { display_name: string } | null }[]).map((r) => ({
+          id: r.id,
+          amount: r.amount,
+          reason: r.reason,
+          created_at: r.created_at,
+          granted_by_name: r.granted_by?.display_name ?? null,
+        }))
+      );
+    }
+    setLedgerLoading(false);
+  };
+
+  useEffect(() => {
+    fetchLedger();
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase
+      .channel(`ledger_${user.id}`)
+      .on(
+        "postgres_changes" as never,
+        { event: "INSERT", schema: "public", table: "real_balance_ledger", filter: `user_id=eq.${user.id}` } as never,
+        () => { fetchLedger(); }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
   }, [user]);
 
   const saveProfile = async () => {
@@ -202,6 +255,64 @@ function SettingsInner() {
             <Button onClick={installApp} variant="outline" className="w-full">
               <Download className="size-4" /> {tr.install_app}
             </Button>
+          )}
+        </Card>
+
+        <Card className="p-6 glass border-border/40 space-y-4">
+          <h2 className="font-semibold flex items-center gap-2"><Wallet className="size-4" /> {lang === "tr" ? "Gerçek Bakiye" : "Real Balance"}</h2>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="rounded-lg bg-muted/50 p-3 text-center">
+              <p className="text-[11px] text-muted-foreground">{lang === "tr" ? "Mevcut Bakiye" : "Available"}</p>
+              <p className="text-lg font-bold">${(realBalance - realBalanceLocked).toFixed(2)}</p>
+            </div>
+            <div className="rounded-lg bg-muted/50 p-3 text-center">
+              <p className="text-[11px] text-muted-foreground">{lang === "tr" ? "Toplam Bakiye" : "Total Balance"}</p>
+              <p className="text-lg font-bold">${realBalance.toFixed(2)}</p>
+            </div>
+            <div className="rounded-lg bg-muted/50 p-3 text-center">
+              <p className="text-[11px] text-muted-foreground">{lang === "tr" ? "Kilitli" : "Locked"}</p>
+              <p className="text-lg font-bold">${realBalanceLocked.toFixed(2)}</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-2 rounded-lg border border-border/40 bg-muted/30 p-3 text-sm text-muted-foreground">
+            <Info className="size-4 mt-0.5 shrink-0" />
+            <span>{lang === "tr" ? "Bakiyeniz yönetici tarafından yüklenir. Detaylı bilgi için destek ile iletişime geçin." : "Balance is loaded by admin. Contact support for details."}</span>
+          </div>
+        </Card>
+
+        <Card className="p-6 glass border-border/40 space-y-4">
+          <h2 className="font-semibold">{lang === "tr" ? "Bakiye Geçmişi" : "Balance History"}</h2>
+          {ledgerLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          ) : ledger.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">{lang === "tr" ? "Henüz işlem yok" : "No transactions yet"}</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{lang === "tr" ? "Tarih" : "Date"}</TableHead>
+                  <TableHead>{lang === "tr" ? "Miktar" : "Amount"}</TableHead>
+                  <TableHead>{lang === "tr" ? "Açıklama" : "Reason"}</TableHead>
+                  <TableHead>{lang === "tr" ? "Yükleyen" : "Granted by"}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {ledger.map((entry) => (
+                  <TableRow key={entry.id}>
+                    <TableCell className="text-xs">{new Date(entry.created_at).toLocaleDateString(lang === "tr" ? "tr-TR" : "en-US", { day: "2-digit", month: "2-digit", year: "2-digit" })}</TableCell>
+                    <TableCell className={entry.amount >= 0 ? "text-green-500 font-medium" : "text-red-500 font-medium"}>
+                      {entry.amount >= 0 ? "+" : ""}${entry.amount.toFixed(2)}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground max-w-[160px] truncate">{entry.reason || "—"}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{entry.granted_by_name || "—"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </Card>
 
