@@ -5,11 +5,22 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import type { Admin } from "../_shared/blitz-types.ts";
 import { rateLimit } from "../_shared/rate-limit.ts";
 import { checkBodySize } from "../_shared/body-size-limit.ts";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import { corsHeaders, handleCors } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+const VALID_SYMBOLS = ["BTCUSD", "ETHUSD", "SOLUSD", "BNBUSD", "XRPUSD", "DOGEUSD", "ADAUSD", "AVAXUSD"] as const;
+
+const TradeRequestSchema = z.object({
+  symbol: z.enum(VALID_SYMBOLS),
+  asset_class: z.string().min(1).max(24),
+  side: z.enum(["buy", "sell"]),
+  quantity: z.number().positive().max(1_000_000),
+  position_id: z.string().uuid().optional(),
+  intent_tag: z.string().max(50).nullable().optional(),
+  intent_note: z.string().max(500).nullable().optional(),
+  planned_tp: z.number().nullable().optional(),
+  planned_sl: z.number().nullable().optional(),
+});
 
 interface TradeRequest {
   symbol: string;
@@ -415,7 +426,8 @@ async function executeOne(admin: Admin, userId: string, body: TradeRequest, opts
 
 Deno.serve(async (req) => {
   const start = Date.now();
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const cors = handleCors(req);
+  if (cors) return cors;
 
   try {
     const authHeader = req.headers.get("Authorization");
@@ -444,14 +456,13 @@ Deno.serve(async (req) => {
     if (bodySizeError) return bodySizeError;
 
     const rawBody = await req.json().catch(() => null);
-    const parsedBody = parsePublicTradeRequest(rawBody);
-    if (!parsedBody.ok) {
-      console.error(JSON.stringify({ event: "validation_failed", error: parsedBody.error, body: rawBody }));
-      return new Response(JSON.stringify({ error: parsedBody.error, code: "INVALID_REQUEST" }), {
+    const parsed = TradeRequestSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      return new Response(JSON.stringify({ error: "VALIDATION_ERROR", code: "VALIDATION_ERROR", details: parsed.error.flatten() }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const body: TradeRequest = parsedBody.data;
+    const body: TradeRequest = parsed.data as TradeRequest;
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!

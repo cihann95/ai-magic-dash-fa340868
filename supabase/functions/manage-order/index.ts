@@ -4,15 +4,29 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { rateLimit } from "../_shared/rate-limit.ts";
 import { checkBodySize } from "../_shared/body-size-limit.ts";
 import { logObservability, logger } from "../_shared/logger.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import { corsHeaders, handleCors } from "../_shared/cors.ts";
 
 const ALLOWED_ASSET_CLASSES = new Set(["crypto", "stocks", "forex", "commodities", "indices", "etf"]);
 const ORDER_TYPES = new Set(["limit", "stop", "take_profit", "stop_loss"]);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const PlaceOrderSchema = z.object({
+  action: z.literal("place"),
+  symbol: z.string().min(1).max(24),
+  asset_class: z.string().min(1).max(24),
+  order_type: z.enum(["limit", "stop", "take_profit", "stop_loss"]),
+  side: z.enum(["buy", "sell"]),
+  quantity: z.number().positive().max(100_000_000),
+  trigger_price: z.number().positive(),
+});
+
+const CancelOrderSchema = z.object({
+  action: z.literal("cancel"),
+  order_id: z.string().uuid(),
+});
+
+const ManageOrderSchema = z.discriminatedUnion("action", [PlaceOrderSchema, CancelOrderSchema]);
 
 interface PlaceOrderRequest {
   action: "place";
@@ -135,7 +149,8 @@ async function cancelOrder(admin: ReturnType<typeof createClient>, userId: strin
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const cors = handleCors(req);
+  if (cors) return cors;
 
   const start = Date.now();
   try {
@@ -166,9 +181,9 @@ Deno.serve(async (req) => {
     if (bodySizeError) return bodySizeError;
 
     const rawBody = await req.json().catch(() => null);
-    const parsed = parseRequest(rawBody);
-    if (!parsed.ok) {
-      return new Response(JSON.stringify({ error: parsed.error, code: "INVALID_REQUEST" }), {
+    const parsed = ManageOrderSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      return new Response(JSON.stringify({ error: "VALIDATION_ERROR", code: "VALIDATION_ERROR", details: parsed.error.flatten() }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
