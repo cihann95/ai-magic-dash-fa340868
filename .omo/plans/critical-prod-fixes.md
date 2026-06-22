@@ -202,7 +202,7 @@ Max Concurrent: 8 (Wave 1)
 
 ## TODOs
 
-- [ ] 1. RLS Migration: Admin SELECT Policy'leri + blitz_payout_trigger DROP + analytics_events Fix + reset-demo-account Fix
+- [x] 1. RLS Migration: Admin SELECT Policy'leri + blitz_payout_trigger DROP + analytics_events Fix + reset-demo-account Fix
 
   **What to do**:
   - Yeni migration dosyası oluştur: `supabase/migrations/{timestamp}_critical_prod_fixes_rls.sql`
@@ -418,7 +418,7 @@ Max Concurrent: 8 (Wave 1)
   - Message: `feat(app): AppContext real_balance + Realtime + useIsAdmin + ProtectedRoute + TopBar`
   - Files: `src/contexts/AppContext.tsx`, `src/hooks/useIsAdmin.ts`, `src/components/ProtectedRoute.tsx`, `src/components/TopBar.tsx`
 
-- [ ] 3. Blitz.tsx UX Fixes: Catch Toast + Davet Kodu Kalıcı UI + Ön Kontrol + Etiket
+- [x] 3. Blitz.tsx UX Fixes: Catch Toast + Davet Kodu Kalıcı UI + Ön Kontrol + Etiket
 
   **What to do**:
   - **Catch bloklarına toast error ekle** (`src/pages/Blitz.tsx:69-71, 96-98, 111-113`): Her catch'ta `toast.error(err.message || "İşlem başarısız")` ekle (callEdgeFunction zaten toast gösterir ama duplicate önlemek için err.message kontrol et, eğer boşsa generic mesaj). Ayrıca state'i sıfırla (queueing, creating, joining).
@@ -515,7 +515,7 @@ Max Concurrent: 8 (Wave 1)
   - Message: `fix(blitz): catch toast + davet kodu kalıcı UI + ön kontrol + etiket`
   - Files: `src/pages/Blitz.tsx`
 
-- [ ] 4. blitz-matchmake Cancel Bakiye Leak Fix + Redis Check + 503 Uyarı
+- [x] 4. blitz-matchmake Cancel Bakiye Leak Fix + Redis Check + 503 Uyarı
 
   **What to do**:
   - **Cancel handler bakiye leak fix** (`supabase/functions/blitz-matchmake/index.ts:137-169`): `mode: "cancel"` handler'ına `real_balance_locked -= entry_fee` EKLE. Conditional UPDATE (TOCTOU koruması): `UPDATE profiles SET real_balance_locked = real_balance_locked - entry_fee WHERE id = user.id AND real_balance_locked >= entry_fee`. Eğer kullanıcı kuyrukta değilse (Redis lrem 0 döner) veya waiting room'da değilse, balance unlock yine yapılsın (idempotent) — kilitli bakiye varsa aç. Stale queue cleanup (`releaseStaleBalances:29-82`) sadece waiting room'ları temizliyordu — buna `queue_joined` durumu için TTL check ekle (kuyrukta > 5 dakika olanları unlock).
@@ -693,7 +693,7 @@ Max Concurrent: 8 (Wave 1)
   - Message: `fix(ai): trade-mirror prompt fiyat verisi + sert kurallar + JSON schema`
   - Files: `supabase/functions/trade-mirror/index.ts`
 
-- [ ] 6. execute-trade Notification Title: Dolar + Yüzde
+- [x] 6. execute-trade Notification Title: Dolar + Yüzde
 
   **What to do**:
   - **Notification title'a yüzde ekle** (`supabase/functions/execute-trade/index.ts:294-296`): Mevcut title `✖ ${symbol} kapatıldı (+$${pnl.toFixed(2)})` → `✖ ${symbol} kapatıldı (+$${pnl.toFixed(2)} (+${pnlPct.toFixed(1)}%))`. pnlPct kod'da hesapla: `const pnlPct = entry > 0 ? (pnl / (entry * qty)) * 100 : 0;` (entry = pos.entry_price, qty = pos.quantity). Negatif kâr için: `(${pnl >= 0 ? "+" : ""}$${pnl.toFixed(2)} (${pnlPct >= 0 ? "+" : ""}${pnlPct.toFixed(1)}%))`.
@@ -757,7 +757,7 @@ Max Concurrent: 8 (Wave 1)
   - Message: `fix(ai): execute-trade notification dolar + yüzde`
   - Files: `supabase/functions/execute-trade/index.ts`
 
-- [ ] 7. Admin Edge Functions Batch A: admin-list-users + admin-set-user-role + admin-ban-user
+- [x] 7. Admin Edge Functions Batch A: admin-list-users + admin-set-user-role + admin-ban-user
 
   **What to do**:
   - **Yeni edge function: `supabase/functions/admin-list-users/index.ts`**:
@@ -982,7 +982,7 @@ Max Concurrent: 8 (Wave 1)
   - Message: `feat(admin): admin-cancel-room + admin-settle-room + admin-slippage-config edge functions`
   - Files: `supabase/functions/admin-cancel-room/index.ts`, `supabase/functions/admin-settle-room/index.ts`, `supabase/functions/admin-slippage-config/index.ts`, `src/lib/edge-function-types.ts`
 
-- [ ] 9. Settings.tsx Bakiye Bölümü: Gösterim + Ledger Geçmişi
+- [x] 9. Settings.tsx Bakiye Bölümü: Gösterim + Ledger Geçmişi
 
   **What to do**:
   - **Settings.tsx'e yeni "Bakiye" sekmesi/kartı ekle**: Mevcut sekmeler (profil, public profil, tema, push, demo reset) korunacak. Yeni "Gerçek Bakiye" kartı:
@@ -1063,7 +1063,7 @@ Max Concurrent: 8 (Wave 1)
   - Message: `feat(settings): gerçek bakiye kartı + ledger geçmişi + realtime`
   - Files: `src/pages/Settings.tsx`
 
-- [ ] 10. AdminBlitz Top-up UI İyileştirme: Kullanıcı Arama + Onay Dialog + Geçmiş
+- [x] 10. AdminBlitz Top-up UI İyileştirme: Kullanıcı Arama + Onay Dialog + Geçmiş
 
   **What to do**:
   - **Kullanıcı arama autocomplete** (`src/pages/AdminBlitz.tsx:158`): Mevcut manuel UUID input'u değiştir. Yeni autocomplete: input'a yazı yazınca `admin-list-users?search=...` çağır (Task 7), dropdown'da sonuçlar (display_name + username + email + id). Seçince `selectedUser` state'e kaydet, UUID alanı hidden. Min 3 karakter sonra arama, debounce 300ms.
@@ -1155,7 +1155,7 @@ Max Concurrent: 8 (Wave 1)
   - Message: `feat(admin): top-up UI kullanıcı arama + onay dialog + reason kategori + geçmiş`
   - Files: `src/pages/AdminBlitz.tsx`
 
-- [ ] 11. /admin/users Sayfası: Liste + Arama + Rol Değiştir + Ban
+- [x] 11. /admin/users Sayfası: Liste + Arama + Rol Değiştir + Ban
 
   **What to do**:
   - **Yeni sayfa: `src/pages/AdminUsers.tsx`**:
@@ -1274,7 +1274,7 @@ Max Concurrent: 8 (Wave 1)
   - Message: `feat(admin): /admin/users sayfası + arama + rol değiştir + ban`
   - Files: `src/pages/AdminUsers.tsx`
 
-- [ ] 12. /admin/rooms Sayfası: Blitz Oda Yönetimi
+- [x] 12. /admin/rooms Sayfası: Blitz Oda Yönetimi
 
   **What to do**:
   - **Yeni sayfa: `src/pages/AdminRooms.tsx`**:
@@ -1380,7 +1380,7 @@ Max Concurrent: 8 (Wave 1)
   - Message: `feat(admin): /admin/rooms sayfası + oda yönetimi (iptal/settle/detay)`
   - Files: `src/pages/AdminRooms.tsx`
 
-- [ ] 13. /admin/settings Sayfası: Sistem Ayarları (slippage_config)
+- [x] 13. /admin/settings Sayfası: Sistem Ayarları (slippage_config)
 
   **What to do**:
   - **Yeni sayfa: `src/pages/AdminSettings.tsx`**:
@@ -1469,7 +1469,7 @@ Max Concurrent: 8 (Wave 1)
   - Message: `feat(admin): /admin/settings sayfası + slippage config yönetimi`
   - Files: `src/pages/AdminSettings.tsx`
 
-- [ ] 14. AdminBlitz Revenue Dashboard Zenginleştir: Grafik + Tarih Aralığı + Breakdown
+- [x] 14. AdminBlitz Revenue Dashboard Zenginleştir: Grafik + Tarih Aralığı + Breakdown
 
   **What to do**:
   - **Mevcut AdminBlitz.tsx revenue bölümünü zenginleştir**: Şu an sadece son 50 kayıt + günlük özet. Ekle:
@@ -1562,7 +1562,7 @@ Max Concurrent: 8 (Wave 1)
   - Message: `feat(admin): revenue dashboard zenginleştir (grafik + tarih aralığı + breakdown)`
   - Files: `src/pages/AdminBlitz.tsx`
 
-- [ ] 15. App.tsx Admin Routing Integration
+- [x] 15. App.tsx Admin Routing Integration
 
   **What to do**:
   - **App.tsx'e yeni route'lar ekle**:
@@ -1651,7 +1651,7 @@ Max Concurrent: 8 (Wave 1)
   - Message: `feat(app): admin route'lar (users/rooms/settings) + lazy load + ProtectedRoute guard`
   - Files: `src/App.tsx`
 
-- [ ] 16. blitz_payout_trigger DROP Verification + Settlement Tek Yol Test
+- [x] 16. blitz_payout_trigger DROP Verification + Settlement Tek Yol Test
 
   **What to do**:
   - **Migration doğrula** (Task 1 sonrası): `SELECT tgname FROM pg_trigger WHERE tgname = 'blitz_payout_trigger'` → 0 satır. `SELECT proname FROM pg_proc WHERE proname = 'blitz_payout_trigger'` → 0 satır (function da drop edilmeli).

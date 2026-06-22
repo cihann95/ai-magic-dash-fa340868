@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppProvider } from "@/contexts/AppContext";
 import { ErrorFallback } from "@/components/ErrorFallback";
+import ProtectedRoute from "./components/ProtectedRoute";
 import Index from "./pages/Index.tsx";
 import Auth from "./pages/Auth.tsx";
 
@@ -26,6 +27,9 @@ const Insights = lazy(() => import("./pages/Insights.tsx"));
 const Blitz = lazy(() => import("./pages/Blitz.tsx"));
 const BlitzRoom = lazy(() => import("./pages/BlitzRoom.tsx"));
 const AdminBlitz = lazy(() => import("./pages/AdminBlitz.tsx"));
+const AdminRooms = lazy(() => import("./pages/AdminRooms.tsx"));
+const AdminSettings = lazy(() => import("./pages/AdminSettings.tsx"));
+const AdminUsers = lazy(() => import("./pages/AdminUsers.tsx"));
 
 const queryClient = new QueryClient();
 
@@ -61,7 +65,10 @@ const App = () => (
                 <Route path="/insights" element={<Insights />} />
                 <Route path="/blitz" element={<Blitz />} />
                 <Route path="/blitz/:roomId" element={<BlitzRoom />} />
-                <Route path="/admin/blitz" element={<AdminBlitz />} />
+                <Route path="/admin/blitz" element={<ProtectedRoute requiredRole="admin"><AdminBlitz /></ProtectedRoute>} />
+                <Route path="/admin/rooms" element={<ProtectedRoute requiredRole="admin"><AdminRooms /></ProtectedRoute>} />
+                <Route path="/admin/settings" element={<ProtectedRoute requiredRole="admin"><AdminSettings /></ProtectedRoute>} />
+                <Route path="/admin/users" element={<ProtectedRoute requiredRole="admin"><AdminUsers /></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>

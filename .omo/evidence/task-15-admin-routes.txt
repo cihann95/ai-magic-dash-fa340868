@@ -1,0 +1,11 @@
+Task 15: Admin Routes Verification
+====================================
+Date: 2026-06-22
+
+src/App.tsx admin routes (lines 68-71):
+  /admin/blitz    -> AdminBlitz (lazy)
+  /admin/rooms    -> AdminRooms (lazy)
+  /admin/settings -> AdminSettings (lazy)
+  /admin/users    -> AdminUsers (lazy)
+
+All 4 admin routes present and wrapped with ProtectedRoute.

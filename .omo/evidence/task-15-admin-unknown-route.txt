@@ -1,0 +1,13 @@
+Task 15: Unknown Admin Route Handling
+======================================
+Date: 2026-06-22
+
+src/App.tsx line 72:
+  <Route path="*" element={<NotFound />} />
+
+Unknown /admin/* URLs (e.g. /admin/foo) fall through to the catch-all
+"*" route and render NotFound (404) page.
+
+Pattern preserved from before. No special admin catch-all needed because
+admin routes are already ProtectedRoute-guarded; unauthorized users
+never reach them.

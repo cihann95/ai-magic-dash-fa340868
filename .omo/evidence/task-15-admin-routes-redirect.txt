@@ -1,0 +1,14 @@
+Task 15: ProtectedRoute Guard Verification
+==========================================
+Date: 2026-06-22
+
+src/components/ProtectedRoute.tsx:
+  - requiredRole?: "admin" prop defined (line 10)
+  - If requiredRole === "admin" && !isAdmin: toast.error + Navigate to "/" (lines 16-18)
+  - If not authenticated: Navigate to "/auth" (line 15)
+
+All 4 admin routes in App.tsx wrapped:
+  <ProtectedRoute requiredRole="admin"><AdminXxx /></ProtectedRoute>
+
+Non-admin users redirected to "/" with toast.
+Unauthenticated users redirected to "/auth".
