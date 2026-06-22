@@ -17,15 +17,19 @@ interface RateLimitResult {
 }
 
 export const RATE_LIMITS: Record<string, RateLimitConfig> = {
-  "execute-trade": { windowMs: ONE_MINUTE_MS, maxRequests: 20, keyPrefix: "rl:exec" },
+  "execute-trade": { windowMs: ONE_MINUTE_MS, maxRequests: 10, keyPrefix: "rl:exec" },
   "blitz-tick-order": { windowMs: ONE_MINUTE_MS, maxRequests: 30, keyPrefix: "rl:blitz-tick" },
-  "blitz-matchmake": { windowMs: ONE_MINUTE_MS, maxRequests: 10, keyPrefix: "rl:blitz-match" },
-  "ai-analyze": { windowMs: ONE_MINUTE_MS, maxRequests: 15, keyPrefix: "rl:ai" },
+  "blitz-matchmake": { windowMs: ONE_MINUTE_MS, maxRequests: 5, keyPrefix: "rl:blitz-match" },
+  "blitz-join-private": { windowMs: ONE_MINUTE_MS, maxRequests: 5, keyPrefix: "rl:blitz-join" },
+  "blitz-settle-room": { windowMs: ONE_MINUTE_MS, maxRequests: 3, keyPrefix: "rl:blitz-settle" },
+  "blitz-admin-topup": { windowMs: ONE_MINUTE_MS, maxRequests: 2, keyPrefix: "rl:admin-topup" },
+  "ai-analyze": { windowMs: ONE_MINUTE_MS, maxRequests: 10, keyPrefix: "rl:ai" },
   "ai-strategy": { windowMs: ONE_MINUTE_MS, maxRequests: 15, keyPrefix: "rl:ai" },
-  "ai-chat": { windowMs: ONE_MINUTE_MS, maxRequests: 15, keyPrefix: "rl:ai" },
+  "ai-chat": { windowMs: ONE_MINUTE_MS, maxRequests: 20, keyPrefix: "rl:ai" },
   "ai-trade-coach": { windowMs: ONE_MINUTE_MS, maxRequests: 15, keyPrefix: "rl:ai" },
   "ai-risk-monitor": { windowMs: ONE_MINUTE_MS, maxRequests: 15, keyPrefix: "rl:ai" },
   "manage-order": { windowMs: ONE_MINUTE_MS, maxRequests: 30, keyPrefix: "rl:order" },
+  "reset-demo-account": { windowMs: ONE_MINUTE_MS, maxRequests: 2, keyPrefix: "rl:reset-demo" },
 };
 
 const DEFAULT_CONFIG: RateLimitConfig = {

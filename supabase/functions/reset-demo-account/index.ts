@@ -1,12 +1,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { rateLimit } from "../_shared/rate-limit.ts";
+import { corsHeaders, handleCors } from "../_shared/cors.ts";
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const cors = handleCors(req);
+  if (cors) return cors;
 
   try {
     const authHeader = req.headers.get("Authorization");
@@ -30,6 +28,9 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const rlResponse = await rateLimit(user.id, "reset-demo-account");
+    if (rlResponse) return rlResponse;
 
     const start = Date.now();
 

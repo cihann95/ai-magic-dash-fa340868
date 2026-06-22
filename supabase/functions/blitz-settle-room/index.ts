@@ -3,7 +3,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { redis } from "../_shared/redis.ts";
 import type { Admin } from "../_shared/blitz-types.ts";
-import { corsHeaders } from "../_shared/cors.ts";
+import { corsHeaders, handleCors } from "../_shared/cors.ts";
+import { rateLimit } from "../_shared/rate-limit.ts";
 
 const PLATFORM_FEE_PCT = 0.05; // FAZ 4 raporları için kayıt; ödül net dağıtılır
 
@@ -232,9 +233,10 @@ async function settleRoom(admin: Admin, roomId: string): Promise<{ ok: boolean; 
 
 
 Deno.serve(async (req) => {
-  const start = Date.now();
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const cors = handleCors(req);
+  if (cors) return cors;
 
+  const start = Date.now();
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
   const authHdr = req.headers.get("Authorization") ?? "";
@@ -254,6 +256,12 @@ Deno.serve(async (req) => {
   if (!isServiceRole && !isCron && !isUser) {
     console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
     return new Response(JSON.stringify({ error: "Yetkisiz erişim" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+
+  if (isUser) {
+    const { data: u } = await admin.auth.getUser(authHdr.slice(7));
+    const rlResponse = await rateLimit(u.user!.id, "blitz-settle-room");
+    if (rlResponse) return rlResponse;
   }
 
   let room_id: string | undefined;

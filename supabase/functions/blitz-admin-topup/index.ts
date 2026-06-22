@@ -1,14 +1,12 @@
 // Admin tarafından bir kullanıcının real_balance'ına manuel kredi yükleme/düşme
 // Sadece 'admin' rolü erişebilir. Her işlem real_balance_ledger'a yazılır.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { rateLimit } from "../_shared/rate-limit.ts";
+import { corsHeaders, handleCors } from "../_shared/cors.ts";
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const cors = handleCors(req);
+  if (cors) return cors;
 
   const admin = createClient(
     Deno.env.get("SUPABASE_URL")!,
@@ -31,6 +29,9 @@ Deno.serve(async (req) => {
       status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
+
+  const rlResponse = await rateLimit(caller.id, "blitz-admin-topup");
+  if (rlResponse) return rlResponse;
 
   let body: { user_id?: string; amount?: number; reason?: string };
   try { body = await req.json(); } catch {

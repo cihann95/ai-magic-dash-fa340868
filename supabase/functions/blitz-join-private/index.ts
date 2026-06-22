@@ -2,16 +2,21 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { redis } from "../_shared/redis.ts";
 import { checkBodySize } from "../_shared/body-size-limit.ts";
+import { rateLimit } from "../_shared/rate-limit.ts";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import { corsHeaders, handleCors } from "../_shared/cors.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 const ROOM_DURATION_SECONDS = 60;
 
+const JoinPrivateSchema = z.object({
+  invite_code: z.string().min(4).max(32).regex(/^[A-Z0-9]+$/i),
+});
+
 Deno.serve(async (req) => {
+  const cors = handleCors(req);
+  if (cors) return cors;
+
   const start = Date.now();
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   const authHdr = req.headers.get("Authorization") ?? "";
   const token = authHdr.startsWith("Bearer ") ? authHdr.slice(7) : "";
@@ -19,12 +24,21 @@ Deno.serve(async (req) => {
   const user = userRes?.user;
   if (!user) return new Response(JSON.stringify({ error: "Yetkisiz erişim", code: "UNAUTHORIZED" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
+  const rlResponse = await rateLimit(user.id, "blitz-join-private");
+  if (rlResponse) return rlResponse;
+
   const bodyError = await checkBodySize(req);
   if (bodyError) return bodyError;
 
-  let invite_code = "";
-  try { invite_code = ((await req.json()).invite_code ?? "").toString().trim().toUpperCase(); } catch { /* noop */ }
-  if (!invite_code) return new Response(JSON.stringify({ error: "Davet kodu eksik", code: "INVITE_CODE_MISSING" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  let rawBody: unknown;
+  try { rawBody = await req.json(); } catch { rawBody = {}; }
+  const parsed = JoinPrivateSchema.safeParse(rawBody);
+  if (!parsed.success) {
+    return new Response(JSON.stringify({ error: "VALIDATION_ERROR", code: "VALIDATION_ERROR", details: parsed.error.flatten() }), {
+      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  const invite_code = parsed.data.invite_code.trim().toUpperCase();
 
   const { data: room } = await admin.from("blitz_rooms").select("*").eq("invite_code", invite_code).maybeSingle();
   if (!room) return new Response(JSON.stringify({ error: "Oda bulunamadı", code: "ROOM_NOT_FOUND" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
