@@ -1743,7 +1743,7 @@ Max Concurrent: 8 (Wave 1)
   - Message: `chore(settlement): trigger DROP verification + tek yol test + cleanup`
   - Files: (varsa) `supabase/functions/blitz-settle-room/index.ts`
 
-- [ ] 17. Deploy: Edge Functions + Vercel
+- [x] 17. Deploy: Edge Functions + Vercel
 
   **What to do**:
   - **Edge function deploy**: `bash supabase/deploy-all.sh --project-ref $SUPABASE_PROJECT_ID` — tüm 21+ fonksiyon (mevcut + yeni 6 admin fonksiyon: admin-list-users, admin-set-user-role, admin-ban-user, admin-cancel-room, admin-settle-room, admin-slippage-config). Yeni fonksiyonlar deploy-all.sh'a otomatik eklenir (klasör taranır).
