@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
+import { callEdgeFunction } from "@/lib/edge-error";
 import type { Database, Json } from "@/integrations/supabase/types";
 import { useApp } from "@/contexts/AppContext";
 
@@ -64,16 +65,21 @@ export default function AdminBlitz() {
   async function submitTopup() {
     if (!targetUser || !amount) return;
     setSubmitting(true);
-    const { data, error } = await supabase.functions.invoke("blitz-admin-topup", {
-      body: { user_id: targetUser.trim(), amount: Number(amount), reason: reason || null },
-    });
-    setSubmitting(false);
-    if (error || data?.error) {
-      toast.error(error?.message ?? data?.error ?? "Hata");
-      return;
+    try {
+      const data = await callEdgeFunction<{ new_balance: number; error?: string }>("blitz-admin-topup", {
+        user_id: targetUser.trim(),
+        amount: Number(amount),
+        reason: reason || null,
+      });
+      if (data?.error) {
+        toast.error(data.error);
+        return;
+      }
+      toast.success(`Yeni bakiye: $${data.new_balance}`);
+      setTargetUser(""); setAmount(100); setReason("");
+    } finally {
+      setSubmitting(false);
     }
-    toast.success(`Yeni bakiye: $${data.new_balance}`);
-    setTargetUser(""); setAmount(100); setReason("");
   }
 
   if (authLoading || isAdmin === null) {

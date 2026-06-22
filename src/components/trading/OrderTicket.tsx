@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useApp } from "@/contexts/AppContext";
 import { supabase } from "@/integrations/supabase/client";
+import { callEdgeFunction } from "@/lib/edge-error";
 import { useLivePrice } from "@/hooks/useLivePrices";
 import { SymbolDef, formatPrice, isStale } from "@/lib/symbols";
 import { t } from "@/lib/i18n";
@@ -58,67 +59,33 @@ export default function OrderTicket({ symbol }: { symbol: SymbolDef }) {
     if (!q || q <= 0 || !tp || tp <= 0) return toast({ title: tr.error, variant: "destructive" });
     setSubmitting(true);
     try {
-      const { data, error, response } = await supabase.functions.invoke("manage-order", {
-        body: {
-          action: "place",
-          symbol: symbol.symbol,
-          asset_class: symbol.asset_class,
-          order_type: orderType,
-          side,
-          quantity: q,
-          trigger_price: tp,
-        },
+      await callEdgeFunction("manage-order", {
+        action: "place",
+        symbol: symbol.symbol,
+        asset_class: symbol.asset_class,
+        order_type: orderType,
+        side,
+        quantity: q,
+        trigger_price: tp,
       });
-      if (error) {
-        let errorMsg = error.message || "Unknown error";
-        let retryable = false;
-        try {
-          const body = await response?.json();
-          if (body?.error) errorMsg = body.error;
-          if (body?.retryable) retryable = true;
-        } catch { /* response body already consumed */ }
-        if (retryable) {
-          setRetryContext({ action: 'place' });
-          toast({ title: tr.error, description: `${errorMsg} — ${lang === "tr" ? "Tekrar dene" : "Retry"}`, variant: "destructive" });
-        } else {
-          throw new Error(errorMsg);
-        }
-      } else {
-        setRetryContext(null);
-        toast({ title: tr.success, description: `${orderType.toUpperCase()} ${side.toUpperCase()} ${q} ${symbol.symbol} @ ${tp}` });
-        loadOrders();
-      }
+      setRetryContext(null);
+      toast({ title: tr.success, description: `${orderType.toUpperCase()} ${side.toUpperCase()} ${q} ${symbol.symbol} @ ${tp}` });
+      loadOrders();
     } catch (e) {
-      toast({ title: tr.error, description: e instanceof Error ? e.message : "Unknown", variant: "destructive" });
+      const edgeErr = e as { retryable?: boolean };
+      if (edgeErr?.retryable) setRetryContext({ action: 'place' });
     } finally { setSubmitting(false); }
   };
 
   const cancel = async (id: string) => {
     try {
-      const { error, response } = await supabase.functions.invoke("manage-order", {
-        body: { action: "cancel", order_id: id },
-      });
-      if (error) {
-        let errorMsg = error.message || "Unknown error";
-        let retryable = false;
-        try {
-          const body = await response?.json();
-          if (body?.error) errorMsg = body.error;
-          if (body?.retryable) retryable = true;
-        } catch { /* response body already consumed */ }
-        if (retryable) {
-          setRetryContext({ action: 'cancel', id });
-          toast({ title: tr.error, description: `${errorMsg} — ${lang === "tr" ? "Tekrar dene" : "Retry"}`, variant: "destructive" });
-        } else {
-          throw new Error(errorMsg);
-        }
-      } else {
-        setRetryContext(null);
-        toast({ title: tr.cancel, description: id.slice(0, 8) });
-        loadOrders();
-      }
+      await callEdgeFunction("manage-order", { action: "cancel", order_id: id });
+      setRetryContext(null);
+      toast({ title: tr.cancel, description: id.slice(0, 8) });
+      loadOrders();
     } catch (e) {
-      toast({ title: tr.error, description: e instanceof Error ? e.message : "Unknown", variant: "destructive" });
+      const edgeErr = e as { retryable?: boolean };
+      if (edgeErr?.retryable) setRetryContext({ action: 'cancel', id });
     }
   };
 

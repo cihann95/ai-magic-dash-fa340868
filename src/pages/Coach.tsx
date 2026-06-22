@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import AppShell from "@/components/AppShell";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { supabase } from "@/integrations/supabase/client";
+import { callEdgeFunction } from "@/lib/edge-error";
 import type { Database, Json } from "@/integrations/supabase/types";
 import { useApp } from "@/contexts/AppContext";
 import { Card } from "@/components/ui/card";
@@ -55,20 +56,23 @@ function CoachInner() {
   const generate = async () => {
     if (!user) return;
     setGenerating(true);
-    const { data, error } = await supabase.functions.invoke("ai-trade-coach", {
-      body: { user_id: user.id },
-    });
-    setGenerating(false);
-    if (error || data?.skipped) {
-      toast({
-        title: lang === "tr" ? "Yetersiz veri" : "Not enough data",
-        description: lang === "tr" ? "Analiz için en az 3 işlem gerekir." : "At least 3 trades needed.",
-        variant: "destructive",
+    try {
+      const data = await callEdgeFunction<{ skipped?: boolean }>("ai-trade-coach", {
+        user_id: user.id,
       });
-      return;
+      if (data?.skipped) {
+        toast({
+          title: lang === "tr" ? "Yetersiz veri" : "Not enough data",
+          description: lang === "tr" ? "Analiz için en az 3 işlem gerekir." : "At least 3 trades needed.",
+          variant: "destructive",
+        });
+        return;
+      }
+      toast({ title: lang === "tr" ? "Yeni içgörü hazır" : "New insight ready" });
+      load();
+    } finally {
+      setGenerating(false);
     }
-    toast({ title: lang === "tr" ? "Yeni içgörü hazır" : "New insight ready" });
-    load();
   };
 
   const acknowledge = async (id: string) => {

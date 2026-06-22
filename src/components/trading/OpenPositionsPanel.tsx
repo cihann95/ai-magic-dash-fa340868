@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { callEdgeFunction } from "@/lib/edge-error";
 import { useApp } from "@/contexts/AppContext";
 import { t } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
@@ -168,22 +169,11 @@ export default function OpenPositionsPanel({ refreshKey, onTradeDone, onSelectSy
     try {
       const qty = fraction === 1 ? p.qty : Number((p.qty * fraction).toFixed(8));
       if (qty <= 0) throw new Error("Invalid quantity");
-      const { data, error, response } = await supabase.functions.invoke("execute-trade", {
-        body: {
-          symbol: p.symbol, asset_class: p.asset_class,
-          side: p.side === "long" ? "sell" : "buy",
-          quantity: qty, position_id: p.id,
-        },
+      const result = await callEdgeFunction<ExecuteTradeResponse>("execute-trade", {
+        symbol: p.symbol, asset_class: p.asset_class,
+        side: p.side === "long" ? "sell" : "buy",
+        quantity: qty, position_id: p.id,
       });
-      if (error) {
-        let errorMsg = error.message || "Unknown error";
-        try {
-          const body = await response?.json();
-          if (body?.error) errorMsg = body.error;
-        } catch { /* response body already consumed or not json */ }
-        throw new Error(errorMsg);
-      }
-      const result = data as ExecuteTradeResponse;
       if (result?.error) throw new Error(result.error);
       try { recordTrade(p.entry * qty, true); } catch { /* noop */ }
       toast({

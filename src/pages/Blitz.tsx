@@ -12,6 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { SYMBOLS } from "@/lib/symbols";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import { callEdgeFunction } from "@/lib/edge-error";
 import { useApp } from "@/contexts/AppContext";
 
 const ENTRY_FEES = [5, 10, 25, 50];
@@ -55,31 +56,29 @@ export default function Blitz() {
   async function quickMatch() {
     if (!user) { navigate("/auth"); return; }
     setQueueing(true);
-    const { data, error } = await supabase.functions.invoke("blitz-matchmake", {
-      body: { mode: "quick", symbol, entry_fee: entryFee },
-    });
-    if (error) {
+    try {
+      const data = await callEdgeFunction<{ room_id: string; status: string }>("blitz-matchmake", {
+        mode: "quick", symbol, entry_fee: entryFee,
+      });
+      if (data?.status === "active" && data?.room_id) {
+        setQueueing(false);
+        navigate(`/blitz/${data.room_id}`);
+        return;
+      }
+      toast.success("Kuyruğa eklendi. Rakip aranıyor...");
+    } catch {
       setQueueing(false);
-      toast.error(error.message ?? "Eşleştirme hatası");
-      return;
     }
-    if (data?.status === "active" && data?.room_id) {
-      setQueueing(false);
-      navigate(`/blitz/${data.room_id}`);
-      return;
-    }
-    if (data?.error) {
-      setQueueing(false);
-      toast.error(data.error);
-      return;
-    }
-    toast.success("Kuyruğa eklendi. Rakip aranıyor...");
   }
 
   async function cancelQueue() {
-    await supabase.functions.invoke("blitz-matchmake", {
-      body: { mode: "cancel", symbol, entry_fee: entryFee },
-    });
+    try {
+      await callEdgeFunction("blitz-matchmake", {
+        mode: "cancel", symbol, entry_fee: entryFee,
+      });
+    } catch {
+      // callEdgeFunction already shows toast
+    }
     setQueueing(false);
     toast.info("Kuyruktan çıktın");
   }
@@ -87,31 +86,31 @@ export default function Blitz() {
   async function createPrivate() {
     if (!user) { navigate("/auth"); return; }
     setCreating(true);
-    const { data, error } = await supabase.functions.invoke("blitz-matchmake", {
-      body: { mode: "create_private", symbol, entry_fee: entryFee },
-    });
-    setCreating(false);
-    if (error || data?.error) {
-      toast.error(error?.message ?? data?.error ?? "Oluşturulamadı");
-      return;
+    try {
+      const data = await callEdgeFunction<{ room_id: string; invite_code: string }>("blitz-matchmake", {
+        mode: "create_private", symbol, entry_fee: entryFee,
+      });
+      setCreating(false);
+      setWaitingRoomId(data.room_id);
+      toast.success(`Davet kodu: ${data.invite_code}`);
+    } catch {
+      setCreating(false);
     }
-    setWaitingRoomId(data.room_id);
-    toast.success(`Davet kodu: ${data.invite_code}`);
   }
 
   async function joinPrivate() {
     if (!user) { navigate("/auth"); return; }
     if (!inviteCode.trim()) return;
     setJoining(true);
-    const { data, error } = await supabase.functions.invoke("blitz-join-private", {
-      body: { invite_code: inviteCode.trim() },
-    });
-    setJoining(false);
-    if (error || data?.error) {
-      toast.error(error?.message ?? data?.error ?? "Katılım hatası");
-      return;
+    try {
+      const data = await callEdgeFunction<{ room_id: string }>("blitz-join-private", {
+        invite_code: inviteCode.trim(),
+      });
+      setJoining(false);
+      navigate(`/blitz/${data.room_id}`);
+    } catch {
+      setJoining(false);
     }
-    navigate(`/blitz/${data.room_id}`);
   }
 
   // Waiting room takip

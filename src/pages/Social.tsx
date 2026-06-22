@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import AppShell from "@/components/AppShell";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { supabase } from "@/integrations/supabase/client";
+import { callEdgeFunction } from "@/lib/edge-error";
 import type { Database } from "@/integrations/supabase/types";
 import { useApp } from "@/contexts/AppContext";
 import { Card } from "@/components/ui/card";
@@ -33,14 +34,6 @@ interface Leader {
 interface CopySetting {
   id: string; leader_id: string; enabled: boolean;
   ratio: number; max_position_usd: number;
-}
-
-async function callEdgeFunction(name: string, body: Record<string, unknown>) {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error("No session");
-  const res = await supabase.functions.invoke(name, { body });
-  if (res.error) throw res.error;
-  return res.data;
 }
 
 function SocialInner() {
@@ -132,9 +125,8 @@ function SocialInner() {
         toast({ title: lang === "tr" ? "Takip edildi" : "Followed" });
       }
       load();
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "İşlem başarısız";
-      toast({ title: msg, variant: "destructive" });
+    } catch {
+      // Toast already shown by callEdgeFunction
     } finally {
       setActionLoading(null);
     }
@@ -165,9 +157,8 @@ function SocialInner() {
       setCopyDialog(null);
       toast({ title: lang === "tr" ? "Copy aktif" : "Copy active" });
       load();
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Copy ayarları kaydedilemedi";
-      toast({ title: msg, variant: "destructive" });
+    } catch {
+      // Toast already shown by callEdgeFunction
     } finally {
       setActionLoading(null);
     }
@@ -183,9 +174,8 @@ function SocialInner() {
       });
       toast({ title: lang === "tr" ? "Copy durduruldu" : "Copy stopped" });
       load();
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Copy durdurulamadı";
-      toast({ title: msg, variant: "destructive" });
+    } catch {
+      // Toast already shown by callEdgeFunction
     } finally {
       setActionLoading(null);
     }

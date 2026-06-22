@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { callEdgeFunction } from "@/lib/edge-error";
 import { useApp } from "@/contexts/AppContext";
 import { t } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
@@ -114,56 +115,52 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
   const runAnalysis = async () => {
     setLoadingA(true); setAnalysis("");
     try {
-      const { data, error } = await supabase.functions.invoke("ai-analyze", {
-        body: { symbol: symbol.symbol, asset_class: symbol.asset_class, language: lang },
-      });
-      if (error) throw error;
-      const result = data as AiAnalyzeResponse;
+      const result = await callEdgeFunction<AiAnalyzeResponse>("ai-analyze", { symbol: symbol.symbol, asset_class: symbol.asset_class, language: lang });
       if (result?.error) throw new Error(result.error);
       setAnalysis(result.analysis);
     } catch (e) {
-      toast({ title: tr.error, description: e instanceof Error ? e.message : "Unknown", variant: "destructive" });
+      if (!((e as any)?.code)) {
+        toast({ title: tr.error, description: e instanceof Error ? e.message : "Unknown", variant: "destructive" });
+      }
     } finally { setLoadingA(false); }
   };
 
   const runStrategy = async () => {
     setLoadingS(true); setStrategy("");
     try {
-      const { data, error } = await supabase.functions.invoke("ai-strategy", { body: { language: lang } });
-      if (error) throw error;
-      const result = data as AiStrategyResponse;
+      const result = await callEdgeFunction<AiStrategyResponse>("ai-strategy", { language: lang });
       if (result?.error) throw new Error(result.error);
       setStrategy(result.suggestion);
     } catch (e) {
-      toast({ title: tr.error, description: e instanceof Error ? e.message : "Unknown", variant: "destructive" });
+      if (!((e as any)?.code)) {
+        toast({ title: tr.error, description: e instanceof Error ? e.message : "Unknown", variant: "destructive" });
+      }
     } finally { setLoadingS(false); }
   };
 
   const runBrief = async () => {
     setLoadingB(true);
     try {
-      const { data, error } = await supabase.functions.invoke("daily-brief", { body: { language: lang } });
-      if (error) throw error;
-      const result = data as DailyBriefResponse;
+      const result = await callEdgeFunction<DailyBriefResponse>("daily-brief", { language: lang });
       if (result?.error) throw new Error(result.error);
       setBrief(result.content);
     } catch (e) {
-      toast({ title: tr.error, description: e instanceof Error ? e.message : "Unknown", variant: "destructive" });
+      if (!((e as any)?.code)) {
+        toast({ title: tr.error, description: e instanceof Error ? e.message : "Unknown", variant: "destructive" });
+      }
     } finally { setLoadingB(false); }
   };
 
   const runNews = async () => {
     setLoadingN(true);
     try {
-      const { data, error } = await supabase.functions.invoke("news-feed", {
-        body: { symbol: symbol.symbol, language: lang },
-      });
-      if (error) throw error;
-      const result = data as NewsFeedResponse;
+      const result = await callEdgeFunction<NewsFeedResponse>("news-feed", { symbol: symbol.symbol, language: lang });
       if (result?.error) throw new Error(result.error);
       setNews((result.items ?? []).map((item) => ({ ...item, summary: item.summary ?? "", sentiment: item.sentiment ?? "neutral" as const })));
     } catch (e) {
-      toast({ title: tr.error, description: e instanceof Error ? e.message : "Unknown", variant: "destructive" });
+      if (!((e as any)?.code)) {
+        toast({ title: tr.error, description: e instanceof Error ? e.message : "Unknown", variant: "destructive" });
+      }
     } finally { setLoadingN(false); }
   };
 

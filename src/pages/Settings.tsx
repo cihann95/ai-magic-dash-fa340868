@@ -3,6 +3,7 @@ import AppShell from "@/components/AppShell";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useApp } from "@/contexts/AppContext";
 import { supabase } from "@/integrations/supabase/client";
+import { callEdgeFunction } from "@/lib/edge-error";
 import { t } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -90,13 +91,17 @@ function SettingsInner() {
   const resetDemo = async () => {
     if (!user) return;
     setResetting(true);
-    const { error } = await supabase.functions.invoke("reset-demo-account");
-    setResetting(false);
-    toast({
-      title: error ? tr.error : tr.success,
-      description: error?.message || (lang === "tr" ? "Demo bakiyesi sıfırlandı." : "Demo balance reset."),
-      variant: error ? "destructive" : "default",
-    });
+    try {
+      await callEdgeFunction("reset-demo-account", {});
+      toast({
+        title: tr.success,
+        description: lang === "tr" ? "Demo bakiyesi sıfırlandı." : "Demo balance reset.",
+      });
+    } catch {
+      // Toast already shown by callEdgeFunction
+    } finally {
+      setResetting(false);
+    }
   };
 
   const togglePush = async () => {

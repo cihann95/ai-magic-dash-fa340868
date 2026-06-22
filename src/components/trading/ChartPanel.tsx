@@ -9,6 +9,7 @@ import { useApp } from "@/contexts/AppContext";
 import { t } from "@/lib/i18n";
 import { TrendingDown, TrendingUp, Loader2, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { callEdgeFunction } from "@/lib/edge-error";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import OrderTicket from "./OrderTicket";
@@ -78,24 +79,11 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
       },
     }));
     try {
-      const { data, error, response } = await supabase.functions.invoke("execute-trade", {
-        body: {
-          symbol: symbol.symbol, asset_class: symbol.asset_class, side, quantity: q,
-          intent_tag: intent.tag, intent_note: intent.note || null,
-          planned_tp: intent.planned_tp, planned_sl: intent.planned_sl,
-        },
+      const result = await callEdgeFunction<ExecuteTradeResponse>("execute-trade", {
+        symbol: symbol.symbol, asset_class: symbol.asset_class, side, quantity: q,
+        intent_tag: intent.tag, intent_note: intent.note || null,
+        planned_tp: intent.planned_tp, planned_sl: intent.planned_sl,
       });
-      if (error) {
-        // FunctionsHttpError.context is a Response object, not {body:string}.
-        // Use Response.json() to extract the actual error message.
-        let errorMsg = error.message || "Unknown error";
-        try {
-          const body = await response?.json();
-          if (body?.error) errorMsg = body.error;
-        } catch { /* response body already consumed or not json */ }
-        throw new Error(errorMsg);
-      }
-      const result = data as ExecuteTradeResponse;
       if (result?.error) throw new Error(result.error);
       const fillPrice = result?.price ?? price;
       recordTrade(q * (fillPrice ?? 0), false);

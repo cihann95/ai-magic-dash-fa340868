@@ -1,7 +1,7 @@
 // Blitz Oda: 60s sayaç, 1m TradingView grafik, LONG/SHORT butonları, canlı PnL listesi.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { toast } from "sonner";
+
 import { motion } from "framer-motion";
 import confetti from "canvas-confetti";
 import { Loader2, X } from "lucide-react";
@@ -15,6 +15,7 @@ import { useBlitzRoom } from "@/hooks/useBlitzRoom";
 import { useLivePrice } from "@/hooks/useLivePrices";
 import { findSymbol } from "@/lib/symbols";
 import { supabase } from "@/integrations/supabase/client";
+import { callEdgeFunction } from "@/lib/edge-error";
 import { useApp } from "@/contexts/AppContext";
 import { blitzSfx, vibrate } from "@/lib/blitzSfx";
 
@@ -57,7 +58,7 @@ export default function BlitzRoomPage() {
   // Süre bittiğinde settle çağır (idempotent)
   useEffect(() => {
     if (secondsLeft === 0 && room?.status === "active") {
-      supabase.functions.invoke("blitz-settle-room", { body: { room_id: room.id } });
+      callEdgeFunction("blitz-settle-room", { room_id: room.id }).catch(() => {});
     }
   }, [secondsLeft, room]);
 
@@ -140,22 +141,20 @@ export default function BlitzRoomPage() {
     if (!room) return;
     setSubmitting(true);
     blitzSfx.open(); vibrate(40);
-    const { data, error } = await supabase.functions.invoke("blitz-tick-order", {
-      body: { room_id: room.id, action: "open", side, amount },
-    });
+    try {
+      await callEdgeFunction("blitz-tick-order", { room_id: room.id, action: "open", side, amount });
+    } catch {}
     setSubmitting(false);
-    if (error || data?.error) toast.error(error?.message ?? data?.error ?? "Hata");
   }
 
   async function closePosition() {
     if (!room || !myOpenOrder) return;
     setSubmitting(true);
     blitzSfx.close(); vibrate(40);
-    const { data, error } = await supabase.functions.invoke("blitz-tick-order", {
-      body: { room_id: room.id, action: "close", order_id: myOpenOrder.id },
-    });
+    try {
+      await callEdgeFunction("blitz-tick-order", { room_id: room.id, action: "close", order_id: myOpenOrder.id });
+    } catch {}
     setSubmitting(false);
-    if (error || data?.error) toast.error(error?.message ?? data?.error ?? "Hata");
   }
 
   if (!room) {
