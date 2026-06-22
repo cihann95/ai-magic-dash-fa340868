@@ -8,7 +8,7 @@ import { rateLimit } from "../_shared/rate-limit.ts";
 
 const PLATFORM_FEE_PCT = 0.05; // FAZ 4 raporları için kayıt; ödül net dağıtılır
 
-async function settleRoom(admin: Admin, roomId: string): Promise<{ ok: boolean; reason?: string; error?: string }> {
+export async function settleRoom(admin: Admin, roomId: string): Promise<{ ok: boolean; reason?: string; error?: string }> {
   const idempotencyKey = `${roomId}:edge_function`;
 
   // Phase: lock - acquire advisory lock with 5s timeout

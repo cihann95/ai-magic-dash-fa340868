@@ -869,7 +869,7 @@ Max Concurrent: 8 (Wave 1)
   - Message: `feat(admin): admin-list-users + admin-set-user-role + admin-ban-user edge functions`
   - Files: `supabase/functions/admin-list-users/index.ts`, `supabase/functions/admin-set-user-role/index.ts`, `supabase/functions/admin-ban-user/index.ts`, `src/lib/edge-function-types.ts`
 
-- [ ] 8. Admin Edge Functions Batch B: admin-cancel-room + admin-settle-room + admin-slippage-config
+- [x] 8. Admin Edge Functions Batch B: admin-cancel-room + admin-settle-room + admin-slippage-config
 
   **What to do**:
   - **Yeni edge function: `supabase/functions/admin-cancel-room/index.ts`**:

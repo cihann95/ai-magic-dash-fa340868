@@ -1,0 +1,45 @@
+Task 8 Evidence: admin-slippage-config
+========================================
+Edge Function: supabase/functions/admin-slippage-config/index.ts
+Scenario: UPSERT + GET ile config yönetimi
+
+Preconditions:
+- Admin JWT mevcut
+- slippage_config tablosunda BTCUSD (2.0, fixed), ETHUSD (3.0, fixed), SOLUSD (5.0, fixed) seed var
+
+Test Steps:
+
+1. GET tüm config'ler:
+   GET /functions/v1/admin-slippage-config
+   → 200, {configs: [{symbol: "BTCUSD", max_slippage_pct: 2.0, mode: "fixed", ...}, ...]}
+
+2. POST yeni sembol ekle:
+   POST /functions/v1/admin-slippage-config
+   Body: {"symbol": "DOGEUSD", "max_slippage_pct": 10.0, "mode": "dynamic"}
+   → 200, {success: true, config: {symbol: "DOGEUSD", max_slippage_pct: 10.0, mode: "dynamic", ...}}
+
+3. POST mevcut sembolü güncelle (UPSERT):
+   POST /functions/v1/admin-slippage-config
+   Body: {"symbol": "BTCUSD", "max_slippage_pct": 3.0, "mode": "dynamic"}
+   → 200, {success: true, config: {symbol: "BTCUSD", max_slippage_pct: 3.0, mode: "dynamic", ...}}
+
+4. GET ile doğrula:
+   GET /functions/v1/admin-slippage-config
+   → BTCUSD max_slippage_pct=3.0, mode='dynamic' olmalı
+
+Validation Tests:
+- max_slippage_pct=0 → 400 (CHECK constraint: > 0)
+- max_slippage_pct=101 → 400 (validation: <= 100)
+- max_slippage_pct=-5 → 400
+- mode='invalid' → 400
+- symbol boş → 400
+- Normal kullanıcı → 403
+- Auth yok → 401
+
+Rate Limit: 5/dk (admin-slippage-config)
+
+RLS Note: slippage_config tablosunda authenticated SELECT policy var (herkes okuyabilir),
+ama INSERT/UPDATE/DELETE sadece service_role. Edge function service_role kullandığından
+RLS bypass ediliyor.
+
+File: supabase/functions/admin-slippage-config/index.ts

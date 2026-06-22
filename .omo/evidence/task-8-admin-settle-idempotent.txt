@@ -1,0 +1,39 @@
+Task 8 Evidence: admin-settle-room idempotent
+==============================================
+Edge Function: supabase/functions/admin-settle-room/index.ts
+Scenario: Aynı oda 2 kez settle edilmeye çalışıldığında idempotent davranış
+
+Preconditions:
+- Admin JWT mevcut
+- Blitz odası: status='active', entry_fee=10, 2 katılımcı
+- İlk settlement başarılı, settlement_ledger'da status='completed' var
+
+Test Steps:
+1. İlk settlement (başarılı):
+   POST /functions/v1/admin-settle-room
+   Body: {"room_id": "<room-uuid>"}
+   → 200, {success: true, ...}
+
+2. İkinci settlement (idempotent):
+   POST /functions/v1/admin-settle-room
+   Body: {"room_id": "<room-uuid>"}
+   → 200, {already_settled: true}
+
+3. DB Verification:
+   SELECT COUNT(*) FROM settlement_ledger WHERE room_id = '<room-uuid>' AND status = 'completed';
+   → 1 (sadece 1 kayıt, çifte ödeme yok)
+
+   blitz_rooms.status hala 'finished' olmalı.
+   Kazanan real_balance'ı sadece 1 kez artmış olmalı.
+
+Mechanism:
+- Idempotency check: SELECT id FROM settlement_ledger WHERE room_id=$1 AND status='completed' LIMIT 1
+- Varsa → early return {already_settled: true}
+- Mevcut settleRoom() fonksiyonu zaten settlement_ledger INSERT yapar (ON CONFLICT idempotency_key)
+-双重 koruma: hem admin-settle-room'da hem settleRoom() içinde
+
+Edge Cases:
+- Concurrent 2. settlement: settlement_ledger unique constraint hatası → settleRoom error → 400
+- settleRoom() error dönerse → 400 response, settlement_ledger'da 'failed' kayıt
+
+File: supabase/functions/admin-settle-room/index.ts

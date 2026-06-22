@@ -32,6 +32,12 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
   "manage-follow": { windowMs: ONE_MINUTE_MS, maxRequests: 10, keyPrefix: "rl:follow" },
   "manage-copy-settings": { windowMs: ONE_MINUTE_MS, maxRequests: 5, keyPrefix: "rl:copy" },
   "reset-demo-account": { windowMs: ONE_MINUTE_MS, maxRequests: 2, keyPrefix: "rl:reset-demo" },
+  "admin-list-users": { windowMs: ONE_MINUTE_MS, maxRequests: 10, keyPrefix: "rl:admin-list" },
+  "admin-set-user-role": { windowMs: ONE_MINUTE_MS, maxRequests: 5, keyPrefix: "rl:admin-role" },
+  "admin-ban-user": { windowMs: ONE_MINUTE_MS, maxRequests: 5, keyPrefix: "rl:admin-ban" },
+  "admin-cancel-room": { windowMs: ONE_MINUTE_MS, maxRequests: 10, keyPrefix: "rl:admin-cancel" },
+  "admin-settle-room": { windowMs: ONE_MINUTE_MS, maxRequests: 5, keyPrefix: "rl:admin-settle" },
+  "admin-slippage-config": { windowMs: ONE_MINUTE_MS, maxRequests: 5, keyPrefix: "rl:admin-slippage" },
 };
 
 const DEFAULT_CONFIG: RateLimitConfig = {

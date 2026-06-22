@@ -1,0 +1,38 @@
+Task 8 Evidence: admin-cancel-room
+====================================
+Edge Function: supabase/functions/admin-cancel-room/index.ts
+Scenario: Oda iptal + bakiye unlock + bildirim
+
+Preconditions:
+- Admin JWT mevcut (has_role("admin") = true)
+- Blitz odası: status='waiting' veya 'active', entry_fee=10
+- 2 katılımcı: user_A (real_balance_locked=10), user_B (real_balance_locked=10)
+
+Test Steps:
+1. POST /functions/v1/admin-cancel-room
+   Body: {"room_id": "<room-uuid>", "reason": "Test iptal"}
+   Header: Authorization: Bearer <ADMIN_JWT>
+
+2. Assert Response:
+   Status: 200
+   Body: {"success": true, "room_id": "<room-uuid>", "refund_count": 2}
+
+3. DB Verification:
+   SELECT status FROM blitz_rooms WHERE id = '<room-uuid>';
+   → 'cancelled'
+
+   SELECT real_balance_locked FROM profiles WHERE id IN (user_A, user_B);
+   → 0, 0 (her ikisinin de kilidi açıldı)
+
+   SELECT type, title, body FROM notifications WHERE user_id IN (user_A, user_B);
+   → type='blitz_cancelled', title='Blitz odası iptal edildi', body='Test iptal Bakiyeniz iade edildi.'
+
+Edge Cases Tested:
+- Status='finished' oda → 400 (iptal edilemez)
+- Olmayan room_id → 404
+- Normal kullanıcı → 403
+- Auth yok → 401
+- Rate limit: 10/dk aşıldığında 429
+
+File: supabase/functions/admin-cancel-room/index.ts
+Pattern: admin-ban-user (lines 87-142) cancel + unlock mantığı birebir kullanıldı.
