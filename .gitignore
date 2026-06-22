@@ -26,3 +26,8 @@ dist-ssr
 coverage/
 *.tsbuildinfo
 .vercel
+
+# Bun (project uses npm)
+bun.lock
+bun.lockb
+.bun
