@@ -1,10 +1,9 @@
 // Admin tarafından kullanıcı banlama/de-banlama
-// Sadece 'admin' rolü erişebilir. public_profiles.is_active toggle + blitz oda iptal.
+// Sadece 'admin' rolü erişebilir. profiles.is_banned toggle + blitz oda iptal.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { rateLimit } from "../_shared/rate-limit.ts";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
 
-// Inline Zod-like validation
 function validateBody(body: unknown): { user_id: string; banned: boolean; reason?: string } | string {
   if (!body || typeof body !== "object") return "Geçersiz veri";
   const { user_id, banned, reason } = body as Record<string, unknown>;
@@ -61,11 +60,11 @@ Deno.serve(async (req) => {
     });
   }
 
-  const { user_id, banned, reason } = validated;
+  const { user_id, banned, reason: _reason } = validated;
 
   // Verify target user exists
   const { data: targetProfile, error: profErr } = await admin
-    .from("profiles").select("id").eq("id", user_id).maybeSingle();
+    .from("profiles").select("id, is_banned").eq("id", user_id).maybeSingle();
 
   if (profErr || !targetProfile) {
     return new Response(JSON.stringify({ error: "Kullanıcı bulunamadı" }), {
@@ -73,10 +72,18 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Update public_profiles.is_active (upsert in case row doesn't exist)
+  // Prevent self-ban
+  if (user_id === caller.id) {
+    return new Response(JSON.stringify({ error: "Kendinizi yasaklayamazsınız" }), {
+      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  // Update profiles.is_banned
   const { error: updateErr } = await admin
-    .from("public_profiles")
-    .upsert({ user_id, is_active: !banned }, { onConflict: "user_id" });
+    .from("profiles")
+    .update({ is_banned: banned, updated_at: new Date().toISOString() })
+    .eq("id", user_id);
 
   if (updateErr) {
     return new Response(JSON.stringify({ error: updateErr.message }), {
@@ -86,6 +93,7 @@ Deno.serve(async (req) => {
 
   // If banning: cancel active/waiting blitz rooms + unlock balances
   let refundedRooms = 0;
+  let refundedUsers = 0;
 
   if (banned) {
     // Find active/waiting rooms created by this user
@@ -111,28 +119,34 @@ Deno.serve(async (req) => {
         .in("room_id", roomIds);
 
       if (participants && participants.length > 0) {
+        const lockedPerUser: Record<string, number> = {};
+        for (const p of participants) {
+          const room = rooms.find((r: { id: string }) => r.id === p.room_id);
+          if (room) {
+            lockedPerUser[p.user_id] = (lockedPerUser[p.user_id] ?? 0) + Number(room.entry_fee);
+          }
+        }
+
         const uniqueUserIds = [...new Set(participants.map((p: { user_id: string }) => p.user_id))];
         const { data: profiles } = await admin
           .from("profiles")
-          .select("id, real_balance_locked")
+          .select("id, real_balance, real_balance_locked")
           .in("id", uniqueUserIds);
 
         if (profiles) {
-          const lockedPerUser: Record<string, number> = {};
-          for (const p of participants) {
-            const room = rooms.find((r: { id: string }) => r.id === p.room_id);
-            if (room) {
-              lockedPerUser[p.user_id] = (lockedPerUser[p.user_id] ?? 0) + Number(room.entry_fee);
-            }
-          }
           for (const profile of profiles) {
             const unlock = lockedPerUser[profile.id] ?? 0;
             if (unlock > 0) {
               const newLocked = Math.max(0, Number(profile.real_balance_locked) - unlock);
-              await admin
+              const newBalance = Number(profile.real_balance) + unlock;
+              const { error: balErr } = await admin
                 .from("profiles")
-                .update({ real_balance_locked: newLocked })
+                .update({
+                  real_balance: newBalance,
+                  real_balance_locked: newLocked,
+                })
                 .eq("id", profile.id);
+              if (!balErr) refundedUsers++;
             }
           }
         }
@@ -142,7 +156,13 @@ Deno.serve(async (req) => {
     }
   }
 
-  return new Response(JSON.stringify({ success: true, user_id, banned, refunded_rooms: refundedRooms }), {
+  return new Response(JSON.stringify({
+    success: true,
+    user_id,
+    banned,
+    refunded_rooms: refundedRooms,
+    refunded_users: refundedUsers,
+  }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 });
