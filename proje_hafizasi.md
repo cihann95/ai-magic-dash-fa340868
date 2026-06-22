@@ -1,0 +1,234 @@
+## BÖLÜM 1 — TECH STACK
+FRONTEND:
+  - Framework/kütüphane: React 18.3.1 / Vite 5.4.19
+  - UI kütüphanesi: shadcn (Radix UI + Tailwind CSS)
+  - State yönetimi: React Context (AppContext)
+  - Grafik kütüphanesi: TradingView Advanced Chart Widget + Recharts
+  - Paket yöneticisi: npm (package-lock.json mevcut, tek paket yöneticisi olarak sabitlendi)
+BACKEND:
+  - Supabase kullanılıyor mu?: Evet
+    - Edge Functions listesi: ai-analyze, ai-chat, ai-risk-monitor, ai-strategy, ai-trade-coach, blitz-admin-topup, blitz-analytics-writer, blitz-join-private, blitz-matchmake, blitz-settle-room, blitz-tick-order, daily-brief, execute-trade, news-feed, price-feed, reset-demo-account, send-push, trade-mirror, weekly-digest
+    - Realtime subscription var mı?: Evet — notifications, price_cache, coach_insights, copy_settings, blitz_rooms, blitz_participants, blitz_orders, user_stats, positions, orders, price_alerts vb.
+    - RLS aktif mi?: Evet — profiles, positions, trades, orders, notifications, public_profiles, copy_settings, coach_insights, push_subscriptions, emotional_logs, followers, blitz_rooms, blitz_participants, blitz_orders, platform_revenue, real_balance_ledger, settlement_ledger, slippage_config, analytics_events, observability_log vb.
+  - Harici API'ler:
+    - Binance WebSocket (wss://stream.binance.com:9443/) — kripto fiyatları
+    - Binance REST — 24h change desteğiyle ticker
+    - TradingView widget — grafik verisi
+    - OpenRouter / AI provider — ai-analyze, ai-chat, ai-strategy, ai-trade-coach, trade-mirror vb.
+    - Upstash Redis — fail-open cache/backing
+DEPLOYMENT:
+  - Hosting: Vercel
+  - CI/CD: GitHub Actions (frontend-tests, edge-function-tests, blitz-types-sync, crash-test)
+  - Ortamlar: prod bilgisi net değil; staging kalıbı görünmüyor; .env’de default development var
+## BÖLÜM 2 — PROJE MİMARİSİ
+DOSYA YAPISI (yalnızca kritik klasörler):
+/
+├── src/
+│   ├── pages/         → /, /auth, /reset-password, /portfolio, /history, /watchlist, /settings, /leaderboard, /achievements, /heatmap, /social, /coach, /journal, /insights, /blitz, /blitz/:roomId, /admin/blitz, * (NotFound)
+│   ├── components/
+│   │   ├── trading/   → AccountAIPanel, AlertsPanel, ChartPanel, IntentDialog, OpenPositionsPanel, OrderTicket, SymbolList, TradeActions
+│   │   ├── blitz/     → BlitzLeaderboard, BlitzTimer
+│   │   └── ui/        → shadcn/ui bileşenleri
+│   │       └── AnaSahne/
+│   ├── lib/           → binanceStream.ts, symbols.ts, config.ts, feature-flags.ts, i18n.ts, utils.ts, observability.ts, pushSubscribe.ts, achievements.ts, blitzSfx.ts, edge-function-types.ts
+│   ├── hooks/         → useLivePrices.ts, useBlitzRoom.ts, useAnaSahne.ts, useAlertNotifications.ts, useAnalytics.ts, useEmotionalSignal.ts, useSpectatorBroadcast.ts, useWeeklyDigest.ts, useKeyboardShortcuts.ts, useMobile.tsx, useToast.ts
+│   ├── contexts/      → AppContext.tsx
+│   └── integrations/
+│       └── supabase/  → client.ts, types.ts
+├── supabase/
+│   ├── functions/     → 15+ edge function
+│   └── migrations/    → 39 migration
+└── .env / .env.example
+VERİTABANI TABLOLARI:
+- user_roles → RLS var
+  - id, user_id, role (app_role enum: admin/user), created_at
+- profiles → RLS var
+  - id, display_name, avatar_url, demo_balance, initial_balance, real_balance, real_balance_locked, preferred_language, preferred_theme, trader_persona, last_weekly_digest_at, preferred_view, created_at, updated_at
+- positions → RLS var (financial update korumalı: backend-only)
+  - id, user_id, symbol, asset_class, side, quantity, entry_price, current_price, opened_at, updated_at
+- trades → RLS var (client insert kaldırılmış; immutable; genişletilmiş)
+  - id, user_id, symbol, asset_class, side, action, quantity, price, total, pnl, executor, executed_at, copied_from, leader_user_id, planned_tp, planned_sl, plan_adherence, intent_tag, intent_note
+- orders → RLS var
+  - id, user_id, symbol, asset_class, order_type, side, quantity, trigger_price, limit_price, position_id, status, filled_at, fill_price, expires_at, created_at, updated_at
+- price_cache → RLS var
+  - symbol, asset_class, price, change_24h, change_pct_24h, volume_24h, updated_at
+- price_alerts → RLS var
+  - id, user_id, symbol, asset_class, direction, target_price, triggered, triggered_at, note, created_at
+- watchlist → RLS var (kolon detayı: doldurulmadı)
+- notifications → RLS var
+  - id, user_id, type, title, body, link, metadata (jsonb), read, created_at
+- public_profiles → RLS var
+  - user_id, username, bio, is_active, show_portfolio, show_trades, copyable, created_at, updated_at
+- achievements → RLS var (kolon detayı: doldurulmadı)
+- user_stats → RLS var (sensitive columns backend-only korumalı)
+  - user_id, onboarding_completed, xp, level, total_pnl, total_trades, profitable_trades, best_trade_pnl, current_streak, longest_streak, last_active_date, ai_uses, asset_classes_traded, updated_at
+- user_achievements → RLS var (public read: show_portfolio opt-in)
+  - kolon detayı: doldurulmadı
+- copy_settings → RLS var
+  - id, follower_id, leader_id, enabled, ratio, max_position_usd, asset_classes, created_at, updated_at
+- coach_insights → RLS var
+  - id, user_id, category, severity, title, body, metadata (jsonb), acknowledged, created_at
+- push_subscriptions → RLS var
+  - id, user_id, endpoint, p256dh, auth, user_agent, created_at
+- emotional_logs → RLS var
+  - id, user_id, trade_id, signal_type, mood, symbol, created_at
+- followers → RLS var
+  - kolon detayı: doldurulmadı
+- ai_conversations → RLS var (kolon detayı: doldurulmadı)
+- ai_messages → RLS var (kolon detayı: doldurulmadı)
+- daily_briefs → RLS var (kolon detayı: doldurulmadı)
+- trade_journal → RLS var (kolon detayı: doldurulmadı)
+- blitz_rooms → RLS var
+  - id, symbol, entry_fee, status (blitz_status), mode (blitz_mode), invite_code, max_players, starts_at, ends_at, start_price, winner_id, pot, fee_collected, created_by, updated_by, created_at, updated_at, is_featured
+- blitz_participants → RLS var
+  - kolon detayı: doldurulmadı
+- blitz_orders → RLS var
+  - kolon detayı: doldurulmadı
+- platform_revenue → RLS var
+  - id, source, room_id, amount, currency, metadata (jsonb), created_at
+- real_balance_ledger → RLS var
+  - id, user_id, granted_by, amount, reason, created_at
+- settlement_ledger → RLS var
+  - id, room_id, idempotency_key, settlement_type, winner_id, prize_amount, fee_collected, pot_total, participant_count, status, error_message, metadata (jsonb), created_at
+- slippage_config → RLS var
+  - symbol, max_slippage_pct, mode, updated_at
+- analytics_events → RLS var (kolon detayı: doldurulmadı)
+- analytics_events_staging → RLS var (kolon detayı: doldurulmadı)
+- observability_log → görünüyor (kolon detayı: doldurulmadı)
+VIEWS:
+- activity_feed (security_invoker)
+- ana_sahne_view (security_invoker + security_barrier)
+- platform_revenue_daily (security_invoker)
+ENUMS:
+- app_role: admin, user
+- blitz_status: waiting, active, settling, finished, cancelled
+- blitz_mode: public, private
+- blitz_side: long, short
+## BÖLÜM 3 — MODÜLLER VE ÖZELLİKLER
+TRADE PANELİ:
+  - Alım/satım işlemi akışı: UI (OrderTicket / TradeActions) → Supabase Edge Functions (execute-trade / blitz-tick-order / blitz-settle-room vb.) → service_role ile positions, trades, user_stats, price_cache, blitz_orders, real_balance_ledger güncellenir. Client direct INSERT/UPDATE prohibit edilmiştir.
+  - Desteklenen enstrümanlar: Crypto (Binance üzerinden 8 sembol: BTCUSD, ETHUSD, SOLUSD, BNBUSD, XRPUSD, DOGEUSD, ADAUSD, AVAXUSD) + Ek menuki semboller FOREX/Hisse/Emtia desteği var gibi görünüyor; ancak canlı fiyat akışı kriptoya odaklı
+  - Emir tipleri: Limit, Stop, Take Profit, Stop Loss (sembol seviyesinde slippage kontrolü var)
+FİYAT SİSTEMİ:
+  - Fiyat kaynağı: Binance WebSocket trade stream + ticker; ayrıca supabase price_cache + pg_cron tetiklemeli price-feed edge function
+  - Güncelleme yöntemi: WebSocket (anlık tick) + Supabase Realtime (postgres_changes) + 5sn polling yedek (useLivePrices)
+  - Cache var mı?: Evet — public.price_cache + client tarafında window.__binance_stream singleton buffer + Upstash Redis (opsiyonel)
+GRAFİK SİSTEMI:
+  - Kütüphane: TradingView Advanced Chart Widget (embed-widget-advanced-chart.js) + Recharts
+  - Veri kaynağı: TradingView kendi sunucularından chart verisi; canlı tick için Binance + price_cache
+  - Desteklenen zaman dilimleri: TradingView widget içinde varsayılan "60" (1h) görülüyor; UI tarafında timeframe değiştirme görünmüyor
+KİMLİK DOĞRULAMA:
+  - Yöntem: Supabase Auth (signUp + signInWithPassword)
+  - Oturum yönetimi: supabase.auth.onAuthStateChange + localStorage (persistSession: true)
+  - Korumalı route'lar: ProtectedRoute ile korunan sayfalar — Portfolio, History, Watchlist, Settings, Leaderboard, Achievements, Heatmap, Social, Coach, Journal, Insights, Blitz, BlitzRoom, AdminBlitz
+POPUP / ONBOARDING:
+  - Hoşgeldin popup'ı: src/components/OnboardingTour.tsx
+  - Gösterim koşulu: user_stats.onboarding_completed == false ise ilk girişte göster; bitince supabase.rpc("mark_onboarding_complete") çağrılır
+## BÖLÜM 4 — BİLİNEN SORUNLAR
+SORUN 1:
+  - Belirti: npm ve birden fazla lockfile aynı repoda var
+  - Hata mesajı: yok (potansiyel kurulum/CI çakışması)
+  - Etkilenen dosya/fonksiyon: package.json, package-lock.json
+  - Kök neden tahmini: araştırılmadı (birden fazla paket yöneticisi kullanımı izleniyor)
+  - Öncelik: yüksek
+  - Durum: ÇÖZÜLDÜ — bun.lock ve bun.lockb silindi; .gitignore'a eklendi; package.json'a engines + packageManager eklendi
+SORUN 2:
+  - Belirti: Client-side trade/position yazma politikaları migration'larda kaldırıldı; frontend hala eski writable çağrılar yapıyor olabilir
+  - Hata mesajı: 401/403 Forbidden veya RLS violation
+  - Etkilenen dosya/fonksiyon: src/components/trading/OrderTicket.tsx → manage-order Edge Function'a yönlendirildi
+  - Kök neden tahmini: frontend'de direk client insert/update kalıntısı olabilir; backend authoritativeness’e geçildi
+  - Öncelik: kritik
+  - Durum: ÇÖZÜLDÜ — OrderTicket.tsx'teki orders.insert() ve orders.update() manage-order Edge Function'ına dönüştürüldü. Positions/trades tablolarında zaten client-side write yok.
+SORUN 3:
+  - Belirti: price_cache RLS anon politika migration'larda birden fazla değişiklik geçirdi
+  - Hata mesajı: 401/403 veya boş fiyat cache
+  - Etkilenen dosya/fonksiyon: supabase/migrations/*price_cache* + src/hooks/useLivePrices.ts
+  - Kök neden tahmini: production hard fix migration'ları akışı sırasında policy override olabilir
+  - Öncelik: yüksek
+  - Durum: ÇÖZÜLDÜ — Migration 20260618223000 ile anon SELECT policy eklendi; useLivePrices.ts try/catch + fallback ile korunuyor
+SORUN 4:
+  - Belirti: AI edge function'ları hata/timeout mapping'leri varyasyonlu
+  - Hata mesajı: 503, AI_TIMEOUT, skipped reason codes
+  - Etkilenen dosya/fonksiyon: tüm AI edge function'ları standartlaştırıldı
+  - Kök neden tahmini: sadece trade-mirror'a özel AbortController + OpenRouter error mapping eklendi; diğer AI fonksiyonlarında henüz kontrol edilmedi
+  - Öncelik: yüksek
+  - Durum: ÇÖZÜLDÜ — 7 AI edge function'ında tutarlı error envelope ({error, code, retryable} / {skipped, reason, code, retryable}) uygulandı
+## BÖLÜM 5 — ORTAM DEĞİŞKENLERİ
+.env dosyasındaki KEY isimleri ve açıklamaları:
+- NODE_ENV
+- VITE_SUPABASE_URL
+- VITE_SUPABASE_PUBLISHABLE_KEY
+- VITE_ANA_SAHNE_ENABLED
+- VITE_VAPID_PUBLIC_KEY
+- VITE_SENTRY_DSN
+- SUPABASE_URL
+- SUPABASE_SERVICE_ROLE_KEY
+- SUPABASE_ANON_KEY
+- LOVABLE_API_KEY
+- UPSTASH_REDIS_REST_URL
+- UPSTASH_REDIS_REST_TOKEN
+- VAPID_PUBLIC_KEY
+- VAPID_PRIVATE_KEY
+- VAPID_SUBJECT
+- SENTRY_DSN
+- LOG_LEVEL
+- OPENROUTER_API_KEY
+Supabase Dashboard → Settings → Edge Functions → Secrets’ta ayrıca yönetilenler:
+- x-cron-secret (Supabase Vault içinde cron_secret adıyla saklı; Supabase Secrets listesinde ayrıca görülmüyorsa DB Vault kullanılıyor)
+- OPENROUTER_API_KEY (edge fonksiyonlarda env olarak bekleniyor)
+Eksik olduğundan şüphelenenler:
+  ⚠️ EKSİK OLABİLİR: VITE_SUPABASE_ANON_KEY — eski fallback ismi hala destekleniyor (.env.example’da var), ama proje canlı ortamda VITE_SUPABASE_PUBLISHABLE_KEY ana isimle taşınacak
+  ⚠️ EKSİK OLABİLİR: OPENROUTER_API_KEY — .env.example’da Edge Functions bölümünde adı geçiyor; Edge Deployment Secrets’ta tanımlı olması gerekir
+## BÖLÜM 6 — BAĞIMLILIKLAR
+package.json kritik paketleri:
+CORE:
+- react: 18.3.1
+- react-dom: 18.3.1
+- vite: 5.4.19
+- typescript: 5.8.3
+- @vitejs/plugin-react-swc: 3.11.0
+UI:
+- @radix-ui/*: 1.1.x / 1.2.x / 1.3.x karışık sürümler (accordion, alert-dialog, aspect-ratio, avatar, checkbox, collapsible, context-menu, dialog, dropdown-menu, hover-card, label, menubar, navigation-menu, popover, progress, radio-group, scroll-area, select, separator, slider, slot, switch, tabs, toast, toggle, toggle-group, tooltip)
+- tailwindcss: 3.4.17
+- @tailwindcss/typography: 0.5.16
+- tailwind-merge: 2.6.0
+- class-variance-authority: 0.7.1
+- clsx: 2.1.1
+- framer-motion: 12.40.0
+- lucide-react: 0.462.0
+- sonner: 1.7.4
+- cmdk: 1.1.1
+- embla-carousel-react: 8.6.0
+- vaul: 0.9.9
+- react-resizable-panels: 2.1.9
+- shadcn klasik seti için next-themes: 0.3.0 (React 18 + Vite ortamında şüpheli olabilir)
+- input-otp: 1.4.2
+- react-day-picker: 8.10.1
+DATA:
+- recharts: 3.8.1
+- @tanstack/react-query: 5.83.0
+- @tanstack/query-core: 5.83.0
+- zod: 3.25.76
+- react-hook-form: 7.61.1
+- @hookform/resolvers: 3.10.0
+- date-fns: 3.6.0
+BACKEND:
+- @supabase/supabase-js: 2.103.3
+TESTS:
+- vitest: 3.2.4
+- @vitest/coverage-v8: 3.2.4
+- @testing-library/react: 16.0.0
+- @testing-library/jest-dom: 6.6.0
+- @playwright/test: 1.61.0
+SORUNLU OLABİLECEKLER:
+  - Son 30 günde versiyon değişti mi?: framer-motion 12.40.0 (major), recharts 3.8.1, @tanstack/react-query 5.83.x, radix-ui 1.2/1.3 karışık
+  - Birbirleriyle çakışan paket var mı?: react-router-dom 6.30.1 + cmdk + dialog/popover kombinasyonu modal routing ile çakışabilir; next-themes 0.3.0 Vite uygulamasında mantıksal uyumsuzluk; bun.lock + package-lock.json eşzamanlılığı paket yönetimi riski yaratıyor
+────────────────────────────
+📋 PROJE ÖZETİ (3-5 cümle):
+Proje, React 18 + Vite + Supabase üzerine kurulu bir trading dashboard ve "Blitz" oyun modu içeriyor. Fiyat verisi Binance WebSocket ve Supabase Realtime/postgres_changes ile price_cache’ten servis edilirken, grafikler TradingView Advanced Chart Widget ile sağlanıyor. Supabase Auth + RLS ile güçlü bir güvenlik katmanı kurulmuş; son migration’larda client-side trade/position yazmaları kaldırılıp Edge Functions + service_role authoritativeness’e geçilmiştir. Açık riskler: paket yönetisinde npm/bun çakışması ve price_cache RLS/policy akışındaki geçmiş değişikliklerin prod etkisiyle, AI edge fonksiyonlarının hata/timeout yaklaşımlarının standart olmayan dağılımı.
+⚠️ HEMEN DİKKAT EDİLMESİ GEREKENLER:
+1) Litelock çakışması: repo aynı anda package-lock.json ve bun.lock taşıyor; tek paket yöneticisine sabitlenmeli
+2) Client trade write engeli: migration’larda “revolk insert/update” uygulandı; eğer frontend hala client tarafından trade/position/order insert/update yapıyorsa 403 alınır — dirençli eşleşme sağlanmalı
+3) price_cache RLS akışı: birden fazla migration ile override edildi; prod DB şeması ile `.env.example`/frontend beklentisi tekrar kontrol edilmeli
+4) cron_secret taşınması: pg_cron → edge function çağrısı için Supabase Vault’ta saklanıyor; yeni ortamda Vault secret kurulumu unutulabilir
+5) AI edge timeout/handle sapması: sadece trade-mirror’da standartlaştırıldı; ai-chat/ai-risk-monitor/ai-strategy/ai-trade-coach/ai-analyze/daily-brief/weekly-digest’te benzer değil
