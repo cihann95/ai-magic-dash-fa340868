@@ -67,7 +67,7 @@ async function safe<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
   const controller = new AbortController();
   let timeoutId: number | undefined;
   try {
-    timeoutId = setTimeout(() => controller.abort(), REDIS_TIMEOUT_MS);
+    timeoutId = setTimeout(() => controller.abort(), REDIS_TIMEOUT_MS) as unknown as number;
     return await Promise.race([
       fn(),
       new Promise<never>((_, reject) => {
@@ -233,6 +233,25 @@ export const redis = {
               withScores: true,
             }) as Promise<Array<{ score: number; member: string }>>
           : client!.zrange(k, start, stop) as Promise<string[]>,
+      opts?.withScores
+        ? ([] as Array<{ score: number; member: string }>)
+        : ([] as string[]),
+    ),
+
+  zrangebyscore: (
+    k: string,
+    min: number,
+    max: number,
+    opts?: { withScores?: boolean },
+  ) =>
+    safe(
+      () =>
+        opts?.withScores
+          ? client!.zrange(k, min, max, {
+              withScores: true,
+              byScore: true,
+            }) as Promise<Array<{ score: number; member: string }>>
+          : client!.zrange(k, min, max, { byScore: true }) as Promise<string[]>,
       opts?.withScores
         ? ([] as Array<{ score: number; member: string }>)
         : ([] as string[]),

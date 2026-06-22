@@ -1,7 +1,7 @@
 // Blitz matchmaking: Kullanıcıyı kuyruğa sokar; eşleşme olursa oda açar.
 // Modlar: 'quick' (public FIFO kuyruk), 'create_private' (davet kodu üretir), 'cancel' (kuyruktan çıkar).
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { redis } from "../_shared/redis.ts";
+import { redis, redisEnabled } from "../_shared/redis.ts";
 import { rateLimit } from "../_shared/rate-limit.ts";
 import { checkBodySize } from "../_shared/body-size-limit.ts";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
@@ -21,9 +21,8 @@ interface Req {
 }
 
 /**
- * Release locked balances for participants of stale waiting rooms.
- * Called inline on each matchmake request to catch rooms that exceeded
- * WAITING_ROOM_TTL_SECONDS.  The DB-side cron (cleanup_stale_rooms)
+ * Release locked balances for participants of stale waiting rooms AND stale queue entries.
+ * Called inline on each matchmake request. The DB-side cron (cleanup_stale_rooms)
  * also runs every 5 min as a safety net but does NOT unlock balances.
  */
 async function releaseStaleBalances(admin: ReturnType<typeof createClient>): Promise<void> {
@@ -78,6 +77,47 @@ async function releaseStaleBalances(admin: ReturnType<typeof createClient>): Pro
         ttl_seconds: WAITING_ROOM_TTL_SECONDS,
       },
     }).catch((e: unknown) => console.warn("[blitz-matchmake] log stale room release failed", e));
+  }
+
+  if (redisEnabled) {
+    const now = Date.now();
+    const staleCutoff = now - WAITING_ROOM_TTL_SECONDS * 1000;
+    try {
+      const queueKeys = await redis.smembers("blitz:queue:keys");
+      for (const queueKey of queueKeys ?? []) {
+        const staleEntries = await redis.zrangebyscore(queueKey, 0, staleCutoff, { withScores: true }) as Array<{ score: number; member: string }>;
+        if (staleEntries.length > 0) {
+          const userIds = staleEntries.map((e) => e.member);
+          await redis.zremrangebyscore(queueKey, 0, staleCutoff);
+          for (const userId of userIds) {
+            await redis.lrem(queueKey, 0, userId);
+          }
+          for (const userId of userIds) {
+            const parts = queueKey.split(":");
+            const entryFee = Number(parts[parts.length - 1]);
+            const { data: profile } = await admin
+              .from("profiles")
+              .select("real_balance_locked")
+              .eq("id", userId)
+              .single();
+            if (profile && Number(profile.real_balance_locked) >= entryFee) {
+              await admin.from("profiles")
+                .update({ real_balance_locked: Number(profile.real_balance_locked) - entryFee })
+                .eq("id", userId)
+                .eq("real_balance_locked", Number(profile.real_balance_locked));
+            }
+          }
+          await admin.rpc("log_observability", {
+            p_service: "blitz_matchmake",
+            p_event: "queue_stale_cleanup",
+            p_level: "warn",
+            p_metadata: { queue_key: queueKey, cleaned_count: userIds.length, ttl_seconds: WAITING_ROOM_TTL_SECONDS },
+          }).catch((e: unknown) => console.warn("[blitz-matchmake] log queue stale cleanup failed", e));
+        }
+      }
+    } catch (e) {
+      console.warn(JSON.stringify({ event: "redis_fail_open", op: "stale_queue_cleanup", error: String(e) }));
+    }
   }
 }
 
@@ -135,12 +175,28 @@ Deno.serve(async (req) => {
 
   // CANCEL
   if (mode === "cancel") {
+    // Try to remove from Redis queue (best effort, fail-open)
     try {
       await redis.lrem(queueKey, 0, user.id);
     } catch (e) {
       console.warn(JSON.stringify({ event: "redis_fail_open", op: "lrem", queueKey, error: String(e) }));
     }
 
+    // Unlock balance from DB (idempotent, conditional UPDATE for TOCTOU protection)
+    // Only unlock if there's actually locked balance >= entry_fee
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("real_balance_locked")
+      .eq("id", user.id)
+      .single();
+    if (profile && Number(profile.real_balance_locked) >= entry_fee) {
+      await admin.from("profiles")
+        .update({ real_balance_locked: Number(profile.real_balance_locked) - entry_fee })
+        .eq("id", user.id)
+        .eq("real_balance_locked", Number(profile.real_balance_locked));
+    }
+
+    // Clean up abandoned private waiting rooms (no participants)
     const { data: waitingRooms } = await admin
       .from("blitz_rooms")
       .select("id, symbol")
@@ -162,7 +218,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+    console.warn(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
     return new Response(JSON.stringify({ ok: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -179,7 +235,7 @@ Deno.serve(async (req) => {
   }
   const available = Number(profile.real_balance) - Number(profile.real_balance_locked);
   if (available < entry_fee) {
-    console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+    console.warn(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
     return new Response(JSON.stringify({ error: "Yetersiz bakiye", code: "INSUFFICIENT_BALANCE", available }), {
       status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -193,7 +249,7 @@ Deno.serve(async (req) => {
       .eq("id", user.id)
       .eq("real_balance_locked", Number(profile.real_balance_locked));
     if (lockErr) {
-      console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+      console.warn(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
       return new Response(JSON.stringify({ error: "Bakiye kilitleme başarısız", code: "LOCK_FAILED" }), {
         status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -209,7 +265,7 @@ Deno.serve(async (req) => {
       await admin.from("profiles")
         .update({ real_balance_locked: Number(profile.real_balance_locked) })
         .eq("id", user.id);
-      console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+      console.warn(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
       return new Response(JSON.stringify({ error: rErr?.message ?? "Oda oluşturulamadı", code: "ROOM_CREATE_FAILED" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -228,6 +284,18 @@ Deno.serve(async (req) => {
   }
 
   // QUICK MATCH: kuyrukta rakip varsa eşleştir, yoksa kuyruğa gir
+  // Redis kontrolü: yoksa 503 döner (sessiz fail-open yerine açık hata)
+  if (!redisEnabled) {
+    console.warn(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+    return new Response(JSON.stringify({
+      error: "Eşleştirme servisi geçici olarak kullanılamıyor",
+      code: "MATCHMAKER_UNAVAILABLE",
+      retryable: true,
+    }), {
+      status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   // İlk önce kullanıcının zaten kuyrukta olmadığından emin ol
   try {
     await redis.lrem(queueKey, 0, user.id);
@@ -252,7 +320,7 @@ Deno.serve(async (req) => {
         .eq("id", user.id)
         .eq("real_balance_locked", Number(profile.real_balance_locked));
       if (lockErr) {
-        console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+        console.warn(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
         return new Response(JSON.stringify({ error: "Bakiye kilitleme başarısız", code: "LOCK_FAILED" }), {
           status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -260,13 +328,14 @@ Deno.serve(async (req) => {
     }
     try {
       await redis.rpush(queueKey, user.id);
-    } catch (e) {
-      console.warn(JSON.stringify({ event: "redis_fail_open", op: "rpush", queueKey, error: String(e) }));
-    }
-    try {
+      // Also add to sorted set with timestamp for stale cleanup
+      const now = Date.now();
+      await redis.zadd(queueKey, now, user.id);
+      // Track this queue key for stale cleanup scanning
+      await redis.sadd("blitz:queue:keys", queueKey);
       await redis.expire(queueKey, WAITING_ROOM_TTL_SECONDS);
     } catch (e) {
-      console.warn(JSON.stringify({ event: "redis_fail_open", op: "expire", queueKey, error: String(e) }));
+      console.warn(JSON.stringify({ event: "redis_fail_open", op: "rpush/zadd/sadd", queueKey, error: String(e) }));
     }
 
     // Log queue entry for observability (helps detect orphaned queues)
@@ -277,7 +346,7 @@ Deno.serve(async (req) => {
       p_metadata: { symbol, entry_fee, user_id: user.id, ttl_seconds: WAITING_ROOM_TTL_SECONDS },
     }).catch((e: unknown) => console.warn("[blitz-matchmake] log queue_joined failed", e));
 
-    console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+    console.warn(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
     return new Response(JSON.stringify({ status: "queued" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -301,10 +370,14 @@ Deno.serve(async (req) => {
     // Kullanıcıyı kuyruğa geri koy (bakiyesi zaten kilitli)
     try {
       await redis.rpush(queueKey, user.id);
+      const now = Date.now();
+      await redis.zadd(queueKey, now, user.id);
+      await redis.sadd("blitz:queue:keys", queueKey);
+      await redis.expire(queueKey, WAITING_ROOM_TTL_SECONDS);
     } catch (e) {
-      console.warn(JSON.stringify({ event: "redis_fail_open", op: "rpush", queueKey, error: String(e) }));
+      console.warn(JSON.stringify({ event: "redis_fail_open", op: "rpush/zadd/sadd", queueKey, error: String(e) }));
     }
-    console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+    console.warn(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
     return new Response(JSON.stringify({ status: "queued" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -319,10 +392,14 @@ Deno.serve(async (req) => {
     // Kilitleme başarısız — rakibi geri kuyruğa koy
     try {
       await redis.rpush(queueKey, opponent);
+      const now = Date.now();
+      await redis.zadd(queueKey, now, opponent);
+      await redis.sadd("blitz:queue:keys", queueKey);
+      await redis.expire(queueKey, WAITING_ROOM_TTL_SECONDS);
     } catch (e) {
-      console.warn(JSON.stringify({ event: "redis_fail_open", op: "rpush", queueKey, error: String(e) }));
+      console.warn(JSON.stringify({ event: "redis_fail_open", op: "rpush/zadd/sadd", queueKey, error: String(e) }));
     }
-    console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+    console.warn(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
     return new Response(JSON.stringify({ error: "Bakiye kilitleme başarısız", code: "LOCK_FAILED" }), {
       status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -341,7 +418,7 @@ Deno.serve(async (req) => {
   }
   const startPrice = startPriceRaw ? Number(startPriceRaw) : null;
   if (!startPrice || !isFinite(startPrice) || startPrice <= 0) {
-    console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+    console.warn(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
     return new Response(JSON.stringify({ error: "Sembol için fiyat bilgisi alınamadı", code: "PRICE_UNAVAILABLE" }), {
       status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -360,7 +437,7 @@ Deno.serve(async (req) => {
     created_by: user.id,
   }).select().single();
   if (rErr || !room) {
-    console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+    console.warn(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
     return new Response(JSON.stringify({ error: rErr?.message ?? "Oda oluşturulamadı", code: "ROOM_CREATE_FAILED" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -406,7 +483,7 @@ Deno.serve(async (req) => {
     console.warn(JSON.stringify({ event: "redis_fail_open", op: "hsetAll/sadd/expire", roomId: room.id, error: String(e) }));
   }
 
-  console.error(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
+  console.warn(JSON.stringify({ event: "request", duration_ms: Date.now() - start }));
   return new Response(JSON.stringify({ room_id: room.id, status: "active", opponent }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
