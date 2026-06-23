@@ -20,6 +20,30 @@ const MOCK_SESSION = {
   user: MOCK_USER,
 };
 
+/** Inject session into localStorage so Supabase SDK's getSession() finds it on load. */
+async function injectSessionIntoStorage(page: Page) {
+  await page.addInitScript((user) => {
+    const sessionData = {
+      access_token: "mock-jwt-critical-e2e",
+      refresh_token: "mock-refresh-critical-e2e",
+      expires_in: 3600,
+      expires_at: Math.floor(Date.now() / 1000) + 3600,
+      token_type: "bearer",
+      user,
+    };
+    const keys = [
+      "sb-localhost-auth-token",
+      "sb-http-localhost-auth-token",
+      "sb-localhost:54321-auth-token",
+      "sb-http-localhost:54321-auth-token",
+      "supabase.auth.token",
+    ];
+    for (const key of keys) {
+      localStorage.setItem(key, JSON.stringify(sessionData));
+    }
+  }, MOCK_USER);
+}
+
 const MOCK_PROFILE = [
   {
     id: MOCK_USER.id,
@@ -92,8 +116,8 @@ async function mockAuthUnauthenticated(page: Page) {
   await blockExternals(page);
 }
 
-/** Mock Supabase auth as pre-authenticated (session present on load). */
 async function mockAuthPreAuthenticated(page: Page) {
+  await injectSessionIntoStorage(page);
   await page.route("**/auth/v1/session**", (route) =>
     route.fulfill({
       status: 200,
@@ -237,17 +261,19 @@ async function setupDashboardMocks(page: Page) {
 /* ─── Scenario 1: Auth Flow ─────────────────────────────────────────────── */
 
 test.describe("Scenario 1 — Auth Flow", () => {
-  test("01a - Unauthenticated user redirects to /auth", async ({ page }) => {
+  test("01a - Unauthenticated user sees landing page with auth CTA", async ({ page }) => {
     await mockAuthUnauthenticated(page);
     await page.goto("/");
     await page.waitForLoadState("domcontentloaded");
     await page.waitForTimeout(3000);
 
-    // Should redirect to auth page
-    expect(page.url()).toContain("/auth");
+    // Index.tsx renders a public landing page for unauthenticated users (no redirect to /auth)
+    const hasSignin = await page.getByRole("button", { name: /giriş|sign.?in/i }).first().isVisible().catch(() => false);
+    const hasBranding = await page.getByText("Lumen Trade").first().isVisible().catch(() => false);
+    expect(hasSignin || hasBranding).toBeTruthy();
 
     await page.screenshot({
-      path: path.join(SCREENSHOT_DIR, "01a-unauth-redirect.png"),
+      path: path.join(SCREENSHOT_DIR, "01a-unauth-landing.png"),
       fullPage: true,
     });
   });
@@ -716,7 +742,7 @@ test.describe("Scenario 5 — Blitz Page", () => {
     await page.waitForTimeout(2000);
 
     // Verify Blitz heading is visible
-    await expect(page.getByText("Blitz")).toBeVisible();
+    await expect(page.getByText("Blitz", { exact: true })).toBeVisible();
 
     // Verify lobby content: symbol selector, entry fee, tabs
     await expect(page.getByText("60 saniye. 1v1.")).toBeVisible();

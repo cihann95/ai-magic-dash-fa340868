@@ -53,7 +53,31 @@ let allOrders: unknown[] = [];
 
 /* ─── Route Helpers ─────────────────────────────────────────────────────── */
 
+async function injectSessionIntoStorage(page: Page) {
+  await page.addInitScript((user) => {
+    const sessionData = {
+      access_token: "mock-jwt-e2e",
+      refresh_token: "mock-refresh-e2e",
+      expires_in: 3600,
+      expires_at: Math.floor(Date.now() / 1000) + 3600,
+      token_type: "bearer",
+      user,
+    };
+    const keys = [
+      "sb-localhost-auth-token",
+      "sb-http-localhost-auth-token",
+      "sb-localhost:54321-auth-token",
+      "sb-http-localhost:54321-auth-token",
+      "supabase.auth.token",
+    ];
+    for (const key of keys) {
+      localStorage.setItem(key, JSON.stringify(sessionData));
+    }
+  }, MOCK_USER);
+}
+
 async function mockSupabaseAuth(page: Page) {
+  await injectSessionIntoStorage(page);
   await page.route("**/auth/v1/session**", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ data: { session: MOCK_SESSION } }) })
   );
@@ -162,8 +186,7 @@ test.describe("Blitz Trading Flow", () => {
     await page.waitForLoadState("domcontentloaded");
     await page.waitForTimeout(2000);
 
-    // Verify lobby elements
-    await expect(page.getByText("Blitz")).toBeVisible();
+    await expect(page.getByText("Blitz", { exact: true })).toBeVisible();
     await expect(page.getByText("60 saniye. 1v1.")).toBeVisible();
 
     // Symbol selector
@@ -238,13 +261,16 @@ test.describe("Blitz Trading Flow", () => {
     await page.waitForLoadState("domcontentloaded");
     await page.waitForTimeout(3000);
 
-    // Click LONG button
     const longBtn = page.getByRole("button", { name: /LONG/ });
     if (await longBtn.isVisible().catch(() => false)) {
       await longBtn.click();
-      await page.waitForTimeout(2000);
+      await page.waitForTimeout(1500);
 
-      // After opening, should see position info or close button
+      // Realtime is blocked so the order list won't re-fetch; reload to pick up the new order from mock
+      await page.goto("/blitz/room-e2e-001");
+      await page.waitForLoadState("domcontentloaded");
+      await page.waitForTimeout(3000);
+
       const closeBtn = page.getByRole("button", { name: /Pozisyonu Kapat/ });
       const hasPosition = await closeBtn.isVisible().catch(() => false);
       expect(hasPosition).toBeTruthy();
@@ -261,7 +287,12 @@ test.describe("Blitz Trading Flow", () => {
     const shortBtn = page.getByRole("button", { name: /SHORT/ });
     if (await shortBtn.isVisible().catch(() => false)) {
       await shortBtn.click();
-      await page.waitForTimeout(2000);
+      await page.waitForTimeout(1500);
+
+      // Realtime is blocked so the order list won't re-fetch; reload to pick up the new order from mock
+      await page.goto("/blitz/room-e2e-001");
+      await page.waitForLoadState("domcontentloaded");
+      await page.waitForTimeout(3000);
 
       const closeBtn = page.getByRole("button", { name: /Pozisyonu Kapat/ });
       const hasPosition = await closeBtn.isVisible().catch(() => false);
