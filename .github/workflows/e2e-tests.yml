@@ -43,7 +43,7 @@ jobs:
           echo "MOCK_PID=$!" >> "$GITHUB_ENV"
 
       - name: Wait for mock server health
-        run: npx tsx scripts/wait-for-server.ts http://localhost:3547
+        run: npx tsx scripts/wait-for-server.ts http://127.0.0.1:3547
 
       - name: Run Playwright tests
         run: npx playwright test
