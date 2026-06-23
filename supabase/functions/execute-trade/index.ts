@@ -8,10 +8,26 @@ import { checkBodySize } from "../_shared/body-size-limit.ts";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 import { corsHeaders, handleCors } from "../_shared/cors.ts";
 
-const VALID_SYMBOLS = ["BTCUSD", "ETHUSD", "SOLUSD", "BNBUSD", "XRPUSD", "DOGEUSD", "ADAUSD", "AVAXUSD"] as const;
+const VALID_SYMBOLS = new Set([
+  // Crypto (Binance)
+  "BTCUSD", "ETHUSD", "SOLUSD", "BNBUSD", "XRPUSD", "DOGEUSD", "ADAUSD", "AVAXUSD",
+  "DOTUSD", "LINKUSD", "MATICUSD", "UNIUSD", "ATOMUSD", "TRXUSD", "LTCUSD", "FILUSD",
+  "BCHUSD", "ETCUSD", "XLMUSD", "ICPUSD", "NEARUSD", "APTUSD", "ARBUSD", "OPUSD",
+  "SUIUSD", "SEIUSD", "PYTHUSD", "RENDERUSD", "TONUSD", "BONKUSD", "PEPEUSD",
+  // Stocks
+  "AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "GOOGL", "META",
+  // Forex
+  "EURUSD", "GBPUSD", "USDJPY", "USDTRY", "XAUUSD", "XAGUSD",
+  // Commodities
+  "GOLD", "SILVER", "OIL", "NATGAS",
+  // Indices
+  "SPX", "NDX", "DJI", "VIX",
+  // ETF
+  "SPY", "QQQ", "VTI",
+]);
 
 const TradeRequestSchema = z.object({
-  symbol: z.enum(VALID_SYMBOLS),
+  symbol: z.string().refine((s) => VALID_SYMBOLS.has(s), "Geçersiz sembol"),
   asset_class: z.string().min(1).max(24),
   side: z.enum(["buy", "sell"]),
   quantity: z.number().positive().max(1_000_000),
@@ -59,7 +75,15 @@ interface OpenTrade {
 const BINANCE_PAIRS: Record<string, string> = {
   BTCUSD: "BTCUSDT", ETHUSD: "ETHUSDT", SOLUSD: "SOLUSDT",
   BNBUSD: "BNBUSDT", XRPUSD: "XRPUSDT", DOGEUSD: "DOGEUSDT",
-  ADAUSD: "ADAUSDT", AVAXUSD: "AVAXUSDT",
+  ADAUSD: "ADAUSDT", AVAXUSD: "AVAXUSDT", DOTUSD: "DOTUSDT",
+  LINKUSD: "LINKUSDT", MATICUSD: "MATICUSDT", UNIUSD: "UNIUSDT",
+  ATOMUSD: "ATOMUSDT", TRXUSD: "TRXUSDT", LTCUSD: "LTCUSDT",
+  FILUSD: "FILUSDT", BCHUSD: "BCHUSDT", ETCUSD: "ETCUSDT",
+  XLMUSD: "XLMUSDT", ICPUSD: "ICPUSDT", NEARUSD: "NEARUSDT",
+  APTUSD: "APTUSDT", ARBUSD: "ARBUSDT", OPUSD: "OPUSDT",
+  SUIUSD: "SUIUSDT", SEIUSD: "SEIUSDT", PYTHUSD: "PYTHUSDT",
+  RENDERUSD: "RENDERUSDT", TONUSD: "TONUSDT", BONKUSD: "BONKUSDT",
+  PEPEUSD: "PEPEUSDT",
 };
 
 const STALE_MS = 30_000;

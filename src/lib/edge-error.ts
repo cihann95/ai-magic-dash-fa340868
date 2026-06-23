@@ -68,6 +68,10 @@ const RETRYABLE_CODES = new Set([
 /**
  * Try to read structured error JSON from a Supabase error's Response context.
  * FunctionsHttpError and FunctionsRelayError store the Response in `.context`.
+ *
+ * The Supabase client may consume the Response body when creating the error,
+ * so we try `.json()` first, then `.text()` as fallback.
+ * We also accept bodies with either `code` or `error` keys.
  */
 async function readResponseContext(
   err: { context?: unknown }
@@ -78,13 +82,26 @@ async function readResponseContext(
     typeof ctx === "object" &&
     typeof (ctx as Response).json === "function"
   ) {
+    // Try .json() first (body not yet consumed)
     try {
       const body: unknown = await (ctx as Response).json();
-      if (body && typeof body === "object" && "code" in body) {
+      if (body && typeof body === "object" && ("code" in body || "error" in body)) {
         return body as EdgeFunctionResponse;
       }
     } catch {
-      // Response body already consumed or not JSON — fall through
+      // Body consumed — try .text() fallback (Response clone or unconsumed text)
+    }
+    // Try .text() when .json() failed (body might still be available as text)
+    try {
+      const text = await (ctx as Response).text();
+      if (text) {
+        const parsed: unknown = JSON.parse(text);
+        if (parsed && typeof parsed === "object" && ("code" in parsed || "error" in parsed)) {
+          return parsed as EdgeFunctionResponse;
+        }
+      }
+    } catch {
+      // Body already consumed or not JSON — fall through
     }
   }
   return null;
@@ -155,13 +172,36 @@ function parseEdgeError(rawMessage: string): EdgeError {
 }
 
 /**
+ * Try to parse a string as JSON and return an EdgeFunctionResponse if valid.
+ */
+function tryParseJson(str: string): EdgeFunctionResponse | null {
+  try {
+    const parsed: unknown = JSON.parse(str);
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      ("code" in parsed || "error" in parsed)
+    ) {
+      return parsed as EdgeFunctionResponse;
+    }
+  } catch {
+    // not JSON
+  }
+  return null;
+}
+
+/**
  * Resolve an error from supabase.functions.invoke() into a structured EdgeError.
  * Reads the Response body when available (FunctionsHttpError / FunctionsRelayError),
  * then falls back to message-based parsing.
  */
 async function resolveEdgeError(rawError: unknown): Promise<EdgeError> {
   if (rawError && typeof rawError === "object") {
-    const errObj = rawError as { name?: string; context?: unknown };
+    const errObj = rawError as {
+      name?: string;
+      context?: unknown;
+      message?: string;
+    };
 
     // FunctionsHttpError / FunctionsRelayError — read the Response body
     if (
@@ -171,6 +211,15 @@ async function resolveEdgeError(rawError: unknown): Promise<EdgeError> {
       const body = await readResponseContext(errObj);
       if (body) {
         return errorFromResponse(body);
+      }
+
+      // Response body consumed — try parsing error.message as JSON
+      // (Supabase client puts the server's error details here)
+      if (typeof errObj.message === "string") {
+        const fromMsg = tryParseJson(errObj.message);
+        if (fromMsg) {
+          return errorFromResponse(fromMsg);
+        }
       }
     }
 

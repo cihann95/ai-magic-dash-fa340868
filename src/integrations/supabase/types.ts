@@ -544,6 +544,7 @@ export type Database = {
       positions: {
         Row: {
           asset_class: string
+          closed_at: string | null
           current_price: number | null
           entry_price: number
           id: string
@@ -556,6 +557,7 @@ export type Database = {
         }
         Insert: {
           asset_class: string
+          closed_at?: string | null
           current_price?: number | null
           entry_price: number
           id?: string
@@ -568,6 +570,7 @@ export type Database = {
         }
         Update: {
           asset_class?: string
+          closed_at?: string | null
           current_price?: number | null
           entry_price?: number
           id?: string
