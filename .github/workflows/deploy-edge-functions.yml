@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - "supabase/functions/**"
+      - "supabase/deploy-all.sh"
 
 concurrency:
   group: ${{ github.ref }}-deploy-edge
