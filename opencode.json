@@ -3,8 +3,5 @@
   "model": "opencode/mimo-v2.5-free",
   "small_model": "opencode/big-pickle",
   "autoupdate": true,
-  "permission": {
-    "edit": "ask",
-    "bash": "ask"
-  }
+  "permission": "allow"
 }
