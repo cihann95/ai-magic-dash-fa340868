@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { supabase } from "@/integrations/supabase/client";
 import { useApp } from "@/contexts/AppContext";
 
-const CRYPTO_SYMBOLS = ["BTCUSD", "ETHUSD", "SOLUSD", "BNBUSD", "XRPUSD", "DOGEUSD", "ADAUSD", "AVAXUSD", "DOTUSD", "LINKUSD", "MATICUSD", "UNIUSD", "ATOMUSD", "TRXUSD", "LTCUSD", "FILUSD"];
+const CRYPTO_SYMBOLS = ["BTCUSD", "ETHUSD", "SOLUSD", "BNBUSD", "XRPUSD", "DOGEUSD", "ADAUSD", "AVAXUSD", "DOTUSD", "LINKUSD", "MATICUSD", "UNIUSD", "ATOMUSD", "TRXUSD", "LTCUSD", "FILUSD", "BCHUSD", "ETCUSD", "XLMUSD", "ICPUSD", "NEARUSD", "APTUSD", "ARBUSD", "OPUSD", "SUIUSD", "SEIUSD", "PYTHUSD", "RENDERUSD", "TONUSD", "BONKUSD", "PEPEUSD"];
 
 interface SlippageConfig {
   symbol: string;

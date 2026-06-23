@@ -2,7 +2,7 @@
 // Görsel chart ile daha iyi hizalama için ekranda son gerçekleşen işlem fiyatını kullanırız.
 // Tek bağlantı tüm sembolleri paylaşır; auto-reconnect + exp backoff.
 
-type Tick = { symbol: string; price: number; change_pct_24h: number | null; updated_at: string };
+type Tick = { symbol: string; price: number; change_pct_24h: number | null; high_24h: number | null; low_24h: number | null; updated_at: string };
 type Listener = (t: Tick) => void;
 
 // internal symbol -> binance symbol
@@ -11,6 +11,10 @@ const PAIRS: Record<string, string> = {
   XRPUSD: "xrpusdt", DOGEUSD: "dogeusdt", ADAUSD: "adausdt", AVAXUSD: "avaxusdt",
   DOTUSD: "dotusdt", LINKUSD: "linkusdt", MATICUSD: "maticusdt", UNIUSD: "uniusdt",
   ATOMUSD: "atomusdt", TRXUSD: "trxusdt", LTCUSD: "ltcusdt", FILUSD: "filusdt",
+  BCHUSD: "bchusdt", ETCUSD: "etcusdt", XLMUSD: "xlmusdt", ICPUSD: "icpusdt",
+  NEARUSD: "nearusdt", APTUSD: "aptusdt", ARBUSD: "arbusdt", OPUSD: "opusdt",
+  SUIUSD: "suiusdt", SEIUSD: "seiusdt", PYTHUSD: "pythusdt", RENDERUSD: "renderusdt",
+  TONUSD: "tonusdt", BONKUSD: "bonkusdt", PEPEUSD: "pepeusdt",
 };
 const REVERSE: Record<string, string> = Object.fromEntries(
   Object.entries(PAIRS).map(([k, v]) => [v.toUpperCase(), k])
@@ -23,6 +27,7 @@ interface BinanceStreamState {
   reconnectTimer: number | null;
   backoff: number;
   last24hPct: Record<string, number>;
+  last24hHL: Record<string, { high: number; low: number }>;
   lastMessageTime: number;
   heartbeatInterval: number | null;
 }
@@ -34,6 +39,7 @@ const S = w.__binance_stream ?? {
   reconnectTimer: null as number | null,
   backoff: 1000,
   last24hPct: {} as Record<string, number>,
+  last24hHL: {} as Record<string, { high: number; low: number }>,
   lastMessageTime: 0,
   heartbeatInterval: null as number | null,
 };
@@ -85,14 +91,20 @@ function connect() {
       if (stream.endsWith("@ticker")) {
         const pct = parseFloat(d.P);
         if (isFinite(pct)) S.last24hPct[symbol] = pct;
+        const high = parseFloat(d.h);
+        const low = parseFloat(d.l);
+        if (isFinite(high) && isFinite(low)) S.last24hHL[symbol] = { high, low };
         return;
       }
       const price = parseFloat(d.p);
       if (!isFinite(price) || price <= 0) return;
+      const hl = S.last24hHL[symbol];
       const tick: Tick = {
         symbol,
         price,
         change_pct_24h: S.last24hPct[symbol] ?? null,
+        high_24h: hl?.high ?? null,
+        low_24h: hl?.low ?? null,
         updated_at: new Date().toISOString(),
       };
       for (const l of S.listeners) l(tick);

@@ -28,10 +28,25 @@ describe("binanceStream", () => {
       expect(CRYPTO_SYMBOLS).toContain("TRXUSD");
       expect(CRYPTO_SYMBOLS).toContain("LTCUSD");
       expect(CRYPTO_SYMBOLS).toContain("FILUSD");
+      expect(CRYPTO_SYMBOLS).toContain("BCHUSD");
+      expect(CRYPTO_SYMBOLS).toContain("ETCUSD");
+      expect(CRYPTO_SYMBOLS).toContain("XLMUSD");
+      expect(CRYPTO_SYMBOLS).toContain("ICPUSD");
+      expect(CRYPTO_SYMBOLS).toContain("NEARUSD");
+      expect(CRYPTO_SYMBOLS).toContain("APTUSD");
+      expect(CRYPTO_SYMBOLS).toContain("ARBUSD");
+      expect(CRYPTO_SYMBOLS).toContain("OPUSD");
+      expect(CRYPTO_SYMBOLS).toContain("SUIUSD");
+      expect(CRYPTO_SYMBOLS).toContain("SEIUSD");
+      expect(CRYPTO_SYMBOLS).toContain("PYTHUSD");
+      expect(CRYPTO_SYMBOLS).toContain("RENDERUSD");
+      expect(CRYPTO_SYMBOLS).toContain("TONUSD");
+      expect(CRYPTO_SYMBOLS).toContain("BONKUSD");
+      expect(CRYPTO_SYMBOLS).toContain("PEPEUSD");
     });
 
-    it("has 16 symbols", () => {
-      expect(CRYPTO_SYMBOLS).toHaveLength(16);
+    it("has 31 symbols", () => {
+      expect(CRYPTO_SYMBOLS).toHaveLength(31);
     });
   });
 
