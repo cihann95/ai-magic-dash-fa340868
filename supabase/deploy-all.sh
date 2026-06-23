@@ -64,10 +64,10 @@ for fn in "${PUBLIC_FUNCTIONS[@]}"; do
   echo -n "  Deploying $fn... "
   if supabase functions deploy "$fn" --project-ref "$PROJECT_REF" --no-verify-jwt 2>&1; then
     echo "✅"
-    ((DEPLOYED++))
+    DEPLOYED=$((DEPLOYED + 1))
   else
     echo "❌"
-    ((FAILED++))
+    FAILED=$((FAILED + 1))
   fi
 done
 
@@ -77,10 +77,10 @@ for fn in "${AUTH_FUNCTIONS[@]}"; do
   echo -n "  Deploying $fn... "
   if supabase functions deploy "$fn" --project-ref "$PROJECT_REF" 2>&1; then
     echo "✅"
-    ((DEPLOYED++))
+    DEPLOYED=$((DEPLOYED + 1))
   else
     echo "❌"
-    ((FAILED++))
+    FAILED=$((FAILED + 1))
   fi
 done
 
