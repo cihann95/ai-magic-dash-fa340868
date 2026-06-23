@@ -40,13 +40,17 @@ jobs:
       - name: Start mock server
         run: |
           deno run -A scripts/audit/_mock_server.ts &
-          echo "MOCK_PID=$!"
+          echo "MOCK_PID=$!" >> "$GITHUB_ENV"
 
       - name: Wait for mock server health
-        run: npx tsx scripts/wait-for-server.ts
+        run: npx tsx scripts/wait-for-server.ts http://localhost:3547
 
       - name: Run Playwright tests
         run: npx playwright test
+
+      - name: Stop mock server
+        if: always()
+        run: kill $MOCK_PID || true
 
       - name: Upload artifacts on failure
         if: failure()
