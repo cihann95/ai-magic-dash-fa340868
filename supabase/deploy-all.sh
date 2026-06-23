@@ -21,6 +21,7 @@ fi
 
 echo "🚀 Deploying Edge Functions to project: $PROJECT_REF"
 
+
 # Public endpoints (no JWT verification)
 PUBLIC_FUNCTIONS=("price-feed" "news-feed")
 
