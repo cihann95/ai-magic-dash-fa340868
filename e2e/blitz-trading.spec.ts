@@ -146,7 +146,7 @@ async function setupBlitzMocks(page: Page, roomOverrides: Record<string, unknown
   await page.route("**/functions/v1/blitz-tick-order**", (route) => {
     const body = route.request().postDataJSON();
     if (body?.action === "open") {
-      const order = { id: `order-${Date.now()}`, side: body.side, amount: body.amount, entry_price: 65000, closed_at: null };
+      const order = { id: `order-${Date.now()}`, room_id: body.room_id ?? "room-e2e-001", user_id: MOCK_USER.id, side: body.side, amount: body.amount, entry_price: 65000, closed_at: null, opened_at: new Date().toISOString() };
       openOrders.push(order);
       allOrders.push(order);
       return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ id: order.id, status: "open" }) });
@@ -186,7 +186,7 @@ test.describe("Blitz Trading Flow", () => {
     await page.waitForLoadState("domcontentloaded");
     await page.waitForTimeout(2000);
 
-    await expect(page.getByText("Blitz", { exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Blitz Arena/ })).toBeVisible();
     await expect(page.getByText("60 saniye. 1v1.")).toBeVisible();
 
     // Symbol selector
@@ -207,15 +207,15 @@ test.describe("Blitz Trading Flow", () => {
     await page.waitForLoadState("domcontentloaded");
     await page.waitForTimeout(2000);
 
-    // Switch to private room tab
+    await expect(page.getByRole("heading", { name: /Blitz Arena/ })).toBeVisible();
     await page.getByRole("tab", { name: /Özel Oda/ }).click();
     await page.waitForTimeout(500);
 
-    // Click create invite code
-    await page.getByRole("button", { name: /Davet kodu oluştur/ }).click();
+    const createBtn = page.getByRole("button", { name: /Davet kodu oluştur/ });
+    await expect(createBtn).toBeEnabled({ timeout: 5000 });
+    await createBtn.click();
     await page.waitForTimeout(2000);
 
-    // Toast or UI should show invite code
     await page.screenshot({ path: "test-results/blitz/02-private-room-created.png", fullPage: true });
   });
 
