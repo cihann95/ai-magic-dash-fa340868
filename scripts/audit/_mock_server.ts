@@ -151,6 +151,11 @@ async function handler(req: Request): Promise<Response> {
   const url = new URL(req.url);
   const path = url.pathname;
   const method = req.method;
+
+  if (path === "/" && method === "GET") {
+    return new Response("ok", { status: 200 });
+  }
+
   const bodyText = await req.text().catch(() => "");
   let body: Record<string, unknown> = {};
   try { body = JSON.parse(bodyText); } catch { /* ignore */ }
