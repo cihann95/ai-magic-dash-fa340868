@@ -5,6 +5,7 @@ import { useLivePrice } from "@/hooks/useLivePrices";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useApp } from "@/contexts/AppContext";
 import { t } from "@/lib/i18n";
 import { TrendingDown, TrendingUp, Loader2, Clock } from "lucide-react";
@@ -39,10 +40,24 @@ function getTradeErrorMessage(error: unknown): string {
 
 interface Props { symbol: SymbolDef; onTradeDone: () => void; }
 
+const PCT_OPTIONS = [25, 50, 75, 100] as const;
+type Pct = typeof PCT_OPTIONS[number];
+
+interface DbPosition {
+  id: string;
+  symbol: string;
+  side: string;
+  quantity: number | string;
+  entry_price: number | string;
+  pending?: boolean;
+}
+
 export default function ChartPanel({ symbol, onTradeDone }: Props) {
-  const { lang, theme, user } = useApp();
+  const { lang, theme, user, realBalance } = useApp();
   const tr = t(lang);
   const [qty, setQty] = useState("1");
+  const [selectedPct, setSelectedPct] = useState<Pct | null>(null);
+  const [positions, setPositions] = useState<DbPosition[]>([]);
   const [submitting, setSubmitting] = useState<"buy" | "sell" | null>(null);
   const [intentOpen, setIntentOpen] = useState<null | { side: "buy" | "sell"; signal: EmotionalSignal }>(null);
   const [timeframe, setTimeframe] = useState<string>("1h");
@@ -97,14 +112,77 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
       if (ach?.length) celebrateAchievements(ach, lang);
       setIntentOpen(null);
       onTradeDone();
-} catch (e) {
-       window.dispatchEvent(new CustomEvent("optimistic-position-rollback", { detail: { id: optimisticId } }));
-       toast({ title: tr.error, description: getTradeErrorMessage(e), variant: "destructive" });
-     } finally { setSubmitting(null); }
+    } catch (e) {
+      window.dispatchEvent(new CustomEvent("optimistic-position-rollback", { detail: { id: optimisticId } }));
+      toast({ title: tr.error, description: getTradeErrorMessage(e), variant: "destructive" });
+    } finally { setSubmitting(null); }
+  };
+
+  const handlePctClick = (pct: Pct) => {
+    if (!price || price <= 0 || !realBalance) return;
+    setSelectedPct(pct);
+    const rawQty = (realBalance * pct / 100) / price;
+    setQty(parseFloat(rawQty.toFixed(4)).toString());
+  };
+
+  const handleQtyChange = (val: string) => {
+    setQty(val);
+    if (selectedPct) setSelectedPct(null);
+  };
+
+  const loadSymbolPositions = async () => {
+    if (!user) { setPositions([]); return; }
+    const { data } = await supabase
+      .from("positions")
+      .select("id, symbol, side, quantity, entry_price")
+      .eq("user_id", user.id)
+      .eq("symbol", symbol.symbol)
+      .eq("status", "open");
+    setPositions(data ?? []);
+  };
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { loadSymbolPositions(); }, [user, symbol.symbol]);
+
+  useEffect(() => {
+    const add = (e: Event) => {
+      const next = (e as CustomEvent<DbPosition>).detail;
+      if (next?.symbol === symbol.symbol) setPositions((cur) => [next, ...cur.filter((p) => p.id !== next.id)]);
+    };
+    const rollback = (e: Event) => {
+      const id = (e as CustomEvent<{ id: string }>).detail?.id;
+      if (id) setPositions((cur) => cur.filter((p) => p.id !== id));
+    };
+    const refresh = () => loadSymbolPositions();
+    window.addEventListener("optimistic-position", add);
+    window.addEventListener("optimistic-position-rollback", rollback);
+    window.addEventListener("balance-update", refresh);
+    return () => {
+      window.removeEventListener("optimistic-position", add);
+      window.removeEventListener("optimistic-position-rollback", rollback);
+      window.removeEventListener("balance-update", refresh);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [symbol.symbol]);
+
+  const symbolPnl = useMemo(() => {
+    if (price == null || !positions.length) return 0;
+    return positions.reduce((acc, p) => {
+      const qtyPos = Number(p.quantity);
+      const entry = Number(p.entry_price);
+      if (!qtyPos || !entry) return acc;
+      const isLong = p.side === "long";
+      return acc + qtyPos * (isLong ? price - entry : entry - price);
+    }, 0);
+  }, [positions, price]);
+
+  const fmtPnl = (n: number) => {
+    const sign = n >= 0 ? "+" : "";
+    return `${sign}$${Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   const open = isMarketOpen(symbol);
-  const total = (parseFloat(qty || "0") * (price ?? 0));
+  const total = parseFloat(qty || "0") * (price ?? 0);
   const change = lp?.change_pct_24h ?? null;
   const tradeDisabled = !!submitting || noPrice || stale || !open;
 
@@ -245,28 +323,132 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
         </TabsContent>
       </Tabs>
 
-      <div className="p-3 border-t border-border/40 bg-card/50">
+      {/* Bottom Action Bar */}
+      <div className="p-3 border-t border-border/40 bg-card/50 space-y-3">
         {noPrice && (
-          <div className="text-[11px] text-muted-foreground text-center mb-2 flex items-center justify-center gap-1.5">
+          <div className="text-[11px] text-muted-foreground text-center flex items-center justify-center gap-1.5">
             <Loader2 className="size-3 animate-spin" /> {tr.price_loading}
           </div>
         )}
-        <div className="flex flex-col sm:flex-row gap-2 items-stretch">
-          <Button variant="outline" disabled={tradeDisabled} onClick={() => requestTrade("sell")}
-            className="flex-1 h-12 border-bear/40 text-bear hover:bg-bear hover:text-bear-foreground font-semibold">
-            {submitting === "sell" ? <Loader2 className="size-4 animate-spin" /> : <TrendingDown className="size-4" />}
+
+        {/* Row 1: Balance & Unrealized P&L */}
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-muted-foreground">
+            {tr.available}:{" "}
+            <span className="font-mono font-semibold text-foreground">
+              ${realBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </span>
+          </span>
+          <span className={cn("font-mono font-semibold", symbolPnl >= 0 ? "text-up" : "text-down")}>
+            {tr.pnl}: {fmtPnl(symbolPnl)}
+          </span>
+        </div>
+
+        {/* Row 2: Percentage Pills + Slider */}
+        <div className="space-y-2">
+          <div className="grid grid-cols-4 gap-1.5">
+            {PCT_OPTIONS.map((pct) => (
+              <Button
+                key={pct}
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={tradeDisabled || !realBalance}
+                onClick={() => handlePctClick(pct)}
+                className={cn(
+                  "h-8 text-xs rounded-full transition-all duration-200",
+                  selectedPct === pct
+                    ? "bg-blue-950 border-blue-600 text-blue-400 hover:bg-blue-900 hover:text-blue-300"
+                    : "bg-secondary border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+                )}
+              >
+                %{pct}
+              </Button>
+            ))}
+          </div>
+          <div className="relative h-3 flex items-center">
+            <div className="absolute inset-x-0 h-[3px] rounded-full bg-secondary" />
+            <div
+              className="absolute left-0 h-[3px] rounded-full bg-blue-600 transition-all duration-300 ease-out"
+              style={{ width: selectedPct != null ? `${selectedPct}%` : "0%" }}
+            />
+            {selectedPct != null && (
+              <div
+                className="absolute h-3.5 w-3.5 rounded-full border-2 border-blue-500 bg-background shadow transition-all duration-300 ease-out -translate-x-1/2"
+                style={{ left: `${selectedPct}%` }}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Row 3: Quantity + Price Inputs */}
+        <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-1">
+            <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">{tr.quantity}</Label>
+            <Input
+              type="number"
+              min="0"
+              step="0.0001"
+              inputMode="decimal"
+              value={qty}
+              onChange={(e) => handleQtyChange(e.target.value)}
+              className="h-10 text-center font-mono font-bold text-sm bg-background transition-colors focus-visible:ring-blue-500/30"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
+              {lang === "tr" ? "Piyasa Fiyatı" : "Market Price"}
+            </Label>
+            <Input
+              type="text"
+              readOnly
+              value={price != null ? formatPrice(price) : "—"}
+              className="h-10 text-center font-mono font-bold text-sm bg-muted/50 border-border/30 cursor-default"
+            />
+          </div>
+        </div>
+
+        {/* Row 4: Total Amount */}
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-muted-foreground">{lang === "tr" ? "Toplam Tutar" : "Total Amount"}</span>
+          <span className="font-mono font-semibold text-foreground">
+            ≈ ${total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </span>
+        </div>
+
+        {/* Row 5: Sell / Buy Buttons */}
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            disabled={tradeDisabled || parseFloat(qty || "0") <= 0}
+            onClick={() => requestTrade("sell")}
+            className={cn(
+              "h-12 font-semibold transition-all duration-200",
+              "bg-red-950 border border-red-800 text-red-400",
+              "hover:bg-red-900 hover:border-red-700 hover:text-red-300 hover:shadow-md hover:shadow-red-500/10",
+              "active:scale-[0.98]"
+            )}
+          >
+            {submitting === "sell" ? <Loader2 className="size-4 animate-spin mr-1.5" /> : <TrendingDown className="size-4 mr-1.5" />}
             {tr.sell}
           </Button>
-          <div className="relative sm:w-32">
-            <Input type="number" min="0" step="any" value={qty} onChange={(e) => setQty(e.target.value)}
-              className="h-12 text-center font-mono font-bold text-base bg-background" />
-            <div className="text-[10px] text-muted-foreground text-center mt-1 font-mono">≈ ${total.toFixed(2)}</div>
-          </div>
-          <Button disabled={tradeDisabled} onClick={() => requestTrade("buy")}
-            className="flex-1 h-12 gradient-bull text-bull-foreground font-semibold hover:opacity-90">
-            {submitting === "buy" ? <Loader2 className="size-4 animate-spin" /> : <TrendingUp className="size-4" />}
+          <Button
+            disabled={tradeDisabled || parseFloat(qty || "0") <= 0}
+            onClick={() => requestTrade("buy")}
+            className={cn(
+              "h-12 font-semibold transition-all duration-200",
+              "bg-green-950 border border-green-800 text-green-400",
+              "hover:bg-green-900 hover:border-green-700 hover:text-green-300 hover:shadow-md hover:shadow-green-500/10",
+              "active:scale-[0.98]"
+            )}
+          >
+            {submitting === "buy" ? <Loader2 className="size-4 animate-spin mr-1.5" /> : <TrendingUp className="size-4 mr-1.5" />}
             {tr.buy}
           </Button>
+        </div>
+
+        {/* Row 6: Price Footnote */}
+        <div className="text-center text-[10px] text-muted-foreground font-mono">
+          @ {price != null ? formatPrice(price) : "—"}
         </div>
       </div>
 
