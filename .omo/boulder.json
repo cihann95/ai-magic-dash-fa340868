@@ -1,165 +1,46 @@
 {
-  "active_plan": "/home/user/projects/ai-magic-dash-fa340868/.omo/plans/critical-prod-fixes.md",
-  "started_at": "2026-06-22T13:34:11.735Z",
+  "active_plan": "/home/user/projects/ai-magic-dash-fa340868/.omo/plans/trading-ux-revamp.md",
+  "started_at": "2026-06-22T19:48:49.462Z",
   "session_ids": [
     "opencode:ses_11094d437ffeI1XBPOQfzyki0y"
   ],
-  "plan_name": "critical-prod-fixes",
+  "plan_name": "trading-ux-revamp",
   "session_origins": {
     "opencode:ses_11094d437ffeI1XBPOQfzyki0y": "direct"
   },
-  "task_sessions": {
-    "todo:1": {
-      "task_key": "todo:1",
-      "task_label": "1",
-      "task_title": "RLS Migration: Admin SELECT Policy'leri + blitz_payout_trigger DROP + analytics_events Fix + reset-demo-account Fix",
-      "session_id": "opencode:ses_110171738ffeeawkQGva3uC2dz",
-      "agent": "general",
-      "started_at": "2026-06-22T14:12:03.935Z",
-      "status": "completed",
-      "updated_at": "2026-06-22T15:27:31.222Z",
-      "ended_at": "2026-06-22T15:27:31.222Z",
-      "elapsed_ms": 4527287
-    },
-    "todo:9": {
-      "task_key": "todo:9",
-      "task_label": "9",
-      "task_title": "Settings.tsx Bakiye Bölümü: Gösterim + Ledger Geçmişi",
-      "session_id": "opencode:ses_1100e0d11ffe0iEO84814hYIsJ",
-      "agent": "general",
-      "updated_at": "2026-06-22T15:32:50.706Z",
-      "started_at": "2026-06-22T15:32:50.701Z",
-      "status": "completed",
-      "ended_at": "2026-06-22T15:32:50.706Z",
-      "elapsed_ms": 5
-    },
-    "todo:14": {
-      "task_key": "todo:14",
-      "task_label": "14",
-      "task_title": "AdminBlitz Revenue Dashboard Zenginleştir: Grafik + Tarih Aralığı + Breakdown",
-      "session_id": "opencode:ses_1100d4934ffeujsvjdztRSOmh3",
-      "agent": "general",
-      "updated_at": "2026-06-22T15:38:06.709Z",
-      "started_at": "2026-06-22T15:38:06.708Z",
-      "status": "completed",
-      "ended_at": "2026-06-22T15:38:06.709Z",
-      "elapsed_ms": 1
-    },
-    "todo:17": {
-      "task_key": "todo:17",
-      "task_label": "17",
-      "task_title": "Deploy: Edge Functions + Vercel",
-      "session_id": "opencode:ses_10fdbf965ffevk7SW6sJtK56Ce",
-      "agent": "general",
-      "updated_at": "2026-06-22T16:36:27.401Z",
-      "started_at": "2026-06-22T16:36:27.400Z",
-      "status": "completed",
-      "ended_at": "2026-06-22T16:36:27.401Z",
-      "elapsed_ms": 1
-    }
-  },
+  "task_sessions": {},
   "schema_version": 2,
   "works": {
-    "edge-function-fix-legacy": {
-      "work_id": "edge-function-fix-legacy",
-      "active_plan": "/home/user/projects/ai-magic-dash-fa340868/.omo/plans/edge-function-fix.md",
-      "plan_name": "edge-function-fix",
-      "started_at": "2026-06-17T13:52:51.492Z",
-      "updated_at": "2026-06-18T10:58:34.055Z",
-      "session_ids": [],
-      "session_origins": {},
-      "worktree_path": null,
-      "task_sessions": {},
-      "ended_at": "2026-06-18T10:24:26.496Z",
-      "elapsed_ms": 73895004,
-      "status": "completed"
-    },
-    "master-fix-plan-774dc7f9": {
-      "work_id": "master-fix-plan-774dc7f9",
-      "active_plan": "/home/user/projects/ai-magic-dash-fa340868/.omo/plans/master-fix-plan.md",
-      "plan_name": "master-fix-plan",
-      "status": "active",
-      "started_at": "2026-06-18T13:44:46.522Z",
-      "updated_at": "2026-06-18T13:46:00.741Z",
-      "session_ids": [],
-      "session_origins": {},
-      "agent": "atlas",
-      "task_sessions": {}
-    },
-    "critical-prod-fixes-20260622": {
-      "work_id": "critical-prod-fixes-20260622",
-      "active_plan": "/home/user/projects/ai-magic-dash-fa340868/.omo/plans/critical-prod-fixes.md",
-      "plan_name": "critical-prod-fixes",
+    "trading-ux-revamp-20260622": {
+      "work_id": "trading-ux-revamp-20260622",
+      "active_plan": "/home/user/projects/ai-magic-dash-fa340868/.omo/plans/trading-ux-revamp.md",
+      "plan_name": "trading-ux-revamp",
       "status": "completed",
-      "started_at": "2026-06-22T13:34:11.735Z",
-      "updated_at": "2026-06-22T16:37:25.423Z",
-      "session_ids": [
-        "opencode:ses_11094d437ffeI1XBPOQfzyki0y"
-      ],
-      "session_origins": {
-        "opencode:ses_11094d437ffeI1XBPOQfzyki0y": "direct"
-      },
+      "started_at": "2026-06-22T19:48:49.462Z",
+      "ended_at": "2026-06-23T00:00:00.000Z",
+      "elapsed_ms": 14506538,
+      "session_ids": ["opencode:ses_11094d437ffeI1XBPOQfzyki0y"],
+      "session_origins": {"opencode:ses_11094d437ffeI1XBPOQfzyki0y": "direct"},
       "agent": "atlas",
-      "worktree_path": null,
       "task_sessions": {
-        "todo:1": {
-          "task_key": "todo:1",
-          "task_label": "1",
-          "task_title": "RLS Migration: Admin SELECT Policy'leri + blitz_payout_trigger DROP + analytics_events Fix + reset-demo-account Fix",
-          "session_id": "opencode:ses_110171738ffeeawkQGva3uC2dz",
-          "agent": "general",
-          "started_at": "2026-06-22T14:12:03.935Z",
-          "status": "completed",
-          "updated_at": "2026-06-22T15:27:31.222Z",
-          "ended_at": "2026-06-22T15:27:31.222Z",
-          "elapsed_ms": 4527287
-        },
-        "todo:9": {
-          "task_key": "todo:9",
-          "task_label": "9",
-          "task_title": "Settings.tsx Bakiye Bölümü: Gösterim + Ledger Geçmişi",
-          "session_id": "opencode:ses_1100e0d11ffe0iEO84814hYIsJ",
-          "agent": "general",
-          "updated_at": "2026-06-22T15:32:50.706Z",
-          "started_at": "2026-06-22T15:32:50.701Z",
-          "status": "completed",
-          "ended_at": "2026-06-22T15:32:50.706Z",
-          "elapsed_ms": 5
-        },
-        "todo:14": {
-          "task_key": "todo:14",
-          "task_label": "14",
-          "task_title": "AdminBlitz Revenue Dashboard Zenginleştir: Grafik + Tarih Aralığı + Breakdown",
-          "session_id": "opencode:ses_1100d4934ffeujsvjdztRSOmh3",
-          "agent": "general",
-          "updated_at": "2026-06-22T15:38:06.709Z",
-          "started_at": "2026-06-22T15:38:06.708Z",
-          "status": "completed",
-          "ended_at": "2026-06-22T15:38:06.709Z",
-          "elapsed_ms": 1
-        },
-        "todo:17": {
-          "task_key": "todo:17",
-          "task_label": "17",
-          "task_title": "Deploy: Edge Functions + Vercel",
-          "session_id": "opencode:ses_10fdbf965ffevk7SW6sJtK56Ce",
-          "agent": "general",
-          "updated_at": "2026-06-22T16:36:27.401Z",
-          "started_at": "2026-06-22T16:36:27.400Z",
-          "status": "completed",
-          "ended_at": "2026-06-22T16:36:27.401Z",
-          "elapsed_ms": 1
-        }
-      },
-      "ended_at": "2026-06-22T16:37:25.423Z",
-      "elapsed_ms": 10993688
+        "todo:1": {"task_key": "todo:1", "task_label": "1", "task_title": "Design Token Sistemi", "status": "completed"},
+        "todo:2": {"task_key": "todo:2", "task_label": "2", "task_title": "SymbolList restyle", "status": "completed"},
+        "todo:3": {"task_key": "todo:3", "task_label": "3", "task_title": "ChartPanel stat bar + timeframes", "status": "completed"},
+        "todo:4": {"task_key": "todo:4", "task_label": "4", "task_title": "OrderTicket presets + toggle + Collapsible", "status": "completed"},
+        "todo:5": {"task_key": "todo:5", "task_label": "5", "task_title": "OpenPositionsPanel P&L + mini bar", "status": "completed"},
+        "todo:6": {"task_key": "todo:6", "task_label": "6", "task_title": "AccountAIPanel signal cards + Cmd+Enter", "status": "completed"},
+        "todo:7": {"task_key": "todo:7", "task_label": "7", "task_title": "CommandPalette Recent Trades", "status": "completed"},
+        "todo:F1": {"task_key": "todo:F1", "task_label": "F1", "task_title": "Plan Compliance Audit", "status": "completed"},
+        "todo:F2": {"task_key": "todo:F2", "task_label": "F2", "task_title": "Code Quality Review", "status": "completed"},
+        "todo:F3": {"task_key": "todo:F3", "task_label": "F3", "task_title": "Real Manual QA", "status": "completed"},
+        "todo:F4": {"task_key": "todo:F4", "task_label": "F4", "task_title": "Scope Fidelity Check", "status": "completed"}
+      }
     }
   },
-  "active_work_id": "critical-prod-fixes-20260622",
-  "updated_at": "2026-06-22T16:37:25.423Z",
+  "active_work_id": "trading-ux-revamp-20260622",
+  "updated_at": "2026-06-23T00:00:00.000Z",
   "status": "completed",
   "agent": "atlas",
-  "worktree_path": null,
-  "ended_at": "2026-06-22T16:37:25.423Z",
-  "elapsed_ms": 10993688
+  "ended_at": "2026-06-23T00:00:00.000Z",
+  "elapsed_ms": 14506538
 }
