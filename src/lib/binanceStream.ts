@@ -9,6 +9,8 @@ type Listener = (t: Tick) => void;
 const PAIRS: Record<string, string> = {
   BTCUSD: "btcusdt", ETHUSD: "ethusdt", SOLUSD: "solusdt", BNBUSD: "bnbusdt",
   XRPUSD: "xrpusdt", DOGEUSD: "dogeusdt", ADAUSD: "adausdt", AVAXUSD: "avaxusdt",
+  DOTUSD: "dotusdt", LINKUSD: "linkusdt", MATICUSD: "maticusdt", UNIUSD: "uniusdt",
+  ATOMUSD: "atomusdt", TRXUSD: "trxusdt", LTCUSD: "ltcusdt", FILUSD: "filusdt",
 };
 const REVERSE: Record<string, string> = Object.fromEntries(
   Object.entries(PAIRS).map(([k, v]) => [v.toUpperCase(), k])

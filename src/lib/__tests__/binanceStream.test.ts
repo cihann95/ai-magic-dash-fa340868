@@ -20,10 +20,18 @@ describe("binanceStream", () => {
       expect(CRYPTO_SYMBOLS).toContain("DOGEUSD");
       expect(CRYPTO_SYMBOLS).toContain("ADAUSD");
       expect(CRYPTO_SYMBOLS).toContain("AVAXUSD");
+      expect(CRYPTO_SYMBOLS).toContain("DOTUSD");
+      expect(CRYPTO_SYMBOLS).toContain("LINKUSD");
+      expect(CRYPTO_SYMBOLS).toContain("MATICUSD");
+      expect(CRYPTO_SYMBOLS).toContain("UNIUSD");
+      expect(CRYPTO_SYMBOLS).toContain("ATOMUSD");
+      expect(CRYPTO_SYMBOLS).toContain("TRXUSD");
+      expect(CRYPTO_SYMBOLS).toContain("LTCUSD");
+      expect(CRYPTO_SYMBOLS).toContain("FILUSD");
     });
 
-    it("has 8 symbols", () => {
-      expect(CRYPTO_SYMBOLS).toHaveLength(8);
+    it("has 16 symbols", () => {
+      expect(CRYPTO_SYMBOLS).toHaveLength(16);
     });
   });
 

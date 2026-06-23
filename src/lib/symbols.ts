@@ -8,18 +8,27 @@ export interface SymbolDef {
   name: string;
   asset_class: AssetClass;
   market_open?: boolean;   // crypto/forex 24/7
+  logo_url?: string;       // token/asset logo — crypto via CoinGecko CDN
 }
 
 export const SYMBOLS: SymbolDef[] = [
-  // crypto - Binance
-  { symbol: "BTCUSD", tv: "BINANCE:BTCUSDT", binance: "BTCUSDT", name: "Bitcoin", asset_class: "crypto", market_open: true },
-  { symbol: "ETHUSD", tv: "BINANCE:ETHUSDT", binance: "ETHUSDT", name: "Ethereum", asset_class: "crypto", market_open: true },
-  { symbol: "SOLUSD", tv: "BINANCE:SOLUSDT", binance: "SOLUSDT", name: "Solana", asset_class: "crypto", market_open: true },
-  { symbol: "BNBUSD", tv: "BINANCE:BNBUSDT", binance: "BNBUSDT", name: "BNB", asset_class: "crypto", market_open: true },
-  { symbol: "XRPUSD", tv: "BINANCE:XRPUSDT", binance: "XRPUSDT", name: "XRP", asset_class: "crypto", market_open: true },
-  { symbol: "DOGEUSD", tv: "BINANCE:DOGEUSDT", binance: "DOGEUSDT", name: "Dogecoin", asset_class: "crypto", market_open: true },
-  { symbol: "ADAUSD", tv: "BINANCE:ADAUSDT", binance: "ADAUSDT", name: "Cardano", asset_class: "crypto", market_open: true },
-  { symbol: "AVAXUSD", tv: "BINANCE:AVAXUSDT", binance: "AVAXUSDT", name: "Avalanche", asset_class: "crypto", market_open: true },
+  // crypto - Binance — logos from CoinGecko CDN (https://www.coingecko.com/en/coins/)
+  { symbol: "BTCUSD", tv: "BINANCE:BTCUSDT", binance: "BTCUSDT", name: "Bitcoin", asset_class: "crypto", market_open: true, logo_url: "https://assets.coingecko.com/coins/images/1/small/bitcoin.png" },
+  { symbol: "ETHUSD", tv: "BINANCE:ETHUSDT", binance: "ETHUSDT", name: "Ethereum", asset_class: "crypto", market_open: true, logo_url: "https://assets.coingecko.com/coins/images/279/small/ethereum.png" },
+  { symbol: "SOLUSD", tv: "BINANCE:SOLUSDT", binance: "SOLUSDT", name: "Solana", asset_class: "crypto", market_open: true, logo_url: "https://assets.coingecko.com/coins/images/4128/small/solana.png" },
+  { symbol: "BNBUSD", tv: "BINANCE:BNBUSDT", binance: "BNBUSDT", name: "BNB", asset_class: "crypto", market_open: true, logo_url: "https://assets.coingecko.com/coins/images/825/small/bnb-icon2_2x.png" },
+  { symbol: "XRPUSD", tv: "BINANCE:XRPUSDT", binance: "XRPUSDT", name: "XRP", asset_class: "crypto", market_open: true, logo_url: "https://assets.coingecko.com/coins/images/44/small/xrp-symbol-white-128.png" },
+  { symbol: "DOGEUSD", tv: "BINANCE:DOGEUSDT", binance: "DOGEUSDT", name: "Dogecoin", asset_class: "crypto", market_open: true, logo_url: "https://assets.coingecko.com/coins/images/5/small/dogecoin.png" },
+  { symbol: "ADAUSD", tv: "BINANCE:ADAUSDT", binance: "ADAUSDT", name: "Cardano", asset_class: "crypto", market_open: true, logo_url: "https://assets.coingecko.com/coins/images/975/small/cardano.png" },
+  { symbol: "AVAXUSD", tv: "BINANCE:AVAXUSDT", binance: "AVAXUSDT", name: "Avalanche", asset_class: "crypto", market_open: true, logo_url: "https://assets.coingecko.com/coins/images/12559/small/Avalanche_Circle_RedWhite_Trans.png" },
+  { symbol: "DOTUSD", tv: "BINANCE:DOTUSDT", binance: "DOTUSDT", name: "Polkadot", asset_class: "crypto", market_open: true },
+  { symbol: "LINKUSD", tv: "BINANCE:LINKUSDT", binance: "LINKUSDT", name: "Chainlink", asset_class: "crypto", market_open: true },
+  { symbol: "MATICUSD", tv: "BINANCE:MATICUSDT", binance: "MATICUSDT", name: "Polygon", asset_class: "crypto", market_open: true },
+  { symbol: "UNIUSD", tv: "BINANCE:UNIUSDT", binance: "UNIUSDT", name: "Uniswap", asset_class: "crypto", market_open: true },
+  { symbol: "ATOMUSD", tv: "BINANCE:ATOMUSDT", binance: "ATOMUSDT", name: "Cosmos", asset_class: "crypto", market_open: true },
+  { symbol: "TRXUSD", tv: "BINANCE:TRXUSDT", binance: "TRXUSDT", name: "TRON", asset_class: "crypto", market_open: true },
+  { symbol: "LTCUSD", tv: "BINANCE:LTCUSDT", binance: "LTCUSDT", name: "Litecoin", asset_class: "crypto", market_open: true },
+  { symbol: "FILUSD", tv: "BINANCE:FILUSDT", binance: "FILUSDT", name: "Filecoin", asset_class: "crypto", market_open: true },
   // stocks - Yahoo
   { symbol: "AAPL", tv: "NASDAQ:AAPL", yahoo: "AAPL", name: "Apple Inc.", asset_class: "stocks" },
   { symbol: "MSFT", tv: "NASDAQ:MSFT", yahoo: "MSFT", name: "Microsoft", asset_class: "stocks" },

@@ -9,7 +9,6 @@ import { t } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { LineChart, Line, ResponsiveContainer } from "recharts";
 import { Badge } from "@/components/ui/badge";
 
 interface Props {
@@ -40,18 +39,6 @@ export default function SymbolList({ active, onSelect }: Props) {
     );
   }, [q, cat]);
 
-  // Local sparkline rolling window (max 20 points). Hook NOT modified.
-  const priceHistoryRef = useRef<Record<string, number[]>>({});
-  useEffect(() => {
-    Object.entries(livePrices).forEach(([sym, lp]) => {
-      const hist = priceHistoryRef.current[sym] ?? [];
-      const newPrice = lp?.price;
-      if (newPrice != null && hist[hist.length - 1] !== newPrice) {
-        priceHistoryRef.current[sym] = [...hist, newPrice].slice(-20);
-      }
-    });
-  }, [livePrices]);
-
   // Tick flash detection
   const prevPricesRef = useRef<Record<string, number>>({});
   const getFlashClass = (sym: string, currentPrice: number | null): string => {
@@ -81,7 +68,7 @@ export default function SymbolList({ active, onSelect }: Props) {
           <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={tr.search_symbols} className="pl-9 bg-background/50" />
         </div>
-        <div className="flex gap-1 overflow-x-auto scrollbar-thin pb-1">
+        <div className="flex flex-wrap gap-1 pb-1">
           {CATS.map((c) => (
             <Button key={c} variant={cat === c ? "secondary" : "ghost"} size="sm"
               onClick={() => setCat(c)}
@@ -99,7 +86,6 @@ export default function SymbolList({ active, onSelect }: Props) {
           const change = lp?.change_pct_24h ?? null;
           const isActive = active.symbol === s.symbol;
           const watched = watch.has(s.symbol);
-          const history = priceHistoryRef.current[s.symbol] ?? [];
           const flashClass = getFlashClass(s.symbol, price);
           return (
             <button key={s.symbol} onClick={() => onSelect(s)}
@@ -110,9 +96,13 @@ export default function SymbolList({ active, onSelect }: Props) {
                   ? "bg-up/5 hover:bg-up/10 border-l-2 border-l-up"
                   : "bg-down/5 hover:bg-down/10 border-l-2 border-l-down")
               )}>
-              <div className="size-9 rounded-lg gradient-primary shadow-glow shrink-0 flex items-center justify-center text-xs font-bold text-primary-foreground">
-                {s.symbol.slice(0, 2)}
-              </div>
+              {s.logo_url ? (
+                <img src={s.logo_url} alt={s.symbol} className="size-9 rounded-lg shrink-0 object-contain bg-surface-1" />
+              ) : (
+                <div className="size-9 rounded-lg gradient-primary shadow-glow shrink-0 flex items-center justify-center text-xs font-bold text-primary-foreground">
+                  {s.symbol.slice(0, 2)}
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-sm truncate">{s.symbol}</span>
@@ -121,22 +111,6 @@ export default function SymbolList({ active, onSelect }: Props) {
                   </Badge>
                 </div>
                 <div className="text-xs text-muted-foreground truncate">{s.name}</div>
-              </div>
-              <div className="w-12 h-6 shrink-0">
-                {history.length >= 3 && (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={history.map(p => ({ price: p }))}>
-                      <Line
-                        type="monotone"
-                        dataKey="price"
-                        stroke={change !== null && change >= 0 ? "hsl(var(--color-up))" : "hsl(var(--color-down))"}
-                        strokeWidth={1}
-                        dot={false}
-                        isAnimationActive={false}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                )}
               </div>
               <div className="text-right shrink-0">
                 <div className={cn("font-price text-sm font-semibold", flashClass)}>{formatPrice(price)}</div>

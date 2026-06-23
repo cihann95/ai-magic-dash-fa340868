@@ -4,6 +4,7 @@ import { SymbolDef, isMarketOpen, formatPrice, isStale } from "@/lib/symbols";
 import { useLivePrice } from "@/hooks/useLivePrices";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { Slider } from "@/components/ui/slider";
 import { useApp } from "@/contexts/AppContext";
 import { t } from "@/lib/i18n";
 import { TrendingDown, TrendingUp, Loader2, Clock } from "lucide-react";
@@ -38,9 +39,6 @@ function getTradeErrorMessage(error: unknown): string {
 
 interface Props { symbol: SymbolDef; onTradeDone: () => void; }
 
-const PCT_OPTIONS = [25, 50, 75, 100] as const;
-type Pct = typeof PCT_OPTIONS[number];
-
 interface DbPosition {
   id: string;
   symbol: string;
@@ -54,7 +52,7 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
   const { lang, theme, user, demoBalance, balanceLoaded } = useApp();
   const tr = t(lang);
   const [qty, setQty] = useState("1");
-  const [selectedPct, setSelectedPct] = useState<Pct | null>(null);
+  const [pct, setPct] = useState<number>(0);
   const [positions, setPositions] = useState<DbPosition[]>([]);
   const [submitting, setSubmitting] = useState<"buy" | "sell" | null>(null);
   const [intentOpen, setIntentOpen] = useState<null | { side: "buy" | "sell"; signal: EmotionalSignal }>(null);
@@ -116,16 +114,9 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
     } finally { setSubmitting(null); }
   };
 
-  const handlePctClick = (pct: Pct) => {
-    if (!price || price <= 0 || !demoBalance) return;
-    setSelectedPct(pct);
-    const rawQty = (demoBalance * pct / 100) / price;
-    setQty(parseFloat(rawQty.toFixed(4)).toString());
-  };
-
   const handleQtyChange = (val: string) => {
     setQty(val);
-    if (selectedPct) setSelectedPct(null);
+    setPct(0);
   };
 
   const loadSymbolPositions = async () => {
@@ -350,40 +341,32 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
           </div>
         </div>
 
-        {/* Row 2: Percentage Pills + Slider */}
+        {/* Row 2: Position Size Slider */}
         <div className="px-3 pb-1">
-          <div className="grid grid-cols-4 gap-1">
-            {PCT_OPTIONS.map((pct) => (
-              <button
-                key={pct}
-                type="button"
-                disabled={tradeDisabled || !demoBalance}
-                onClick={() => handlePctClick(pct)}
-                className={cn(
-                  "h-7 rounded text-[11px] font-medium transition-all duration-150 border",
-                  "focus:outline-none focus-visible:ring-1 focus-visible:ring-ring",
-                  selectedPct === pct
-                    ? "bg-blue-950/80 border-blue-700/60 text-blue-300"
-                    : "bg-secondary/60 border-border/40 text-muted-foreground hover:bg-secondary hover:text-foreground hover:border-border"
-                )}
-              >
-                %{pct}
-              </button>
-            ))}
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[11px] text-muted-foreground">{lang === "tr" ? "Pozisyon Büyüklüğü" : "Position Size"}</span>
+            <span className="text-[11px] font-medium tabular-nums text-foreground">
+              {pct > 0 ? `${pct}%` : "—"}
+            </span>
           </div>
-
-          <div className="relative mt-2 mb-1 h-[3px] bg-secondary rounded-full">
-            <div
-              className="absolute inset-y-0 left-0 bg-blue-600 rounded-full transition-all duration-200"
-              style={{ width: selectedPct ? `${selectedPct}%` : '0%' }}
-            />
-            {selectedPct && (
-              <div
-                className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 bg-blue-500 border-2 border-background rounded-full shadow-sm transition-all duration-200"
-                style={{ left: `${selectedPct}%` }}
-              />
-            )}
-          </div>
+          <Slider
+            min={0}
+            max={100}
+            step={1}
+            value={[pct]}
+            onValueChange={(v) => {
+              const val = v[0];
+              setPct(val);
+              if (val === 0) {
+                setQty("0");
+              } else if (price && price > 0 && demoBalance) {
+                const rawQty = (demoBalance * val / 100) / price;
+                setQty(parseFloat(rawQty.toFixed(4)).toString());
+              }
+            }}
+            disabled={tradeDisabled || !demoBalance || !price}
+            className="w-full"
+          />
         </div>
 
         {/* Row 3: Quantity + Price Inputs */}
