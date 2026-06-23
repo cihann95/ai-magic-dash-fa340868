@@ -10,6 +10,9 @@ interface AppContextValue {
   loading: boolean;
   realBalance: number;
   realBalanceLocked: number;
+  demoBalance: number;
+  demoBalanceLocked: number;
+  balanceLoaded: boolean;
   isAdmin: boolean;
   lang: Lang;
   setLang: (l: Lang) => void;
@@ -29,19 +32,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
   const [realBalance, setRealBalance] = useState(0);
   const [realBalanceLocked, setRealBalanceLocked] = useState(0);
+  const [demoBalance, setDemoBalance] = useState(0);
+  const [demoBalanceLocked, setDemoBalanceLocked] = useState(0);
+  const [balanceLoaded, setBalanceLoaded] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [theme, setThemeState] = useState<"dark" | "light">(
     (localStorage.getItem("theme") as "dark" | "light") || "dark"
   );
 
   useEffect(() => {
-    if (!user) { setRealBalance(0); setRealBalanceLocked(0); setIsAdmin(false); return; }
-    supabase.from("profiles").select("real_balance, real_balance_locked").eq("id", user.id).maybeSingle()
+    if (!user) {
+      setRealBalance(0); setRealBalanceLocked(0);
+      setDemoBalance(0); setDemoBalanceLocked(0);
+      setIsAdmin(false); setBalanceLoaded(false);
+      return;
+    }
+    supabase.from("profiles").select("real_balance, real_balance_locked, demo_balance, demo_balance_locked").eq("id", user.id).maybeSingle()
       .then(({ data }) => {
         if (data) {
           setRealBalance(Number(data.real_balance ?? 0));
           setRealBalanceLocked(Number(data.real_balance_locked ?? 0));
+          setDemoBalance(Number(data.demo_balance ?? 0));
+          setDemoBalanceLocked(Number(data.demo_balance_locked ?? 0));
         }
+        setBalanceLoaded(true);
       });
     supabase.rpc("has_role", { _user_id: user.id, _role: "admin" })
       .then(({ data }) => setIsAdmin(data === true));
@@ -54,6 +68,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         (payload: { new: Record<string, unknown> }) => {
           if (payload.new.real_balance !== undefined) setRealBalance(Number(payload.new.real_balance));
           if (payload.new.real_balance_locked !== undefined) setRealBalanceLocked(Number(payload.new.real_balance_locked));
+          if (payload.new.demo_balance !== undefined) setDemoBalance(Number(payload.new.demo_balance));
+          if (payload.new.demo_balance_locked !== undefined) setDemoBalanceLocked(Number(payload.new.demo_balance_locked));
         })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
@@ -82,9 +98,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <AppContext.Provider value={{
       user, session, loading,
-      realBalance, realBalanceLocked, isAdmin,
+      realBalance, realBalanceLocked,
+      demoBalance, demoBalanceLocked, balanceLoaded,
+      isAdmin,
       lang, setLang: setLangState,
-      theme, setTheme: setThemeState,
+      theme, setThemeState,
       signOut,
     }}>
       {children}

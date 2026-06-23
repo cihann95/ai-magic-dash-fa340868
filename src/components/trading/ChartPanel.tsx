@@ -3,9 +3,7 @@ import TradingViewChart from "@/components/TradingViewChart";
 import { SymbolDef, isMarketOpen, formatPrice, isStale } from "@/lib/symbols";
 import { useLivePrice } from "@/hooks/useLivePrices";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useApp } from "@/contexts/AppContext";
 import { t } from "@/lib/i18n";
 import { TrendingDown, TrendingUp, Loader2, Clock } from "lucide-react";
@@ -53,7 +51,7 @@ interface DbPosition {
 }
 
 export default function ChartPanel({ symbol, onTradeDone }: Props) {
-  const { lang, theme, user, realBalance } = useApp();
+  const { lang, theme, user, demoBalance, balanceLoaded } = useApp();
   const tr = t(lang);
   const [qty, setQty] = useState("1");
   const [selectedPct, setSelectedPct] = useState<Pct | null>(null);
@@ -119,9 +117,9 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
   };
 
   const handlePctClick = (pct: Pct) => {
-    if (!price || price <= 0 || !realBalance) return;
+    if (!price || price <= 0 || !demoBalance) return;
     setSelectedPct(pct);
-    const rawQty = (realBalance * pct / 100) / price;
+    const rawQty = (demoBalance * pct / 100) / price;
     setQty(parseFloat(rawQty.toFixed(4)).toString());
   };
 
@@ -324,7 +322,7 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
       </Tabs>
 
       {/* Bottom Action Bar */}
-      <div className="p-3 border-t border-border/40 bg-card/50 space-y-3">
+      <div className="p-3 border-t border-border/40 bg-card/50 space-y-2">
         {noPrice && (
           <div className="text-[11px] text-muted-foreground text-center flex items-center justify-center gap-1.5">
             <Loader2 className="size-3 animate-spin" /> {tr.price_loading}
@@ -332,49 +330,56 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
         )}
 
         {/* Row 1: Balance & Unrealized P&L */}
-        <div className="flex items-center justify-between text-xs">
-          <span className="text-muted-foreground">
-            {tr.available}:{" "}
-            <span className="font-mono font-semibold text-foreground">
-              ${realBalance.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        <div className="flex items-center justify-between px-3 pt-2 pb-1">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] text-muted-foreground">{tr.available}</span>
+            <span className="text-[11px] font-medium text-foreground tabular-nums">
+              {balanceLoaded ? (demoBalance).toLocaleString('en-US', {
+                style: 'currency', currency: 'USD', minimumFractionDigits: 2
+              }) : '—'}
             </span>
-          </span>
-          <span className={cn("font-mono font-semibold", symbolPnl >= 0 ? "text-up" : "text-down")}>
-            {tr.pnl}: {fmtPnl(symbolPnl)}
-          </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] text-muted-foreground">{tr.pnl}</span>
+            <span className={cn(
+              "text-[11px] font-medium tabular-nums",
+              symbolPnl >= 0 ? "text-green-400" : "text-red-400"
+            )}>
+              {fmtPnl(symbolPnl)}
+            </span>
+          </div>
         </div>
 
         {/* Row 2: Percentage Pills + Slider */}
-        <div className="space-y-2">
-          <div className="grid grid-cols-4 gap-1.5">
+        <div className="px-3 pb-1">
+          <div className="grid grid-cols-4 gap-1">
             {PCT_OPTIONS.map((pct) => (
-              <Button
+              <button
                 key={pct}
                 type="button"
-                variant="outline"
-                size="sm"
-                disabled={tradeDisabled || !realBalance}
+                disabled={tradeDisabled || !demoBalance}
                 onClick={() => handlePctClick(pct)}
                 className={cn(
-                  "h-8 text-xs rounded-full transition-all duration-200",
+                  "h-7 rounded text-[11px] font-medium transition-all duration-150 border",
+                  "focus:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                   selectedPct === pct
-                    ? "bg-blue-950 border-blue-600 text-blue-400 hover:bg-blue-900 hover:text-blue-300"
-                    : "bg-secondary border-border text-muted-foreground hover:bg-accent hover:text-foreground"
+                    ? "bg-blue-950/80 border-blue-700/60 text-blue-300"
+                    : "bg-secondary/60 border-border/40 text-muted-foreground hover:bg-secondary hover:text-foreground hover:border-border"
                 )}
               >
                 %{pct}
-              </Button>
+              </button>
             ))}
           </div>
-          <div className="relative h-3 flex items-center">
-            <div className="absolute inset-x-0 h-[3px] rounded-full bg-secondary" />
+
+          <div className="relative mt-2 mb-1 h-[3px] bg-secondary rounded-full">
             <div
-              className="absolute left-0 h-[3px] rounded-full bg-blue-600 transition-all duration-300 ease-out"
-              style={{ width: selectedPct != null ? `${selectedPct}%` : "0%" }}
+              className="absolute inset-y-0 left-0 bg-blue-600 rounded-full transition-all duration-200"
+              style={{ width: selectedPct ? `${selectedPct}%` : '0%' }}
             />
-            {selectedPct != null && (
+            {selectedPct && (
               <div
-                className="absolute h-3.5 w-3.5 rounded-full border-2 border-blue-500 bg-background shadow transition-all duration-300 ease-out -translate-x-1/2"
+                className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 bg-blue-500 border-2 border-background rounded-full shadow-sm transition-all duration-200"
                 style={{ left: `${selectedPct}%` }}
               />
             )}
@@ -382,74 +387,88 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
         </div>
 
         {/* Row 3: Quantity + Price Inputs */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="px-3 pb-1 grid grid-cols-2 gap-2">
           <div className="space-y-1">
-            <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">{tr.quantity}</Label>
-            <Input
-              type="number"
-              min="0"
-              step="0.0001"
-              inputMode="decimal"
-              value={qty}
-              onChange={(e) => handleQtyChange(e.target.value)}
-              className="h-10 text-center font-mono font-bold text-sm bg-background transition-colors focus-visible:ring-blue-500/30"
-            />
+            <label className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
+              {tr.quantity}
+            </label>
+            <div className="relative">
+              <Input
+                type="number"
+                min={0}
+                step={0.0001}
+                value={qty}
+                onChange={(e) => handleQtyChange(e.target.value)}
+                className="h-8 text-sm pr-10 tabular-nums bg-secondary/40 border-border/50 focus:border-blue-600/60"
+              />
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground pointer-events-none">
+                {symbol.symbol.replace('USD', '')}
+              </span>
+            </div>
           </div>
           <div className="space-y-1">
-            <Label className="text-[10px] text-muted-foreground uppercase tracking-wider">
+            <label className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
               {lang === "tr" ? "Piyasa Fiyatı" : "Market Price"}
-            </Label>
+            </label>
             <Input
               type="text"
               readOnly
               value={price != null ? formatPrice(price) : "—"}
-              className="h-10 text-center font-mono font-bold text-sm bg-muted/50 border-border/30 cursor-default"
+              className="h-8 text-sm tabular-nums bg-secondary/20 border-border/30 text-muted-foreground cursor-default"
             />
           </div>
         </div>
 
         {/* Row 4: Total Amount */}
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">{lang === "tr" ? "Toplam Tutar" : "Total Amount"}</span>
-          <span className="font-mono font-semibold text-foreground">
-            ≈ ${total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        <div className="px-3 pb-2 flex items-center justify-between">
+          <span className="text-[11px] text-muted-foreground">{lang === "tr" ? "Toplam Tutar" : "Total Amount"}</span>
+          <span className="text-[11px] font-medium tabular-nums text-foreground">
+            ≈ {(parseFloat(qty || "0") * (price ?? 0)).toLocaleString('en-US', {
+              style: 'currency', currency: 'USD', minimumFractionDigits: 2
+            })}
           </span>
         </div>
 
         {/* Row 5: Sell / Buy Buttons */}
-        <div className="grid grid-cols-2 gap-2">
-          <Button
+        <div className="px-3 pb-3 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => requestTrade('sell')}
             disabled={tradeDisabled || parseFloat(qty || "0") <= 0}
-            onClick={() => requestTrade("sell")}
             className={cn(
-              "h-12 font-semibold transition-all duration-200",
-              "bg-red-950 border border-red-800 text-red-400",
-              "hover:bg-red-900 hover:border-red-700 hover:text-red-300 hover:shadow-md hover:shadow-red-500/10",
-              "active:scale-[0.98]"
+              "h-11 rounded-md text-sm font-medium transition-all duration-150 border",
+              "bg-red-950/60 border-red-900/50 text-red-400",
+              "hover:bg-red-900/70 hover:border-red-800/60",
+              "active:scale-[0.98]",
+              "disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100",
+              "flex items-center justify-center gap-1.5"
             )}
           >
-            {submitting === "sell" ? <Loader2 className="size-4 animate-spin mr-1.5" /> : <TrendingDown className="size-4 mr-1.5" />}
+            {submitting === "sell" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <TrendingDown className="w-3.5 h-3.5" />}
             {tr.sell}
-          </Button>
-          <Button
+          </button>
+          <button
+            type="button"
+            onClick={() => requestTrade('buy')}
             disabled={tradeDisabled || parseFloat(qty || "0") <= 0}
-            onClick={() => requestTrade("buy")}
             className={cn(
-              "h-12 font-semibold transition-all duration-200",
-              "bg-green-950 border border-green-800 text-green-400",
-              "hover:bg-green-900 hover:border-green-700 hover:text-green-300 hover:shadow-md hover:shadow-green-500/10",
-              "active:scale-[0.98]"
+              "h-11 rounded-md text-sm font-medium transition-all duration-150 border",
+              "bg-green-950/60 border-green-900/50 text-green-400",
+              "hover:bg-green-900/70 hover:border-green-800/60",
+              "active:scale-[0.98]",
+              "disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100",
+              "flex items-center justify-center gap-1.5"
             )}
           >
-            {submitting === "buy" ? <Loader2 className="size-4 animate-spin mr-1.5" /> : <TrendingUp className="size-4 mr-1.5" />}
+            {submitting === "buy" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <TrendingUp className="w-3.5 h-3.5" />}
             {tr.buy}
-          </Button>
+          </button>
         </div>
 
         {/* Row 6: Price Footnote */}
-        <div className="text-center text-[10px] text-muted-foreground font-mono">
+        <p className="text-center text-[10px] text-muted-foreground pb-2">
           @ {price != null ? formatPrice(price) : "—"}
-        </div>
+        </p>
       </div>
 
       <IntentDialog

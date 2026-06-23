@@ -93,7 +93,7 @@ export default function Index() {
 
   return (
     <AppShell>
-      <div className="grid grid-cols-1 lg:grid-cols-[300px_minmax(0,1fr)_380px] gap-3 p-3 h-[calc(100vh-4rem)]">
+      <div className="grid grid-cols-1 lg:grid-cols-[300px_minmax(0,1fr)_380px] gap-3 p-3 h-auto lg:h-[calc(100vh-4rem)]">
         <aside className="rounded-2xl glass border border-border/40 shadow-card overflow-hidden order-2 lg:order-1 min-h-[400px] lg:min-h-0">
           <SymbolList active={active} onSelect={setActive} />
         </aside>
