@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Search, Star, StarOff } from "lucide-react";
-import { ASSET_LABELS, AssetClass, isMarketOpen, formatPrice, SymbolDef, SYMBOLS } from "@/lib/symbols";
+import { ASSET_LABELS, AssetClass, formatPrice, SymbolDef, SYMBOLS } from "@/lib/symbols";
 import { useLivePrices } from "@/hooks/useLivePrices";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -97,7 +97,6 @@ export default function SymbolList({ active, onSelect }: Props) {
           const lp = livePrices[s.symbol];
           const price = lp?.price ?? null;
           const change = lp?.change_pct_24h ?? null;
-          const open = isMarketOpen(s);
           const isActive = active.symbol === s.symbol;
           const watched = watch.has(s.symbol);
           const history = priceHistoryRef.current[s.symbol] ?? [];

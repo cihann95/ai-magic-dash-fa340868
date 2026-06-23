@@ -28,6 +28,9 @@ interface Position {
 interface NewsItem { title: string; summary: string; sentiment: "bullish" | "bearish" | "neutral"; source?: string; url?: string; published_at?: string; }
 interface ChatMsg { role: "user" | "assistant"; content: string; }
 
+const isEdgeError = (e: unknown): boolean =>
+  typeof e === "object" && e !== null && "code" in e && typeof (e as { code: unknown }).code === "string";
+
 function TypingDots() {
   return (
     <div className="flex items-center gap-1 py-4">
@@ -81,6 +84,8 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
+  const [chatError, setChatError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("analysis");
 
   const livePrices = useLivePrices(positions.map((p) => p.symbol));
 
@@ -155,7 +160,7 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
       if (result?.error) throw new Error(result.error);
       setAnalysis(result.analysis);
     } catch (e) {
-      if (!((e as any)?.code)) {
+      if (!isEdgeError(e)) {
         toast({ title: tr.error, description: e instanceof Error ? e.message : "Unknown", variant: "destructive" });
       }
     } finally { setLoadingA(false); }
@@ -168,7 +173,7 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
       if (result?.error) throw new Error(result.error);
       setStrategy(result.suggestion);
     } catch (e) {
-      if (!((e as any)?.code)) {
+      if (!isEdgeError(e)) {
         toast({ title: tr.error, description: e instanceof Error ? e.message : "Unknown", variant: "destructive" });
       }
     } finally { setLoadingS(false); }
@@ -181,7 +186,7 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
       if (result?.error) throw new Error(result.error);
       setBrief(result.content);
     } catch (e) {
-      if (!((e as any)?.code)) {
+      if (!isEdgeError(e)) {
         toast({ title: tr.error, description: e instanceof Error ? e.message : "Unknown", variant: "destructive" });
       }
     } finally { setLoadingB(false); }
@@ -194,7 +199,7 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
       if (result?.error) throw new Error(result.error);
       setNews((result.items ?? []).map((item) => ({ ...item, summary: item.summary ?? "", sentiment: item.sentiment ?? "neutral" as const })));
     } catch (e) {
-      if (!((e as any)?.code)) {
+      if (!isEdgeError(e)) {
         toast({ title: tr.error, description: e instanceof Error ? e.message : "Unknown", variant: "destructive" });
       }
     } finally { setLoadingN(false); }

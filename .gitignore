@@ -31,3 +31,7 @@ coverage/
 bun.lock
 bun.lockb
 .bun
+
+# Playwright test artifacts
+test-results/
+playwright-report/

@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   ArrowUpDown, ChevronDown, ChevronUp, Loader2, Sparkles, Target,
-  TrendingDown, TrendingUp, X, Crosshair, Clock, Layers, Inbox,
+  TrendingDown, TrendingUp, X, Crosshair, Clock, Layers,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
