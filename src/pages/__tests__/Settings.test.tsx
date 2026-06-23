@@ -5,7 +5,11 @@ import { renderWithProviders, setupGlobalMocks } from "@/pages/__tests__/test-ut
 
 // ── Hoisted mocks (available before vi.mock hoisting) ──
 const mockSupabaseClient = vi.hoisted(() => ({
-  from: vi.fn(),
+  from: vi.fn(() => ({
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+  })),
   auth: {
     getSession: vi.fn().mockResolvedValue({
       data: {
@@ -26,6 +30,7 @@ const mockSupabaseClient = vi.hoisted(() => ({
   })),
   removeChannel: vi.fn(),
   functions: { invoke: vi.fn().mockResolvedValue({ data: null, error: null }) },
+  rpc: vi.fn().mockResolvedValue({ data: false, error: null }),
 }));
 
 vi.mock("@/integrations/supabase/client", () => ({
@@ -47,6 +52,8 @@ vi.mock("lucide-react", () => ({
   Bell: () => <svg data-testid="icon-bell" />,
   Download: () => <svg data-testid="icon-download" />,
   Users: () => <svg data-testid="icon-users" />,
+  Wallet: () => <svg data-testid="icon-wallet" />,
+  Info: () => <svg data-testid="icon-info" />,
 }));
 
 vi.mock("@/lib/pushSubscribe", () => ({
@@ -68,6 +75,7 @@ describe("Settings", () => {
           data: { display_name: "Test User" },
           error: null,
         });
+        chain.maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
         return chain;
       }
       if (table === "public_profiles") {
@@ -80,6 +88,10 @@ describe("Settings", () => {
       const chain: Record<string, unknown> = {};
       chain.select = vi.fn().mockReturnValue(chain);
       chain.eq = vi.fn().mockReturnValue(chain);
+      chain.order = vi.fn().mockReturnValue(chain);
+      chain.limit = vi.fn().mockReturnValue(chain);
+      chain.maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
+      chain.single = vi.fn().mockResolvedValue({ data: null, error: null });
       return chain;
     });
   });

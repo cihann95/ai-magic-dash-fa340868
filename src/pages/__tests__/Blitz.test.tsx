@@ -26,6 +26,7 @@ const mockSupabaseClient = vi.hoisted(() => ({
   })),
   removeChannel: vi.fn(),
   functions: { invoke: vi.fn().mockResolvedValue({ data: null, error: null }) },
+  rpc: vi.fn().mockResolvedValue({ data: false, error: null }),
 }));
 
 vi.mock("@/integrations/supabase/client", () => ({

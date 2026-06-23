@@ -5,7 +5,11 @@ import { renderWithProviders, setupGlobalMocks } from "@/pages/__tests__/test-ut
 
 // ── Hoisted mocks (available before vi.mock hoisting) ──
 const mockSupabaseClient = vi.hoisted(() => ({
-  from: vi.fn(),
+  from: vi.fn(() => ({
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+  })),
   auth: {
     // Return null session so Index renders the logged-out (hero) view
     getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
@@ -19,6 +23,7 @@ const mockSupabaseClient = vi.hoisted(() => ({
   })),
   removeChannel: vi.fn(),
   functions: { invoke: vi.fn().mockResolvedValue({ data: null, error: null }) },
+  rpc: vi.fn().mockResolvedValue({ data: false, error: null }),
 }));
 
 vi.mock("@/integrations/supabase/client", () => ({

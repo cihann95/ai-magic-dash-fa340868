@@ -108,6 +108,7 @@ export const mockSupabase = {
   functions: {
     invoke: vi.fn().mockResolvedValue({ data: null, error: null }),
   },
+  rpc: vi.fn().mockResolvedValue({ data: false, error: null }),
   channel: vi.fn(() => ({
     on: vi.fn().mockReturnThis(),
     subscribe: vi.fn(),

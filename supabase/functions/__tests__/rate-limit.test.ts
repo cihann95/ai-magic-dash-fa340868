@@ -35,8 +35,8 @@ describe("rate-limit", () => {
     mockZcard.mockResolvedValueOnce(0);
     const result = await checkRateLimit("user-1", "execute-trade");
     expect(result.allowed).toBe(true);
-    expect(result.remaining).toBe(19);
-    expect(result.limit).toBe(20);
+    expect(result.remaining).toBe(9);
+    expect(result.limit).toBe(10);
     expect(mockZadd).toHaveBeenCalled();
     expect(mockExpire).toHaveBeenCalled();
   });
@@ -47,21 +47,21 @@ describe("rate-limit", () => {
     const result = await checkRateLimit("user-1", "execute-trade");
     expect(result.allowed).toBe(false);
     expect(result.remaining).toBe(0);
-    expect(result.limit).toBe(20);
+    expect(result.limit).toBe(10);
     expect(mockZadd).not.toHaveBeenCalled();
   });
 
   it("should return correct limits for execute-trade", async () => {
-    expect(RATE_LIMITS["execute-trade"].maxRequests).toBe(20);
+    expect(RATE_LIMITS["execute-trade"].maxRequests).toBe(10);
     expect(RATE_LIMITS["execute-trade"].windowMs).toBe(60_000);
   });
 
   it("should return correct limits for blitz-matchmake", async () => {
-    expect(RATE_LIMITS["blitz-matchmake"].maxRequests).toBe(10);
+    expect(RATE_LIMITS["blitz-matchmake"].maxRequests).toBe(5);
   });
 
   it("should return correct limits for ai-analyze", async () => {
-    expect(RATE_LIMITS["ai-analyze"].maxRequests).toBe(15);
+    expect(RATE_LIMITS["ai-analyze"].maxRequests).toBe(10);
   });
 
   it("should create 429 response with correct format", () => {
@@ -83,7 +83,7 @@ describe("rate-limit", () => {
     const body = await response!.json();
     expect(body.error).toBe("Rate limit exceeded");
     expect(body.retry_after).toBeGreaterThanOrEqual(1);
-    expect(body.limit).toBe(20);
+    expect(body.limit).toBe(10);
   });
 
   it("should return null via rateLimit() middleware when allowed", async () => {
@@ -113,6 +113,6 @@ describe("rate-limit fail-open", () => {
     const { checkRateLimit: checkDisabled } = await import("../_shared/rate-limit.ts");
     const result = await checkDisabled("user-1", "execute-trade");
     expect(result.allowed).toBe(true);
-    expect(result.remaining).toBe(20);
+    expect(result.remaining).toBe(10);
   });
 });

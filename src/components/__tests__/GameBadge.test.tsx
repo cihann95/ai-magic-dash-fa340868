@@ -10,7 +10,11 @@ vi.mock("@/contexts/AppContext", () => ({
 }));
 
 const mockSupabaseClient = vi.hoisted(() => ({
-  from: vi.fn(),
+  from: vi.fn(() => ({
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+  })),
   auth: {
     getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
     onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
@@ -26,6 +30,7 @@ const mockSupabaseClient = vi.hoisted(() => ({
   }),
   removeChannel: vi.fn(),
   functions: { invoke: vi.fn().mockResolvedValue({ data: null, error: null }) },
+  rpc: vi.fn().mockResolvedValue({ data: false, error: null }),
 }));
 
 vi.mock("@/integrations/supabase/client", () => ({
