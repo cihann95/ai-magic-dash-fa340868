@@ -13,6 +13,8 @@ export interface LivePrice {
   price: number;
   change_pct_24h: number | null;
   change_24h: number | null;
+  high_24h: number | null;
+  low_24h: number | null;
   updated_at: string;
 }
 
@@ -63,6 +65,8 @@ async function fetchAll() {
           price: Number(row.price),
           change_pct_24h: row.change_pct_24h !== null ? Number(row.change_pct_24h) : null,
           change_24h: row.change_24h !== null ? Number(row.change_24h) : null,
+          high_24h: existing?.high_24h ?? null,
+          low_24h: existing?.low_24h ?? null,
           updated_at: row.updated_at,
         };
         if (existing && new Date(existing.updated_at).getTime() > new Date(incoming.updated_at).getTime()) continue;
@@ -94,11 +98,14 @@ function init() {
       (payload: RealtimePostgresChangesPayload<PriceCacheRow>) => {
         const row = payload.eventType !== "DELETE" ? payload.new : null;
         if (!row?.symbol) return;
+        const existing = state.cache[row.symbol];
         state.cache[row.symbol] = {
           symbol: row.symbol,
           price: Number(row.price),
           change_pct_24h: row.change_pct_24h !== null ? Number(row.change_pct_24h) : null,
           change_24h: row.change_24h !== null ? Number(row.change_24h) : null,
+          high_24h: existing?.high_24h ?? null,
+          low_24h: existing?.low_24h ?? null,
           updated_at: row.updated_at,
         };
         notify();
@@ -126,6 +133,8 @@ function init() {
       price: tick.price,
       change_pct_24h: tick.change_pct_24h ?? existing?.change_pct_24h ?? null,
       change_24h: existing?.change_24h ?? null,
+      high_24h: tick.high_24h ?? existing?.high_24h ?? null,
+      low_24h: tick.low_24h ?? existing?.low_24h ?? null,
       updated_at: tick.updated_at,
     };
     notify();

@@ -102,7 +102,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       demoBalance, demoBalanceLocked, balanceLoaded,
       isAdmin,
       lang, setLang: setLangState,
-      theme, setThemeState,
+      theme, setTheme: setThemeState,
       signOut,
     }}>
       {children}

@@ -126,7 +126,7 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
       .select("id, symbol, side, quantity, entry_price")
       .eq("user_id", user.id)
       .eq("symbol", symbol.symbol)
-      .eq("status", "open");
+      .is("closed_at", null);
     setPositions(data ?? []);
   };
 
@@ -238,23 +238,27 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
           </div>
         </div>
 
-        <div className="flex items-center gap-4 px-3 h-9 border-b border-border-subtle bg-surface-1/50 text-sm shrink-0">
-          <span className={cn("font-price text-lg font-semibold", flashClass)}>
-            {price != null ? formatPrice(price) : "—"}
-          </span>
-          <span className={cn("text-xs font-medium", (change ?? 0) >= 0 ? "text-up" : "text-down")}>
-            {(change ?? 0) >= 0 ? "+" : ""}{change?.toFixed(2)}%
-          </span>
-          <span className="text-xs text-muted-foreground">
-            24h H: <span className="font-price">—</span>
-          </span>
-          <span className="text-xs text-muted-foreground">
-            24h L: <span className="font-price">—</span>
-          </span>
-          <span className="text-xs text-muted-foreground">
-            Vol: <span className="font-price">{volume24h != null ? formatPrice(volume24h) : "—"}</span>
-          </span>
-          <div className="ml-auto flex gap-1">
+        <div className="border-b border-border-subtle bg-surface-1/50 shrink-0">
+          {/* Stats row */}
+          <div className="flex items-center gap-3 md:gap-4 px-3 h-9 overflow-x-auto scrollbar-thin">
+            <span className={cn("font-price text-lg font-semibold shrink-0", flashClass)}>
+              {price != null ? formatPrice(price) : "—"}
+            </span>
+            <span className={cn("text-xs font-medium shrink-0", (change ?? 0) >= 0 ? "text-up" : "text-down")}>
+              {(change ?? 0) >= 0 ? "+" : ""}{change?.toFixed(2)}%
+            </span>
+            <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
+              24h H: <span className="font-price">{lp?.high_24h != null ? formatPrice(lp.high_24h) : "—"}</span>
+            </span>
+            <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
+              24h L: <span className="font-price">{lp?.low_24h != null ? formatPrice(lp.low_24h) : "—"}</span>
+            </span>
+            <span className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
+              Vol: <span className="font-price">{volume24h != null ? formatPrice(volume24h) : "—"}</span>
+            </span>
+          </div>
+          {/* Timeframe row */}
+          <div className="flex items-center gap-1 px-3 h-8 border-t border-border/20">
             {(["1m","5m","15m","1h","4h","1D"] as const).map(tf => (
               <button
                 key={tf}
