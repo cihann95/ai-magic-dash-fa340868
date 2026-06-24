@@ -499,16 +499,16 @@ test.describe("Scenario 3 — Order Ticket", () => {
       // OrderTicket should be visible with its own quantity input
       const placeOrderBtn = page.getByRole("button", { name: /emir ver|place.?order/i });
       if (await placeOrderBtn.isVisible().catch(() => false)) {
-        // Fill quantity in OrderTicket's input
+        await expect(page.getByText(/\$100,000|\$10,000|Bakiye|Balance/).first()).toBeVisible({ timeout: 5000 }).catch(() => {});
+
         const qtyInputs = page.locator('input[type="number"]');
         const qtyCount = await qtyInputs.count();
         if (qtyCount > 0) {
-          // The first number input in OrderTicket is quantity
-          await qtyInputs.nth(0).fill("0.5");
+          await qtyInputs.nth(0).fill("0.01");
           await page.waitForTimeout(500);
         }
 
-        // Click place order
+        await expect(placeOrderBtn).toBeEnabled({ timeout: 5000 });
         await placeOrderBtn.click();
         await page.waitForTimeout(2000);
 
@@ -749,7 +749,7 @@ test.describe("Scenario 5 — Blitz Page", () => {
     await expect(page.getByRole("button", { name: "BTCUSD" })).toBeVisible();
 
     // Entry fee buttons should exist
-    await expect(page.getByRole("button", { name: "$5" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "$5", exact: true })).toBeVisible();
 
     // Tabs: Hızlı Maç / Özel Oda
     await expect(page.getByRole("tab", { name: /Hızlı Maç/ })).toBeVisible();

@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { t } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -25,43 +26,63 @@ function AchievementsInner() {
   const tr = t(lang);
   const [all, setAll] = useState<Database["public"]["Tables"]["achievements"]["Row"][]>([]);
   const [earned, setEarned] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
+    setLoading(true);
     Promise.all([
       supabase.from("achievements").select("*").order("xp_reward"),
       supabase.from("user_achievements").select("achievement_code").eq("user_id", user.id),
     ]).then(([a, e]) => {
       setAll(a.data ?? []);
       setEarned(new Set((e.data ?? []).map((x) => x.achievement_code)));
+      setLoading(false);
     });
   }, [user]);
 
   return (
     <AppShell>
-      <div className="p-4 md:p-6 space-y-4 max-w-5xl mx-auto">
+      <main role="main" aria-label="Achievements" className="p-4 md:p-6 space-y-4 max-w-5xl mx-auto">
         <h1 className="text-2xl font-bold">{tr.achievements} ({earned.size} / {all.length})</h1>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-          {all.map((a) => {
-            const got = earned.has(a.code);
-            return (
-              <Card key={a.code} className={cn("p-4 glass border-border/40 transition-all", !got && "opacity-50 grayscale")}>
-                <div className={cn("size-12 rounded-xl bg-gradient-to-br flex items-center justify-center text-2xl mb-3", RARITY_COLOR[a.rarity])}>
-                  {ICON_MAP[a.icon] || "🏆"}
-                </div>
-                <div className="font-bold text-sm">{lang === "tr" ? a.name_tr : a.name_en}</div>
-                <div className="text-xs text-muted-foreground mt-1 leading-tight">{lang === "tr" ? a.description_tr : a.description_en}</div>
-                <div className="flex items-center justify-between mt-3 text-xs">
-                  <span className="font-mono text-primary">+{a.xp_reward} XP</span>
-                  <span className={cn("text-[10px] uppercase font-bold", got ? "text-bull" : "text-muted-foreground")}>
-                    {got ? tr.earned : tr.locked}
-                  </span>
+        {loading ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {[1, 2, 3].map((i) => (
+              <Card key={i} className="p-4 glass border-border/40">
+                <Skeleton className="size-12 rounded-xl mb-3" />
+                <Skeleton className="h-4 w-24 mb-2" />
+                <Skeleton className="h-3 w-full mb-1" />
+                <Skeleton className="h-3 w-2/3" />
+                <div className="flex items-center justify-between mt-3">
+                  <Skeleton className="h-3 w-12" />
+                  <Skeleton className="h-3 w-10" />
                 </div>
               </Card>
-            );
-          })}
-        </div>
-      </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {all.map((a) => {
+              const got = earned.has(a.code);
+              return (
+                <Card key={a.code} className={cn("p-4 glass border-border/40 transition-all", !got && "opacity-50 grayscale")}>
+                  <div className={cn("size-12 rounded-xl bg-gradient-to-br flex items-center justify-center text-2xl mb-3", RARITY_COLOR[a.rarity])}>
+                    {ICON_MAP[a.icon] || "🏆"}
+                  </div>
+                  <div className="font-bold text-sm">{lang === "tr" ? a.name_tr : a.name_en}</div>
+                  <div className="text-xs text-muted-foreground mt-1 leading-tight">{lang === "tr" ? a.description_tr : a.description_en}</div>
+                  <div className="flex items-center justify-between mt-3 text-xs">
+                    <span className="font-mono text-primary">+{a.xp_reward} XP</span>
+                    <span className={cn("text-[10px] uppercase font-bold", got ? "text-bull" : "text-muted-foreground")}>
+                      {got ? tr.earned : tr.locked}
+                    </span>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </main>
     </AppShell>
   );
 }

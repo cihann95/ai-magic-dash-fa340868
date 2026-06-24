@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import { screen, cleanup } from "@testing-library/react";
 import NotFound from "@/pages/NotFound";
+import { renderWithProviders } from "@/pages/__tests__/test-utils";
 
 describe("NotFound", () => {
   afterEach(async () => {
@@ -9,29 +9,17 @@ describe("NotFound", () => {
   });
 
   it("renders 404 heading", () => {
-    render(
-      <MemoryRouter initialEntries={["/nonexistent-route"]}>
-        <NotFound />
-      </MemoryRouter>,
-    );
+    renderWithProviders(<NotFound />, { initialEntries: ["/nonexistent-route"] });
     expect(screen.getByText("404")).toBeInTheDocument();
   });
 
   it("renders page not found message", () => {
-    render(
-      <MemoryRouter initialEntries={["/some-page"]}>
-        <NotFound />
-      </MemoryRouter>,
-    );
+    renderWithProviders(<NotFound />, { initialEntries: ["/some-page"] });
     expect(screen.getByText("Oops! Page not found")).toBeInTheDocument();
   });
 
   it("renders return to home link", () => {
-    render(
-      <MemoryRouter initialEntries={["/unknown"]}>
-        <NotFound />
-      </MemoryRouter>,
-    );
+    renderWithProviders(<NotFound />, { initialEntries: ["/unknown"] });
     const homeLink = screen.getByText("Return to Home");
     expect(homeLink).toBeInTheDocument();
     expect(homeLink.closest("a")).toHaveAttribute("href", "/");
@@ -39,11 +27,7 @@ describe("NotFound", () => {
 
   it("logs 404 error with the attempted path", () => {
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    render(
-      <MemoryRouter initialEntries={["/bad-path"]}>
-        <NotFound />
-      </MemoryRouter>,
-    );
+    renderWithProviders(<NotFound />, { initialEntries: ["/bad-path"] });
     expect(consoleSpy).toHaveBeenCalledWith(
       "404 Error: User attempted to access non-existent route:",
       "/bad-path",

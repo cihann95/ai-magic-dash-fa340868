@@ -93,7 +93,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => { localStorage.setItem("lang", lang); document.documentElement.lang = lang; }, [lang]);
 
-  const signOut = async () => { await supabase.auth.signOut(); };
+  const signOut = async () => {
+    localStorage.clear();
+    await supabase.auth.signOut();
+  };
 
   return (
     <AppContext.Provider value={{

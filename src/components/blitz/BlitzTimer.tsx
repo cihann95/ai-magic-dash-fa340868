@@ -42,10 +42,10 @@ export function BlitzTimer({
           {symbol}
           <button
             onClick={onToggleSfx}
-            className="opacity-60 hover:opacity-100"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center opacity-60 hover:opacity-100 -my-2"
             title={sfxOn ? "Sesi kapat" : "Sesi aç"}
           >
-            {sfxOn ? <Volume2 className="size-3" /> : <VolumeX className="size-3" />}
+            {sfxOn ? <Volume2 className="size-4" /> : <VolumeX className="size-4" />}
           </button>
         </div>
         <div className="text-xl font-bold">${formatPrice(price)}</div>
@@ -56,7 +56,7 @@ export function BlitzTimer({
         animate={{ scale: 1 }}
         transition={{ type: "spring", stiffness: 400, damping: 18 }}
         className={cn(
-          "text-5xl md:text-6xl font-bold tabular-nums tracking-tight",
+          "text-6xl md:text-6xl font-bold tabular-nums tracking-tight",
           secondsLeft !== null && secondsLeft <= 10 ? "text-destructive" : "text-primary",
           secondsLeft !== null && secondsLeft <= 5 && "drop-shadow-[0_0_12px_hsl(var(--destructive)/0.7)]",
         )}

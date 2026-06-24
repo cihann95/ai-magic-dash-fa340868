@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import AppShell from "@/components/AppShell";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useApp } from "@/contexts/AppContext";
@@ -7,7 +7,7 @@ import { t } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, AlertCircle, RefreshCw } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
@@ -16,14 +16,22 @@ function HistoryInner() {
   const tr = t(lang);
   const [trades, setTrades] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!user) return;
     setLoading(true);
-    supabase.from("trades").select("*").eq("user_id", user.id).order("executed_at", { ascending: false })
-      .then(({ data }) => { setTrades(data || []); setLoading(false); })
-      .catch(() => setLoading(false));
+    setError(null);
+    const { data, error: err } = await supabase.from("trades").select("*").eq("user_id", user.id).order("executed_at", { ascending: false });
+    if (err) {
+      setError(err.message);
+    } else {
+      setTrades(data || []);
+    }
+    setLoading(false);
   }, [user]);
+
+  useEffect(() => { load(); }, [load]);
 
   const exportCsv = () => {
     const header = ["Date", "Symbol", "Side", "Action", "Quantity", "Price", "Total", "P&L"];
@@ -40,7 +48,7 @@ function HistoryInner() {
 
   return (
     <AppShell>
-      <div className="p-4 md:p-6 space-y-4">
+      <main role="main" aria-label="Trade History" className="p-4 md:p-6 space-y-4">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">{tr.history}</h1>
           <Button variant="outline" size="sm" onClick={exportCsv} disabled={trades.length === 0}>
@@ -51,6 +59,14 @@ function HistoryInner() {
           <div className="overflow-x-auto">
             {loading ? (
               <div className="space-y-2 p-4">{[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
+            ) : error ? (
+              <div className="flex flex-col items-center gap-3 py-8">
+                <AlertCircle className="size-8 text-bear" />
+                <div className="text-sm text-muted-foreground">{error}</div>
+                <Button variant="outline" size="sm" onClick={load}>
+                  <RefreshCw className="size-4 mr-1" /> {lang === "tr" ? "Tekrar Dene" : "Retry"}
+                </Button>
+              </div>
             ) : (
               <Table>
                 <TableHeader>
@@ -87,7 +103,7 @@ function HistoryInner() {
             )}
           </div>
         </Card>
-      </div>
+      </main>
     </AppShell>
   );
 }

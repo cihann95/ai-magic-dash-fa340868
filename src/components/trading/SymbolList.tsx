@@ -24,6 +24,7 @@ export default function SymbolList({ active, onSelect }: Props) {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<AssetClass | "all">("all");
   const [watch, setWatch] = useState<Set<string>>(new Set());
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const livePrices = useLivePrices(SYMBOLS.map((s) => s.symbol));
 
   useEffect(() => {
@@ -61,8 +62,30 @@ export default function SymbolList({ active, onSelect }: Props) {
     }
   };
 
+  const listRef = useRef<HTMLDivElement>(null);
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlightedIndex((prev) => Math.min(prev + 1, filtered.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlightedIndex((prev) => Math.max(prev - 1, 0));
+    } else if (e.key === "Enter" && highlightedIndex >= 0 && highlightedIndex < filtered.length) {
+      e.preventDefault();
+      onSelect(filtered[highlightedIndex]);
+    }
+  };
+
+  useEffect(() => {
+    if (highlightedIndex >= 0 && listRef.current) {
+      const items = listRef.current.querySelectorAll('[role="option"]');
+      items[highlightedIndex]?.scrollIntoView({ block: "nearest" });
+    }
+  }, [highlightedIndex]);
+
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full" aria-label="Symbol list">
       <div className="p-3 space-y-2 border-b border-border/40">
         <div className="relative">
           <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -79,8 +102,8 @@ export default function SymbolList({ active, onSelect }: Props) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto scrollbar-thin">
-        {filtered.map((s) => {
+      <div ref={listRef} className="flex-1 overflow-y-auto scrollbar-thin" role="listbox" tabIndex={0} onKeyDown={handleKeyDown}>
+        {filtered.map((s, idx) => {
           const lp = livePrices[s.symbol];
           const price = lp?.price ?? null;
           const change = lp?.change_pct_24h ?? null;
@@ -88,13 +111,14 @@ export default function SymbolList({ active, onSelect }: Props) {
           const watched = watch.has(s.symbol);
           const flashClass = getFlashClass(s.symbol, price);
           return (
-            <button key={s.symbol} onClick={() => onSelect(s)}
+            <button key={s.symbol} onClick={() => onSelect(s)} role="option" aria-selected={isActive}
               className={cn(
                 "w-full h-[52px] px-3 flex items-center gap-3 border-b border-border/30 text-left transition-colors duration-panel",
                 "hover:bg-surface-1",
                 isActive && (change !== null && change >= 0
                   ? "bg-up/5 hover:bg-up/10 border-l-2 border-l-up"
-                  : "bg-down/5 hover:bg-down/10 border-l-2 border-l-down")
+                  : "bg-down/5 hover:bg-down/10 border-l-2 border-l-down"),
+                idx === highlightedIndex && "bg-surface-1 outline outline-1 outline-primary/40"
               )}>
               {s.logo_url ? (
                 <img src={s.logo_url} alt={s.symbol} className="size-9 rounded-lg shrink-0 object-contain bg-surface-1" />

@@ -36,6 +36,8 @@ export default function TopBar() {
   const loc = useLocation();
   const tr = t(lang);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  const [mobileSearchText, setMobileSearchText] = useState("");
 
   const items = primaryItems(lang);
   const more = moreItems(lang);
@@ -106,10 +108,44 @@ export default function TopBar() {
               <kbd className="text-[10px] font-mono px-1 py-0.5 rounded bg-background/60 border border-border/40">⌘K</kbd>
             </button>
           )}
-          {user && (
-            <Button variant="ghost" size="icon" className="md:hidden" onClick={openPalette} aria-label="Search">
+          {user && !mobileSearchOpen && (
+            <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobileSearchOpen(true)} aria-label="Search">
               <Search className="size-4" />
             </Button>
+          )}
+          {user && mobileSearchOpen && (
+            <div className="md:hidden flex items-center gap-1">
+              <div className="relative flex items-center">
+                <Search className="size-3.5 absolute left-2 text-muted-foreground pointer-events-none" />
+                <input
+                  autoFocus
+                  type="text"
+                  value={mobileSearchText}
+                  onChange={(e) => setMobileSearchText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      setMobileSearchOpen(false);
+                      setMobileSearchText("");
+                      openPalette();
+                    }
+                  }}
+                  placeholder={lang === "tr" ? "Ara..." : "Search..."}
+                  className="h-8 w-36 pl-7 pr-6 rounded-lg border border-border/60 bg-muted/30 text-xs text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-primary/50"
+                />
+                {mobileSearchText && (
+                  <button
+                    onClick={() => setMobileSearchText("")}
+                    className="absolute right-1.5 p-0.5 rounded-full text-muted-foreground hover:text-foreground"
+                    aria-label="Clear search"
+                  >
+                    <X className="size-3" />
+                  </button>
+                )}
+              </div>
+              <Button variant="ghost" size="icon" className="size-8" onClick={() => { setMobileSearchOpen(false); setMobileSearchText(""); }}>
+                <X className="size-4" />
+              </Button>
+            </div>
           )}
           {user && <NotificationBell />}
           {user && <GameBadge />}

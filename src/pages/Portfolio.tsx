@@ -6,12 +6,14 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { t } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useLivePrices } from "@/hooks/useLivePrices";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAxis, YAxis } from "recharts";
 import { cn } from "@/lib/utils";
-import { Heart, EyeOff, Eye } from "lucide-react";
+import { Heart, EyeOff, Eye, TrendingUp } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const COLORS = ["hsl(var(--primary))", "hsl(var(--bull))", "hsl(var(--primary-glow))", "hsl(var(--bear))", "hsl(var(--muted-foreground))"];
 
@@ -83,7 +85,7 @@ function PortfolioInner() {
 
   return (
     <AppShell>
-      <div className="p-4 md:p-6 space-y-4">
+      <main role="main" aria-label="Portfolio" className="p-4 md:p-6 space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <h1 className="text-2xl font-bold">{tr.portfolio}</h1>
           <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-card/50 border border-border/40">
@@ -123,7 +125,17 @@ function PortfolioInner() {
           </Card>
         </div>
 
-        {healthMode ? (
+        {positions.length === 0 && trades.length === 0 ? (
+          <Card className="p-12 text-center glass border-border/40 space-y-4">
+            <TrendingUp className="size-12 text-muted-foreground mx-auto" />
+            <div className="text-muted-foreground">
+              {lang === "tr" ? "Henüz pozisyonunuz yok. İşlem yapmaya başlayın!" : "No positions yet. Start trading!"}
+            </div>
+            <Button asChild className="gradient-primary text-primary-foreground">
+              <Link to="/">{lang === "tr" ? "İşlem Sayfasına Git" : "Go to Trading"}</Link>
+            </Button>
+          </Card>
+        ) : healthMode ? (
           <Card className="p-5 glass border-border/40">
             <div className="text-sm font-semibold mb-3 flex items-center gap-2">
               <Heart className="size-4 text-bull" />
@@ -199,7 +211,7 @@ function PortfolioInner() {
             </Card>
           </div>
         )}
-      </div>
+      </main>
     </AppShell>
   );
 }

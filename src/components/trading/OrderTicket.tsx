@@ -34,6 +34,12 @@ export default function OrderTicket({ symbol }: { symbol: SymbolDef }) {
   const noPrice = !lp?.price;
   const stale = isStale(lp?.updated_at);
 
+  const qtyNum = parseFloat(qty);
+  const totalCost = !isNaN(qtyNum) && qtyNum > 0 && lp?.price ? qtyNum * lp.price : 0;
+  const hasInsufficientBalance = realBalance != null && totalCost > realBalance;
+  const isQtyInvalid = isNaN(qtyNum) || qtyNum <= 0;
+  const isFormInvalid = isQtyInvalid || hasInsufficientBalance || noPrice || stale;
+
   useEffect(() => {
     if (lp?.price && !trigger) setTrigger(String(lp.price));
   }, [lp?.price, trigger]);
@@ -95,7 +101,7 @@ export default function OrderTicket({ symbol }: { symbol: SymbolDef }) {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" aria-label="Place order">
       <div className="rounded-lg border border-border/40 p-3 bg-surface-1/30">
         <div className="flex items-center justify-between">
           <span className="font-semibold text-sm">{symbol.symbol}</span>
@@ -120,17 +126,21 @@ export default function OrderTicket({ symbol }: { symbol: SymbolDef }) {
           <motion.button
             onClick={() => setSide("buy")}
             whileTap={{ scale: 0.97 }}
-            className={cn("h-9 rounded-md font-semibold text-sm transition-colors",
+            disabled={submitting}
+            className={cn("h-9 rounded-md font-semibold text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed",
               side === "buy" ? "bg-up text-white" : "bg-surface-1 text-muted-foreground hover:text-foreground")}
           >
+            {submitting && side === "buy" ? <Loader2 className="size-3 animate-spin mr-1 inline" /> : null}
             LONG
           </motion.button>
           <motion.button
             onClick={() => setSide("sell")}
             whileTap={{ scale: 0.97 }}
-            className={cn("h-9 rounded-md font-semibold text-sm transition-colors",
+            disabled={submitting}
+            className={cn("h-9 rounded-md font-semibold text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed",
               side === "sell" ? "bg-down text-white" : "bg-surface-1 text-muted-foreground hover:text-foreground")}
           >
+            {submitting && side === "sell" ? <Loader2 className="size-3 animate-spin mr-1 inline" /> : null}
             SHORT
           </motion.button>
         </div>
@@ -151,7 +161,13 @@ export default function OrderTicket({ symbol }: { symbol: SymbolDef }) {
         <div className="grid grid-cols-2 gap-2">
           <div>
             <label className="text-[10px] text-muted-foreground uppercase">{tr.quantity}</label>
-            <Input type="number" value={qty} onChange={(e) => setQty(e.target.value)} className="h-9 font-price" />
+            <Input type="number" value={qty} onChange={(e) => setQty(e.target.value)} className="h-9 font-price" aria-invalid={isQtyInvalid || hasInsufficientBalance} />
+            {isQtyInvalid && qty !== "" && (
+              <p className="text-[10px] text-destructive mt-1">{lang === "tr" ? "Miktar 0'dan büyük olmalı" : "Amount must be greater than 0"}</p>
+            )}
+            {hasInsufficientBalance && !isQtyInvalid && (
+              <p className="text-[10px] text-destructive mt-1">{lang === "tr" ? "Yetersiz bakiye" : "Insufficient balance"}</p>
+            )}
           </div>
           <div>
             <label className="text-[10px] text-muted-foreground uppercase">{tr.trigger_price}</label>
@@ -168,7 +184,7 @@ export default function OrderTicket({ symbol }: { symbol: SymbolDef }) {
         )}
       </div>
 
-      <Button onClick={place} disabled={submitting || noPrice || stale}
+      <Button onClick={place} disabled={submitting || isFormInvalid}
         className={cn("w-full h-10", submitting ? "animate-pulse" : "", "gradient-primary text-primary-foreground")}>
         {submitting ? <><Loader2 className="size-4 animate-spin mr-1" />{lang === "tr" ? "İşleniyor..." : "Processing..."}</> : tr.place_order}
       </Button>

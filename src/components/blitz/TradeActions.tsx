@@ -46,6 +46,7 @@ export function TradeActions({
               size="sm"
               variant={amount === a ? "default" : "outline"}
               onClick={() => onAmountChange(a)}
+              className="min-h-[44px] min-w-[44px]"
             >
               ${a}
             </Button>
@@ -57,7 +58,7 @@ export function TradeActions({
         <div className="grid grid-cols-2 gap-3">
           <Button
             size="lg"
-            className="h-16 bg-green-600 hover:bg-green-700 text-white text-lg font-bold"
+            className="h-16 w-full bg-green-600 hover:bg-green-700 text-white text-lg font-bold min-h-[44px]"
             onClick={() => onOpenPosition("long")}
             disabled={submitting}
           >
@@ -65,7 +66,7 @@ export function TradeActions({
           </Button>
           <Button
             size="lg"
-            className="h-16 bg-red-600 hover:bg-red-700 text-white text-lg font-bold"
+            className="h-16 w-full bg-red-600 hover:bg-red-700 text-white text-lg font-bold min-h-[44px]"
             onClick={() => onOpenPosition("short")}
             disabled={submitting}
           >
@@ -84,7 +85,7 @@ export function TradeActions({
           </div>
           <Button
             size="lg"
-            className="w-full h-14"
+            className="w-full h-14 min-h-[44px]"
             variant="outline"
             onClick={onClosePosition}
             disabled={submitting}

@@ -28,6 +28,10 @@ export default function TradingViewChart({ symbol, theme = "dark", height = "100
     container.style.width = "100%";
     ref.current.appendChild(container);
 
+    const rootStyles = getComputedStyle(document.documentElement);
+    const cardHsl = rootStyles.getPropertyValue("--card").trim();
+    const backgroundColor = cardHsl ? `hsl(${cardHsl})` : theme === "dark" ? "rgba(15,16,24,1)" : "rgba(255,255,255,1)";
+
     const script = document.createElement("script");
     script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
     script.async = true;
@@ -39,7 +43,7 @@ export default function TradingViewChart({ symbol, theme = "dark", height = "100
       theme,
       style: "1",
       locale: "en",
-      backgroundColor: theme === "dark" ? "rgba(15,16,24,1)" : "rgba(255,255,255,1)",
+      backgroundColor,
       gridColor: "rgba(120,120,140,0.1)",
       hide_top_toolbar: false,
       hide_legend: false,
@@ -72,7 +76,7 @@ export default function TradingViewChart({ symbol, theme = "dark", height = "100
   if (error) {
     return (
       <div
-        className="tradingview-widget-container w-full h-full flex items-center justify-center bg-gray-900 text-gray-300"
+        className="tradingview-widget-container w-full h-full flex items-center justify-center bg-card text-card-foreground"
         style={{ height }}
         ref={ref}
       >
@@ -80,7 +84,7 @@ export default function TradingViewChart({ symbol, theme = "dark", height = "100
           <p className="mb-2">Grafik yüklenemedi</p>
           <button
             onClick={() => setRetryKey((k) => k + 1)}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+            className="px-4 py-2 bg-primary hover:bg-primary/80 text-primary-foreground rounded transition-colors"
           >
             Tekrar dene
           </button>

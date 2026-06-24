@@ -74,8 +74,7 @@ export default function Blitz() {
       await callEdgeFunction("blitz-matchmake", {
         mode: "cancel", symbol, entry_fee: entryFee,
       }, { showToast: false });
-    } catch {
-    }
+    } catch { /* queue cancel is best-effort */ }
     setQueueing(false);
     toast.info("Kuyruktan çıktın");
   }
@@ -115,8 +114,7 @@ export default function Blitz() {
   async function cancelWaitingRoom() {
     try {
       await callEdgeFunction("blitz-matchmake", { mode: "cancel", symbol, entry_fee: entryFee }, { showToast: false });
-    } catch {
-    }
+    } catch { /* waiting room cancel is best-effort */ }
     setWaitingRoomId(null);
     setCreatedInviteCode("");
     toast.info("Oda iptal edildi");
@@ -175,6 +173,7 @@ export default function Blitz() {
               {SYMBOLS.filter((s) => s.market_open).slice(0, 12).map((s) => (
                 <Button key={s.symbol} size="sm"
                   variant={symbol === s.symbol ? "default" : "outline"}
+                  className="min-h-[44px]"
                   onClick={() => setSymbol(s.symbol)}>
                   {s.symbol}
                 </Button>
@@ -188,6 +187,7 @@ export default function Blitz() {
               {ENTRY_FEES.map((f) => (
                 <Button key={f} size="sm"
                   variant={entryFee === f ? "default" : "outline"}
+                  className="min-h-[44px]"
                   onClick={() => setEntryFee(f)}>
                   ${f}
                 </Button>
@@ -230,7 +230,7 @@ export default function Blitz() {
                     <Loader2 className="size-5 animate-spin text-primary" />
                     <span className="text-sm">Rakip aranıyor...</span>
                   </div>
-                  <Button variant="outline" className="w-full" onClick={cancelQueue}>
+                  <Button variant="outline" className="w-full min-h-[44px]" onClick={cancelQueue}>
                     <X className="size-4 mr-2" /> İptal
                   </Button>
                 </div>
@@ -243,7 +243,7 @@ export default function Blitz() {
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button className="w-full" variant="outline" disabled>
+                        <Button className="w-full min-h-[44px]" variant="outline" disabled>
                           {creating ? <Loader2 className="size-4 mr-2 animate-spin" /> : <Plus className="size-4 mr-2" />}
                           Davet kodu oluştur
                         </Button>
@@ -257,7 +257,7 @@ export default function Blitz() {
                     </Tooltip>
                   </TooltipProvider>
                 ) : (
-                  <Button className="w-full" variant="outline" onClick={createPrivate} disabled={creating}>
+                  <Button className="w-full min-h-[44px]" variant="outline" onClick={createPrivate} disabled={creating}>
                     {creating ? <Loader2 className="size-4 mr-2 animate-spin" /> : <Plus className="size-4 mr-2" />}
                     Davet kodu oluştur
                   </Button>
@@ -269,7 +269,7 @@ export default function Blitz() {
                     <p className="text-sm text-muted-foreground">Davet Kodunuz</p>
                     <p className="text-4xl font-mono font-bold tracking-widest text-primary select-all">{createdInviteCode}</p>
                   </div>
-                  <Button variant="outline" size="sm" onClick={copyInviteCode}>
+                  <Button variant="outline" size="sm" className="min-h-[44px]" onClick={copyInviteCode}>
                     {copied ? <Check className="size-4 mr-2" /> : <Copy className="size-4 mr-2" />}
                     {copied ? "Kopyalandı!" : "Kopyala"}
                   </Button>
@@ -277,7 +277,7 @@ export default function Blitz() {
                     <Loader2 className="size-4 animate-spin" />
                     Odanın hazır olması bekleniyor...
                   </div>
-                  <Button variant="destructive" size="sm" onClick={cancelWaitingRoom}>
+                  <Button variant="destructive" size="sm" className="min-h-[44px]" onClick={cancelWaitingRoom}>
                     <X className="size-4 mr-2" /> İptal
                   </Button>
                 </Card>
@@ -285,7 +285,7 @@ export default function Blitz() {
               {!waitingRoomId && (
                 <div className="flex gap-2">
                   <Input placeholder="DAVET KODU" value={inviteCode} onChange={(e) => setInviteCode(e.target.value.toUpperCase())} maxLength={8} />
-                  <Button onClick={joinPrivate} disabled={joining || !inviteCode}>
+                  <Button onClick={joinPrivate} disabled={joining || !inviteCode} className="min-h-[44px]">
                     {joining ? <Loader2 className="size-4 animate-spin" /> : "Katıl"}
                   </Button>
                 </div>

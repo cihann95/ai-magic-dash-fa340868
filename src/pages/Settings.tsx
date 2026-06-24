@@ -35,6 +35,7 @@ function SettingsInner() {
   const [resetting, setResetting] = useState(false);
   const [pushOn, setPushOn] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<{ prompt(): Promise<{ outcome: string }>; userChoice: Promise<{ outcome: string }> } | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
 
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
   const [ledgerLoading, setLedgerLoading] = useState(true);
@@ -68,6 +69,7 @@ function SettingsInner() {
         const sub = await reg?.pushManager.getSubscription();
         setPushOn(!!sub);
       }
+      setProfileLoading(false);
     })();
 
     const handler = (e: Event) => { e.preventDefault(); setInstallPrompt(e as unknown as { prompt(): Promise<{ outcome: string }>; userChoice: Promise<{ outcome: string }> }); };
@@ -189,44 +191,71 @@ function SettingsInner() {
 
   return (
     <AppShell>
-      <div className="p-4 md:p-6 max-w-3xl mx-auto space-y-6">
+      <main role="main" aria-label="Settings" className="p-4 md:p-6 max-w-3xl mx-auto space-y-6">
         <h1 className="text-2xl font-bold">{tr.settings}</h1>
 
-        <Card className="p-6 glass border-border/40 space-y-4">
-          <h2 className="font-semibold">{tr.profile}</h2>
-          <div className="space-y-2">
-            <Label>{tr.email}</Label>
-            <Input value={user?.email || ""} disabled />
-          </div>
-          <div className="space-y-2">
-            <Label>{tr.display_name}</Label>
-            <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
-          </div>
-          <Button onClick={saveProfile} disabled={saving} className="gradient-primary text-primary-foreground">{tr.save}</Button>
-        </Card>
+        {profileLoading ? (
+          <>
+            <Card className="p-6 glass border-border/40 space-y-4">
+              <Skeleton className="h-5 w-24" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+              <Skeleton className="h-10 w-24" />
+            </Card>
+            <Card className="p-6 glass border-border/40 space-y-4">
+              <Skeleton className="h-5 w-32" />
+              <div className="grid grid-cols-3 gap-3">
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+              </div>
+            </Card>
+          </>
+        ) : (
+          <>
+            <Card className="p-6 glass border-border/40 space-y-4">
+              <h2 className="font-semibold">{tr.profile}</h2>
+              <div className="space-y-2">
+                <Label>{tr.email}</Label>
+                <Input value={user?.email || ""} disabled />
+              </div>
+              <div className="space-y-2">
+                <Label>{tr.display_name}</Label>
+                <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
+              </div>
+              <Button onClick={saveProfile} disabled={saving} className="gradient-primary text-primary-foreground">{tr.save}</Button>
+            </Card>
 
-        <Card className="p-6 glass border-border/40 space-y-4">
-          <h2 className="font-semibold flex items-center gap-2"><Users className="size-4" /> {tr.public_profile}</h2>
-          <div className="space-y-2">
-            <Label>{tr.username}</Label>
-            <Input value={username} onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))} placeholder="trader_x" />
-          </div>
-          <div className="space-y-2">
-            <Label>{tr.bio}</Label>
-            <Textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={2} />
-          </div>
-          <div className="flex items-center justify-between"><Label>{tr.activate_public}</Label><Switch checked={pubActive} onCheckedChange={setPubActive} /></div>
-          <div className="flex items-center justify-between"><Label>{lang === "tr" ? "İşlemleri göster" : "Show trades"}</Label><Switch checked={showTrades} onCheckedChange={setShowTrades} /></div>
-          <div className="flex items-center justify-between"><Label>{lang === "tr" ? "Portföyü göster" : "Show portfolio"}</Label><Switch checked={showPortfolio} onCheckedChange={setShowPortfolio} /></div>
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>{lang === "tr" ? "Kopyalanmaya izin ver" : "Allow copy-trading"}</Label>
-              <p className="text-[11px] text-muted-foreground">{lang === "tr" ? "Diğer kullanıcılar işlemlerini otomatik kopyalayabilir." : "Others can auto-copy your trades."}</p>
-            </div>
-            <Switch checked={copyable} onCheckedChange={setCopyable} />
-          </div>
-          <Button onClick={savePublic} disabled={saving} className="gradient-primary text-primary-foreground">{tr.save}</Button>
-        </Card>
+            <Card className="p-6 glass border-border/40 space-y-4">
+              <h2 className="font-semibold flex items-center gap-2"><Users className="size-4" /> {tr.public_profile}</h2>
+              <div className="space-y-2">
+                <Label>{tr.username}</Label>
+                <Input value={username} onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))} placeholder="trader_x" />
+              </div>
+              <div className="space-y-2">
+                <Label>{tr.bio}</Label>
+                <Textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={2} />
+              </div>
+              <div className="flex items-center justify-between"><Label>{tr.activate_public}</Label><Switch checked={pubActive} onCheckedChange={setPubActive} /></div>
+              <div className="flex items-center justify-between"><Label>{lang === "tr" ? "İşlemleri göster" : "Show trades"}</Label><Switch checked={showTrades} onCheckedChange={setShowTrades} /></div>
+              <div className="flex items-center justify-between"><Label>{lang === "tr" ? "Portföyü göster" : "Show portfolio"}</Label><Switch checked={showPortfolio} onCheckedChange={setShowPortfolio} /></div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>{lang === "tr" ? "Kopyalanmaya izin ver" : "Allow copy-trading"}</Label>
+                  <p className="text-[11px] text-muted-foreground">{lang === "tr" ? "Diğer kullanıcılar işlemlerini otomatik kopyalayabilir." : "Others can auto-copy your trades."}</p>
+                </div>
+                <Switch checked={copyable} onCheckedChange={setCopyable} />
+              </div>
+              <Button onClick={savePublic} disabled={saving} className="gradient-primary text-primary-foreground">{tr.save}</Button>
+            </Card>
+          </>
+        )}
 
         <Card className="p-6 glass border-border/40 space-y-4">
           <h2 className="font-semibold">{tr.theme} & {tr.language}</h2>
@@ -323,7 +352,7 @@ function SettingsInner() {
             <RotateCcw className="size-4" /> {tr.reset_demo}
           </Button>
         </Card>
-      </div>
+      </main>
     </AppShell>
   );
 }

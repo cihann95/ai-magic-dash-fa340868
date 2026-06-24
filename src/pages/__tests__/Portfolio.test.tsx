@@ -53,6 +53,7 @@ vi.mock("lucide-react", () => ({
   Heart: (_props: Record<string, unknown>) => <svg data-testid="icon-heart" />,
   EyeOff: (_props: Record<string, unknown>) => <svg data-testid="icon-eyeoff" />,
   Eye: (_props: Record<string, unknown>) => <svg data-testid="icon-eye" />,
+  TrendingUp: (_props: Record<string, unknown>) => <svg data-testid="icon-trending-up" />,
 }));
 
 // ── Mock recharts ──

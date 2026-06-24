@@ -25,10 +25,10 @@ export default function CountdownCircle({
 
   // Color tiers: green (>30s), yellow (10-30s), red (<10s)
   const getColor = () => {
-    if (showInactive || isLoading) return "#6b7280";
-    if ((timeLeft ?? 0) > 30) return "#22c55e";
-    if ((timeLeft ?? 0) > 10) return "#eab308";
-    return "#ef4444";
+    if (showInactive || isLoading) return "hsl(var(--muted-foreground))";
+    if ((timeLeft ?? 0) > 30) return "hsl(var(--success))";
+    if ((timeLeft ?? 0) > 10) return "hsl(var(--warning))";
+    return "hsl(var(--danger))";
   };
 
   const color = getColor();
@@ -67,7 +67,7 @@ export default function CountdownCircle({
           cy={center}
           r={radius}
           fill="none"
-          stroke="#374151"
+          stroke="hsl(var(--border))"
           strokeWidth={strokeWidth}
           opacity={isLoading ? 0 : 0.2}
         />

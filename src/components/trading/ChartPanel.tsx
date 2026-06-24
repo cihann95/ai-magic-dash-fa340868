@@ -58,6 +58,7 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
   const [intentOpen, setIntentOpen] = useState<null | { side: "buy" | "sell"; signal: EmotionalSignal }>(null);
   const [timeframe, setTimeframe] = useState<string>("1h");
   const [volume24h, setVolume24h] = useState<number | null>(null);
+  const [chartReady, setChartReady] = useState(false);
   const lp = useLivePrice(symbol.symbol);
   const price = lp?.price ?? null;
   const stale = isStale(lp?.updated_at);
@@ -171,9 +172,13 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
   };
 
   const open = isMarketOpen(symbol);
-  const total = parseFloat(qty || "0") * (price ?? 0);
   const change = lp?.change_pct_24h ?? null;
   const tradeDisabled = !!submitting || noPrice || stale || !open;
+
+  useEffect(() => {
+    const timer = setTimeout(() => setChartReady(true), 800);
+    return () => clearTimeout(timer);
+  }, []);
 
   const TF_MAP: Record<string, string> = { "1m": "1", "5m": "5", "15m": "15", "1h": "60", "4h": "240", "1D": "D" };
 
@@ -198,7 +203,7 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
   }, [symbol?.symbol]);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full" aria-label="Price chart">
       <Tabs defaultValue="chart" className="flex flex-col flex-1 min-h-0">
         <div className="flex items-center justify-between p-3 border-b border-border/40 gap-3">
           <div className="flex items-center gap-3 min-w-0">
@@ -284,7 +289,10 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
         </TabsList>
 
         <TabsContent value="chart" className="flex-1 m-0 mt-3 px-3 min-h-0">
-          <div className="rounded-xl overflow-hidden border border-border/40 h-full min-h-[400px]">
+          <div className="rounded-xl overflow-hidden border border-border/40 h-full min-h-[400px] relative">
+            {!chartReady && (
+              <div className="absolute inset-0 z-10 animate-pulse bg-muted rounded-lg h-[400px]" />
+            )}
             <TradingViewChart symbol={symbol.tv} theme={theme} interval={TF_MAP[timeframe]} />
           </div>
         </TabsContent>

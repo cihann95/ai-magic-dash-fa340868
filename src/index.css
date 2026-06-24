@@ -33,6 +33,9 @@
     --ring: 250 95% 64%;
     --radius: 0.875rem;
 
+    --sidebar-width: 16rem;
+    --sidebar-width-icon: 4.5rem;
+
     --gradient-primary: linear-gradient(135deg, hsl(250 95% 64%), hsl(270 95% 70%));
     --gradient-bull: linear-gradient(135deg, hsl(142 71% 45%), hsl(160 84% 39%));
     --gradient-bear: linear-gradient(135deg, hsl(0 84% 60%), hsl(340 82% 52%));
@@ -45,6 +48,9 @@
     --color-up: var(--bull);
     --color-down: var(--bear);
     --color-neutral: 220 10% 50%;
+    --success: 142 71% 45%;
+    --warning: 38 92% 50%;
+    --danger: 0 84% 60%;
     --color-surface-1: 240 10% 12%;
     --color-surface-2: 240 10% 10%;
     --color-surface-3: 240 10% 8%;
@@ -94,6 +100,9 @@
     --color-up: var(--bull);
     --color-down: var(--bear);
     --color-neutral: 220 10% 55%;
+    --success: 142 76% 50%;
+    --warning: 38 92% 55%;
+    --danger: 0 84% 62%;
     --color-surface-1: 240 10% 14%;
     --color-surface-2: 240 10% 12%;
     --color-surface-3: 240 10% 10%;
@@ -144,6 +153,9 @@
     --color-up: var(--bull);
     --color-down: var(--bear);
     --color-neutral: 180 10% 50%;
+    --success: 137 49% 47%;
+    --warning: 38 92% 50%;
+    --danger: 356 92% 63%;
     --color-surface-1: 180 10% 10%;
     --color-surface-2: 180 10% 8%;
     --color-surface-3: 180 10% 6%;
@@ -186,6 +198,7 @@
   .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
   .scrollbar-thin::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 3px; }
   .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
 }
 
 @keyframes float-up {

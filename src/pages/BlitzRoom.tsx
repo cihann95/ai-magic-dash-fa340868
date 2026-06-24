@@ -143,7 +143,7 @@ export default function BlitzRoomPage() {
     blitzSfx.open(); vibrate(40);
     try {
       await callEdgeFunction("blitz-tick-order", { room_id: room.id, action: "open", side, amount });
-    } catch {}
+    } catch { /* UI-only: blitz order errors are non-blocking */ }
     setSubmitting(false);
   }
 
@@ -153,7 +153,7 @@ export default function BlitzRoomPage() {
     blitzSfx.close(); vibrate(40);
     try {
       await callEdgeFunction("blitz-tick-order", { room_id: room.id, action: "close", order_id: myOpenOrder.id });
-    } catch {}
+    } catch { /* UI-only: blitz order errors are non-blocking */ }
     setSubmitting(false);
   }
 
@@ -176,7 +176,7 @@ export default function BlitzRoomPage() {
 
   return (
     <AppShell>
-      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-3 p-3 h-[calc(100vh-4rem)]">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-3 p-3 h-[calc(100dvh-4rem)] pb-24">
         {/* Ana */}
         <div className="flex flex-col gap-3 min-h-0">
           {/* Sayaç */}
@@ -252,7 +252,7 @@ export default function BlitzRoomPage() {
               transition={{ delay: 0.15, type: "spring", stiffness: 220 }}
               className="text-5xl font-bold tabular-nums"
             >
-              <span className={myFinalPnl >= 0 ? "text-green-500" : "text-red-500"}>
+              <span className={myFinalPnl >= 0 ? "text-success" : "text-danger"}>
                 {myFinalPnl >= 0 ? "+" : ""}${myFinalPnl.toFixed(2)}
               </span>
             </motion.div>

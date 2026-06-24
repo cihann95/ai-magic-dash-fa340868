@@ -17,7 +17,7 @@ export default function BottomNav() {
     { to: "/settings", label: tr.settings, icon: Settings },
   ];
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 glass border-t border-border/40 px-2 pb-safe">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 glass border-t border-border/40 px-2 pb-[env(safe-area-inset-bottom)]">
       <div className="flex items-center justify-around h-16">
         {items.map(({ to, label, icon: Icon }) => (
           <NavLink key={to} to={to} end={to === "/"}

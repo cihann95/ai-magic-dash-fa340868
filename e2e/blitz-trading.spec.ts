@@ -193,7 +193,7 @@ test.describe("Blitz Trading Flow", () => {
     await expect(page.getByRole("button", { name: "BTCUSD" })).toBeVisible();
 
     // Entry fee selector
-    await expect(page.getByRole("button", { name: "$5" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "$5", exact: true })).toBeVisible();
 
     // Tabs
     await expect(page.getByRole("tab", { name: /Hızlı Maç/ })).toBeVisible();
