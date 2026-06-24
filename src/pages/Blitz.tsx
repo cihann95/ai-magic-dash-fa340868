@@ -19,7 +19,7 @@ import { useApp } from "@/contexts/AppContext";
 const ENTRY_FEES = [5, 10, 25, 50];
 
 export default function Blitz() {
-  const { user, realBalance, realBalanceLocked } = useApp();
+  const { user, realBalance, realBalanceLocked, balanceLoaded } = useApp();
   const navigate = useNavigate();
   const [symbol, setSymbol] = useState("BTCUSD");
   const [entryFee, setEntryFee] = useState(5);
@@ -32,7 +32,7 @@ export default function Blitz() {
   const [copied, setCopied] = useState(false);
 
   const available = realBalance - realBalanceLocked;
-  const insufficientBalance = available < entryFee;
+  const insufficientBalance = balanceLoaded && available < entryFee;
 
   // Kuyrukta beklerken yeni oda açıldığında dinle
   useEffect(() => {

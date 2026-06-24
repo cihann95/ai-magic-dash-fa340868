@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 type OrderType = "limit" | "stop" | "take_profit" | "stop_loss";
 
 export default function OrderTicket({ symbol }: { symbol: SymbolDef }) {
-  const { user, lang, realBalance } = useApp();
+  const { user, lang, realBalance, balanceLoaded } = useApp();
   const tr = t(lang);
   const lp = useLivePrice(symbol.symbol);
   const [orderType, setOrderType] = useState<OrderType>("limit");
@@ -36,7 +36,7 @@ export default function OrderTicket({ symbol }: { symbol: SymbolDef }) {
 
   const qtyNum = parseFloat(qty);
   const totalCost = !isNaN(qtyNum) && qtyNum > 0 && lp?.price ? qtyNum * lp.price : 0;
-  const hasInsufficientBalance = realBalance != null && totalCost > realBalance;
+  const hasInsufficientBalance = balanceLoaded && totalCost > realBalance;
   const isQtyInvalid = isNaN(qtyNum) || qtyNum <= 0;
   const isFormInvalid = isQtyInvalid || hasInsufficientBalance || noPrice || stale;
 
