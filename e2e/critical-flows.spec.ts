@@ -481,30 +481,26 @@ test.describe("Scenario 3 — Order Ticket", () => {
   }) => {
     await page.goto("/");
     await page.waitForLoadState("domcontentloaded");
-    await page.waitForTimeout(3000);
+    await page.waitForResponse("**/rest/v1/profiles**", { timeout: 10000 });
+    await page.waitForTimeout(1000);
 
-    // Click on a symbol
     const btcBtn = page.locator("aside").first().getByText("BTCUSD").first();
     if (await btcBtn.isVisible().catch(() => false)) {
       await btcBtn.click();
       await page.waitForTimeout(1500);
     }
 
-    // Switch to the "orders" tab in ChartPanel
     const ordersTab = page.getByRole("tab", { name: /emir|order/i });
     if (await ordersTab.isVisible().catch(() => false)) {
       await ordersTab.click();
       await page.waitForTimeout(1000);
 
-      // OrderTicket should be visible with its own quantity input
       const placeOrderBtn = page.getByRole("button", { name: /emir ver|place.?order/i });
       if (await placeOrderBtn.isVisible().catch(() => false)) {
-        await expect(page.getByText(/\$100,000|\$10,000|Bakiye|Balance/).first()).toBeVisible({ timeout: 5000 }).catch(() => {});
-
         const qtyInputs = page.locator('input[type="number"]');
         const qtyCount = await qtyInputs.count();
         if (qtyCount > 0) {
-          await qtyInputs.nth(0).fill("0.01");
+          await qtyInputs.nth(0).fill("0.001");
           await page.waitForTimeout(500);
         }
 

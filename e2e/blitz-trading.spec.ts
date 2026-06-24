@@ -205,9 +205,10 @@ test.describe("Blitz Trading Flow", () => {
   test("02 - Create private room and get invite code", async ({ page }) => {
     await page.goto("/blitz");
     await page.waitForLoadState("domcontentloaded");
-    await page.waitForTimeout(2000);
+    await page.waitForResponse("**/rest/v1/profiles**", { timeout: 10000 });
 
     await expect(page.getByRole("heading", { name: /Blitz Arena/ })).toBeVisible();
+    await expect(page.getByText("$490.00")).toBeVisible({ timeout: 5000 });
     await page.getByRole("tab", { name: /Özel Oda/ }).click();
     await page.waitForTimeout(500);
 
