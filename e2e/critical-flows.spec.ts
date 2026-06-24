@@ -482,6 +482,7 @@ test.describe("Scenario 3 — Order Ticket", () => {
     await page.goto("/");
     await page.waitForLoadState("domcontentloaded");
     await page.waitForResponse("**/rest/v1/profiles**", { timeout: 10000 });
+    await page.waitForResponse("**/rest/v1/price_cache**", { timeout: 10000 });
     await page.waitForTimeout(1000);
 
     const btcBtn = page.locator("aside").first().getByText("BTCUSD").first();

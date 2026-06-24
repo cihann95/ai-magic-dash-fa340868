@@ -96,7 +96,7 @@ async function setupBlitzMocks(page: Page, roomOverrides: Record<string, unknown
   // REST API
   await page.route("**/rest/v1/profiles**", (route) => {
     if (route.request().method() === "GET") {
-      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(MOCK_PROFILES) });
+      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify([MOCK_PROFILES[0]]) });
     }
     return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({}) });
   });
