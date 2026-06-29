@@ -35,6 +35,8 @@ interface BehaviorStats {
   nightTradeRatio: number;
   revengeCount: number;
   quickCloseCount: number;
+  lossStreak: number;
+  tradeCooldownUntil: string | null;
 }
 
 function analyzeBehavior(trades: TradeRow[]) {
@@ -85,6 +87,17 @@ function analyzeBehavior(trades: TradeRow[]) {
     return new Date(c.executed_at).getTime() - new Date(open.executed_at).getTime() < 10 * 60 * 1000;
   });
 
+  // Loss streak detection: arka arkaya 3 zarar
+  let lossStreak = 0;
+  for (let i = closes.length - 1; i >= 0; i--) {
+    const pnl = Number(closes[i].pnl ?? 0);
+    if (pnl < 0) lossStreak++;
+    else break;
+  }
+  const tradeCooldownUntil = lossStreak >= 3
+    ? new Date(Date.now() + 5 * 60 * 1000).toISOString()
+    : null;
+
   return {
     totalTrades: trades.length,
     totalPnl: +totalPnl.toFixed(2),
@@ -98,6 +111,8 @@ function analyzeBehavior(trades: TradeRow[]) {
     nightTradeRatio: +(nightRatio * 100).toFixed(1),
     revengeCount,
     quickCloseCount: quickCloses.length,
+    lossStreak,
+    tradeCooldownUntil,
   };
 }
 

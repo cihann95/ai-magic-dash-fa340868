@@ -5,11 +5,15 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type EmotionalSignal = "rapid_fire" | "reactive" | "oversize" | null;
 
-interface RecentTrade { ts: number; total: number; closed_ts?: number }
+interface RecentTrade { ts: number; total: number; closed_ts?: number; pnl?: number }
 
 const KEY = "lumen_recent_trades_v1";
 const WINDOW_MS = 5 * 60 * 1000; // 5dk
 const MAX_TRADES = 20;
+
+const WIN_STREAK_KEY = "lumen_win_streak_v1";
+const LOSS_STREAK_KEY = "lumen_loss_streak_v1";
+const COOLDOWN_KEY = "trade_cooldown_until";
 
 function read(): RecentTrade[] {
   try {
@@ -21,12 +25,49 @@ function write(arr: RecentTrade[]) {
   try { localStorage.setItem(KEY, JSON.stringify(arr.slice(-MAX_TRADES))); } catch { /* noop */ }
 }
 
-export function recordTrade(total: number, closed = false) {
+export function recordTrade(total: number, closed = false, pnl?: number) {
   const arr = read();
   const now = Date.now();
-  if (closed && arr.length) arr[arr.length - 1].closed_ts = now;
+  if (closed && arr.length) {
+    arr[arr.length - 1].closed_ts = now;
+    if (pnl !== undefined) arr[arr.length - 1].pnl = pnl;
+  }
   else arr.push({ ts: now, total: Math.abs(total) });
   write(arr);
+}
+
+/** Track win/loss streak after a trade closes. Call with actual PnL. */
+export function recordTradeResult(pnl: number) {
+  const winStreak = parseInt(localStorage.getItem(WIN_STREAK_KEY) || "0", 10);
+  if (pnl > 0) {
+    localStorage.setItem(WIN_STREAK_KEY, String(winStreak + 1));
+    localStorage.setItem(LOSS_STREAK_KEY, "0");
+  } else {
+    localStorage.setItem(WIN_STREAK_KEY, "0");
+    const lossStreak = parseInt(localStorage.getItem(LOSS_STREAK_KEY) || "0", 10);
+    const newStreak = lossStreak + 1;
+    localStorage.setItem(LOSS_STREAK_KEY, String(newStreak));
+    if (newStreak >= 3) {
+      localStorage.setItem(COOLDOWN_KEY, String(Date.now() + 5 * 60 * 1000));
+    }
+  }
+}
+
+/** Returns cooldown timestamp (ms) if active, else null. */
+export function checkTradeCooldown(): number | null {
+  const raw = localStorage.getItem(COOLDOWN_KEY);
+  if (!raw) return null;
+  const until = parseInt(raw, 10);
+  if (Date.now() >= until) {
+    localStorage.removeItem(COOLDOWN_KEY);
+    return null;
+  }
+  return until;
+}
+
+/** Returns current winning streak count (0+). */
+export function getWinningStreakCount(): number {
+  return parseInt(localStorage.getItem(WIN_STREAK_KEY) || "0", 10);
 }
 
 /**

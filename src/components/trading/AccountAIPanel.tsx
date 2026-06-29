@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { callEdgeFunction } from "@/lib/edge-error";
 import { useApp } from "@/contexts/AppContext";
@@ -12,6 +12,7 @@ import { motion } from "framer-motion";
 import { Loader2, RefreshCw, Send, Sparkles, Brain } from "lucide-react";
 import { SymbolDef } from "@/lib/symbols";
 import AIDisclaimer from "@/components/AIDisclaimer";
+import SignalCard from "@/components/trading/SignalCard";
 import { useLivePrices } from "@/hooks/useLivePrices";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
@@ -41,29 +42,6 @@ function TypingDots() {
   );
 }
 
-function SignalCard({ title, content, symbol, loading }: { title: string; content: string; symbol?: string; loading?: boolean }) {
-  if (loading && !content) return <TypingDots />;
-  if (!content) return null;
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25 }}
-      className="rounded-lg border border-border-subtle bg-surface-1 p-4 space-y-3"
-    >
-      <div className="flex items-center justify-between gap-2">
-        <h4 className="font-semibold text-sm truncate">{title}</h4>
-        {symbol && (
-          <Badge variant="secondary" className="text-[10px]">{symbol}</Badge>
-        )}
-      </div>
-      <div className="prose prose-sm dark:prose-invert max-w-none">
-        <ReactMarkdown>{content}</ReactMarkdown>
-      </div>
-    </motion.div>
-  );
-}
-
 export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTradeDone }: Props) {
   const { lang, user } = useApp();
   const tr = t(lang);
@@ -73,7 +51,11 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
   const [positions, setPositions] = useState<Position[]>([]);
 
   const [analysis, setAnalysis] = useState("");
+  const [analysisConfidence, setAnalysisConfidence] = useState<number | null>(null);
+  const [analysisReasoning, setAnalysisReasoning] = useState<{ technical: number; news: number; volume: number } | null>(null);
   const [loadingA, setLoadingA] = useState(false);
+  const [frictionCountdown, setFrictionCountdown] = useState(0);
+  const frictionTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const [strategy, setStrategy] = useState("");
   const [loadingS, setLoadingS] = useState(false);
   const [news, setNews] = useState<NewsItem[]>([]);
@@ -153,19 +135,41 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
   const totalChange = initial > 0 ? ((totalEquity - initial) / initial) * 100 : 0;
 
   const runAnalysis = async () => {
-    setLoadingA(true); setAnalysis("");
+    setLoadingA(true); setAnalysis(""); setAnalysisConfidence(null); setAnalysisReasoning(null);
     try {
       const result = await callEdgeFunction<AiAnalyzeResponse>("ai-analyze", { symbol: symbol.symbol, asset_class: symbol.asset_class, language: lang });
       if (result?.error) throw new Error(result.error);
       // Artificial delay to simulate human analyst thinking time
       await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 800));
       setAnalysis(result.analysis);
+      if (result.confidence != null) {
+        setAnalysisConfidence(result.confidence);
+        setAnalysisReasoning({ technical: 70, news: 20, volume: 10 });
+      }
+      // AI friction: 5s countdown before allow retry
+      let count = 5;
+      setFrictionCountdown(count);
+      frictionTimer.current = setInterval(() => {
+        count--;
+        setFrictionCountdown(count);
+        if (count <= 0 && frictionTimer.current) {
+          clearInterval(frictionTimer.current);
+          frictionTimer.current = null;
+        }
+      }, 1000);
     } catch (e) {
       if (!isEdgeError(e)) {
         toast({ title: tr.error, description: e instanceof Error ? e.message : "Unknown", variant: "destructive" });
       }
     } finally { setLoadingA(false); }
   };
+
+  // Cleanup friction timer on unmount
+  useEffect(() => {
+    return () => {
+      if (frictionTimer.current) clearInterval(frictionTimer.current);
+    };
+  }, []);
 
   const runStrategy = async () => {
     setLoadingS(true); setStrategy("");
@@ -295,11 +299,11 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
           </TabsList>
 
           <TabsContent value="analysis" className="flex-1 min-h-0 m-0 mt-3 p-3 pt-0 overflow-y-auto scrollbar-thin space-y-3 data-[state=active]:flex data-[state=active]:flex-col data-[state=inactive]:hidden">
-            <Button variant="outline" size="sm" onClick={runAnalysis} disabled={loadingA} className="w-full">
+            <Button variant="outline" size="sm" onClick={runAnalysis} disabled={loadingA || frictionCountdown > 0} className="w-full">
               {loadingA ? <Loader2 className="size-4 animate-spin mr-1" /> : <Sparkles className="size-4 mr-1" />}
-              {loadingA ? tr.analyzing : (lang === "tr" ? `${symbol.symbol} için analiz` : `Analyze ${symbol.symbol}`)}
+              {loadingA ? tr.analyzing : frictionCountdown > 0 ? (`${lang === "tr" ? "Analiz ediliyor" : "Analyzing"}... (${frictionCountdown}sn)`) : (lang === "tr" ? `${symbol.symbol} için analiz` : `Analyze ${symbol.symbol}`)}
             </Button>
-            <SignalCard title={`AI Analysis — ${symbol.symbol}`} content={analysis ?? ""} symbol={symbol.symbol} loading={loadingA} />
+            <SignalCard title={`AI Analysis — ${symbol.symbol}`} content={analysis ?? ""} symbol={symbol.symbol} loading={loadingA} confidence={analysisConfidence} reasoning={analysisReasoning} />
             {analysis && <AIDisclaimer />}
           </TabsContent>
 

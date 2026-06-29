@@ -8,6 +8,7 @@ import type { Tables } from "../integrations/supabase/types";
 
 export interface AiAnalyzeResponse {
   analysis: string;
+  confidence: number;
   error?: string;
 }
 

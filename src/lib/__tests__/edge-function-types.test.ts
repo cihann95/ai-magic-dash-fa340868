@@ -10,9 +10,10 @@ import type {
 } from "@/lib/edge-function-types";
 
 describe("edge-function-types", () => {
-  it("AiAnalyzeResponse has analysis and optional error", () => {
-    const resp: AiAnalyzeResponse = { analysis: "Buy BTC" };
+  it("AiAnalyzeResponse has analysis, confidence and optional error", () => {
+    const resp: AiAnalyzeResponse = { analysis: "Buy BTC", confidence: 85 };
     expect(resp.analysis).toBe("Buy BTC");
+    expect(resp.confidence).toBe(85);
     expect(resp.error).toBeUndefined();
   });
 

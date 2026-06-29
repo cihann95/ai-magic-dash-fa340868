@@ -1,13 +1,13 @@
 // Trade öncesi niyet kaydı + opsiyonel hedef/stop planı + (opsiyonel) duygu sorgusu
 // Strateji 06 (zorunlu niyet) + Strateji 01 (yumuşak soğuma) + Sprint2 Pre-Commit Plan
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useApp } from "@/contexts/AppContext";
 import { cn } from "@/lib/utils";
-import { Brain, Newspaper, Sparkle, Loader2, Target, ShieldAlert, ChevronDown } from "lucide-react";
-import { EmotionalSignal, logEmotion } from "@/hooks/useEmotionalSignal";
+import { Brain, Newspaper, Sparkle, Loader2, Target, ShieldAlert, ChevronDown, Clock, AlertTriangle } from "lucide-react";
+import { EmotionalSignal, logEmotion, checkTradeCooldown, getWinningStreakCount } from "@/hooks/useEmotionalSignal";
 
 export type IntentTag = "technical" | "news" | "intuition";
 
@@ -56,6 +56,47 @@ export default function IntentDialog({ open, side, symbol, qty, price, signal, s
   }, [open]);
 
   const total = qty * (price ?? 0);
+  const { demoBalance, realBalance, balanceLoaded } = useApp();
+  const portfolioVal = balanceLoaded ? (demoBalance || realBalance || 100000) : 100000;
+  const pctOfPortfolio = portfolioVal > 0 ? (total / portfolioVal) * 100 : 0;
+
+  // Risk score 1-10
+  const riskScore = useMemo(() => {
+    let score = 1;
+    // position size vs portfolio
+    if (pctOfPortfolio > 30) score += 4;
+    else if (pctOfPortfolio > 15) score += 3;
+    else if (pctOfPortfolio > 5) score += 2;
+    else if (pctOfPortfolio > 1) score += 1;
+    // signal amplifies
+    if (signal === "oversize") score += 2;
+    if (signal === "rapid_fire") score += 1;
+    return Math.min(10, Math.max(1, score));
+  }, [pctOfPortfolio, signal]);
+
+  const riskColor = riskScore <= 4 ? "text-green-600 dark:text-green-400 bg-green-500/10 border-green-500/30"
+    : riskScore <= 7 ? "text-yellow-600 dark:text-yellow-400 bg-yellow-500/10 border-yellow-500/30"
+    : "text-red-600 dark:text-red-400 bg-red-500/10 border-red-500/30";
+
+  // Cooldown check
+  const cooldownUntil = checkTradeCooldown();
+  const [cooldownRemaining, setCooldownRemaining] = useState<number>(0);
+  useEffect(() => {
+    if (!cooldownUntil) { setCooldownRemaining(0); return; }
+    const tick = () => {
+      const rem = Math.max(0, Math.ceil((cooldownUntil - Date.now()) / 1000));
+      setCooldownRemaining(rem);
+      if (rem <= 0) setCooldownRemaining(0);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [cooldownUntil, open]);
+
+  // Overconfidence check
+  const winStreak = useMemo(() => getWinningStreakCount(), [open]);
+  const showOverconfidence = winStreak >= 5;
+
   const sideLabel = side === "buy" ? (lang === "tr" ? "AL" : "BUY")
                    : side === "sell" ? (lang === "tr" ? "SAT" : "SELL")
                    : (lang === "tr" ? "KAPAT" : "CLOSE");
@@ -88,7 +129,7 @@ export default function IntentDialog({ open, side, symbol, qty, price, signal, s
     return true;
   })();
 
-  const canConfirm = !!tag && !submitting && planValid;
+  const canConfirm = !!tag && !submitting && planValid && cooldownRemaining <= 0;
 
   const fmt = (n: number) => n.toFixed(n < 5 ? 4 : 2);
   const tpHint = price != null && side === "buy" ? `> $${fmt(price)}` : price != null && side === "sell" ? `< $${fmt(price)}` : "";
@@ -139,7 +180,63 @@ export default function IntentDialog({ open, side, symbol, qty, price, signal, s
           </div>
         )}
 
-        {/* Intent capture */}
+        {/* Risk Overlay — position size + risk score */}
+        <div className={cn("rounded-lg border p-3 space-y-1.5", riskColor)}>
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-medium">
+              {lang === "tr" ? "Risk Skoru" : "Risk Score"}
+            </span>
+            <span className="font-mono font-bold text-sm">
+              {riskScore}/10
+            </span>
+          </div>
+          <div className="flex items-center gap-2 text-[10px]">
+            <div className={cn("flex-1 h-1.5 rounded-full overflow-hidden", riskColor.replace(/text-\w+-\d+/g, ""))}>
+              <div
+                className={cn("h-full rounded-full transition-all", riskScore <= 4 ? "bg-green-500" : riskScore <= 7 ? "bg-yellow-500" : "bg-red-500")}
+                style={{ width: `${(riskScore / 10) * 100}%` }}
+              />
+            </div>
+            <span className="font-mono font-medium">{pctOfPortfolio.toFixed(1)}%</span>
+          </div>
+          <div className="text-[10px] opacity-80">
+            {riskScore <= 4
+              ? (lang === "tr" ? "Düşük risk — portföyün küçük bir kısmı" : "Low risk — small portion of portfolio")
+              : riskScore <= 7
+              ? (lang === "tr" ? "Orta risk — dikkatli pozisyon yönetimi" : "Moderate risk — manage position carefully")
+              : (lang === "tr" ? "⚠️ Yüksek risk — bu işlem portföyün önemli bir kısmı" : "⚠️ High risk — substantial portion of portfolio")}
+          </div>
+        </div>
+
+        {/* Overconfidence Warning */}
+        {showOverconfidence && (
+          <div className="rounded-lg border border-orange-500/30 bg-orange-500/10 p-3 space-y-1">
+            <div className="flex items-center gap-2 text-xs font-semibold text-orange-600 dark:text-orange-400">
+              <AlertTriangle className="size-3.5" />
+              {lang === "tr" ? "Overconfidence Uyarısı" : "Overconfidence Warning"}
+            </div>
+            <div className="text-[11px] text-orange-700 dark:text-orange-300">
+              {lang === "tr"
+                ? `Son ${winStreak} işlemin kârlı. Overconfidence'a dikkat!`
+                : `Last ${winStreak} trades profitable. Watch for overconfidence!`}
+            </div>
+          </div>
+        )}
+
+        {/* Cooldown Banner */}
+        {cooldownRemaining > 0 && (
+          <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 space-y-1">
+            <div className="flex items-center gap-2 text-xs font-semibold text-red-600 dark:text-red-400">
+              <Clock className="size-3.5" />
+              {lang === "tr" ? "Soğuma Süresi" : "Cooldown Active"}
+            </div>
+            <div className="text-[11px] text-red-700 dark:text-red-300">
+              {lang === "tr"
+                ? `Arka arkaya 3 zarar. ${cooldownRemaining}sn bekle.`
+                : `3 consecutive losses. Wait ${cooldownRemaining}s.`}
+            </div>
+          </div>
+        )}
         {(!signal || mood !== null) && (
           <>
             <div className="space-y-2">

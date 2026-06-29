@@ -57,8 +57,8 @@ Deno.serve(async (req) => {
     if (!OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY yapılandırılmamış");
 
     const sys = lang === "tr"
-      ? `${contextStr}\n\n---\n\nSen profesyonel bir piyasa analistisin. Sembol için kısa, eyleme dönük teknik+temel analiz yap. Markdown kullan. Bölümler: **Genel Görünüm**, **Teknik (trend, destek/direnç)**, **Temel Etkenler**, **Sinyal: AL / SAT / BEKLE** (kalın). 200 kelimeyi geçme. Yatırım tavsiyesi olmadığını sonda kısaca belirt.`
-      : `${contextStr}\n\n---\n\nYou are a professional market analyst. Provide a concise, actionable technical+fundamental analysis. Use markdown sections: **Overview**, **Technical (trend, S/R)**, **Fundamentals**, **Signal: BUY / SELL / HOLD** (bold). Under 200 words. Add brief disclaimer.`;
+      ? `${contextStr}\n\n---\n\nSen profesyonel bir piyasa analistisin. Sembol için kısa, eyleme dönük teknik+temel analiz yap. Markdown kullan. Bölümler: **Genel Görünüm**, **Teknik (trend, destek/direnç)**, **Temel Etkenler**, **Sinyal: AL / SAT / BEKLE** (kalın). 200 kelimeyi geçme. Yatırım tavsiyesi olmadığını sonda kısaca belirt. Analiz sonunda güven seviyeni 0-100 arası tam sayı olarak şu formatta belirt: [GÜVEN: 85]`
+      : `${contextStr}\n\n---\n\nYou are a professional market analyst. Provide a concise, actionable technical+fundamental analysis. Use markdown sections: **Overview**, **Technical (trend, S/R)**, **Fundamentals**, **Signal: BUY / SELL / HOLD** (bold). Under 200 words. Add brief disclaimer. At the end, state your confidence level as an integer 0-100 in this exact format: [CONFIDENCE: 85]`;
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
@@ -105,8 +105,14 @@ Deno.serve(async (req) => {
     const data = await resp.json();
     const content = data.choices?.[0]?.message?.content || "Analiz oluşturulamadı.";
 
+    // Parse confidence from [CONFIDENCE: N] or [GÜVEN: N]
+    const confMatch = content.match(/\[(?:CONFIDENCE|GÜVEN):\s*(\d+)\]/i);
+    const confidence = confMatch ? Math.min(100, Math.max(0, parseInt(confMatch[1], 10))) : 50;
+    // Strip the confidence tag from displayed content
+    const displayContent = content.replace(/\[\s*(?:CONFIDENCE|GÜVEN):\s*\d+\s*\]\s*/i, "").trim();
+
     console.error(JSON.stringify({event: "request", duration_ms: Date.now() - start}));
-    return new Response(JSON.stringify({ analysis: content }), {
+    return new Response(JSON.stringify({ analysis: displayContent, confidence }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

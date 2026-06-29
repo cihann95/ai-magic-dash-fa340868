@@ -28,6 +28,7 @@ export default function OrderTicket({ symbol }: { symbol: SymbolDef }) {
   const [trigger, setTrigger] = useState("");
   const [tp, setTp] = useState("");
   const [sl, setSl] = useState("");
+  const [riskPct, setRiskPct] = useState("2");
   const [submitting, setSubmitting] = useState(false);
   const [retryContext, setRetryContext] = useState<{ action: 'place' | 'cancel'; id?: string } | null>(null);
   const [orders, setOrders] = useState<any[]>([]);
@@ -216,6 +217,66 @@ export default function OrderTicket({ symbol }: { symbol: SymbolDef }) {
         <div className="text-[11px] text-muted-foreground text-center flex items-center justify-center gap-1.5">
           <Clock className="size-3" />{stale ? tr.stale_data : tr.price_loading}
         </div>
+      )}
+
+      {/* Position Sizing Calculator */}
+      {lp?.price && !isQtyInvalid && qtyNum > 0 && (
+        <details className="rounded-lg border border-border/40 p-3 space-y-2 text-xs">
+          <summary className="cursor-pointer font-semibold text-muted-foreground hover:text-foreground transition-colors">
+            {lang === "tr" ? "📐 Pozisyon Hesaplayıcı" : "📐 Position Sizing"}
+          </summary>
+          <div className="space-y-2 pt-2">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">{lang === "tr" ? "Stop fiyatı" : "Stop price"}</span>
+              <input
+                type="number" step="any"
+                className="w-28 h-7 text-xs font-mono text-right rounded border border-border/40 bg-background px-2"
+                placeholder="—"
+                value={sl || ""}
+                onChange={(e) => setSl(e.target.value)}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">{lang === "tr" ? "Risk % (1-5%)" : "Risk % (1-5%)"}</span>
+              <input
+                type="number" min="1" max="5" step="0.5"
+                className="w-28 h-7 text-xs font-mono text-right rounded border border-border/40 bg-background px-2"
+                value={riskPct}
+                onChange={(e) => setRiskPct(e.target.value)}
+              />
+            </div>
+            {(() => {
+              const slPrice = parseFloat(sl);
+              const riskPctNum = parseFloat(riskPct);
+              if (!slPrice || slPrice <= 0 || !riskPctNum || riskPctNum < 1 || riskPctNum > 5) return null;
+              const stopDistance = Math.abs(lp.price - slPrice);
+              if (stopDistance <= 0) return null;
+              const total = qtyNum * lp.price;
+              const riskAmount = (total * riskPctNum) / 100;
+              // Kelly Criterion simplified: f* = p - q (assuming win/loss ratio = 1)
+              // Using suggested position based on risk
+              const stopLossPct = stopDistance / lp.price;
+              const suggestedNotional = stopLossPct > 0 ? riskAmount / stopLossPct : total;
+              const suggestedQty = lp.price > 0 ? suggestedNotional / lp.price : qtyNum;
+              return (
+                <div className="rounded-lg bg-accent/20 p-2 space-y-1 text-[11px]">
+                  <div className="font-semibold">
+                    {lang === "tr" ? "Önerilen pozisyon:" : "Suggested position:"}{" "}
+                    <span className="font-mono text-primary">${suggestedNotional.toFixed(2)}</span>
+                  </div>
+                  <div className="text-muted-foreground space-y-0.5">
+                    <div>{lang === "tr" ? "Miktar:" : "Qty:"} <span className="font-mono">{suggestedQty.toFixed(4)}</span></div>
+                    <div>{lang === "tr" ? "Stop:" : "Stop:"} <span className="font-mono">${slPrice.toFixed(4)}</span></div>
+                    <div>{lang === "tr" ? "Risk:" : "Risk:"} <span className="font-mono">${riskAmount.toFixed(2)}</span></div>
+                    <div className="text-[10px] text-muted-foreground/60 pt-1">
+                      Kelly Criterion: f* = p - q
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </details>
       )}
 
       <div className="border-t border-border/40 pt-3">

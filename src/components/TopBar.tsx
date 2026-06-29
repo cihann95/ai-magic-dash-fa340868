@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
 import GameBadge from "./GameBadge";
+import StreakBadge from "./StreakBadge";
 import NotificationBell from "./NotificationBell";
 
 const primaryItems = (lang: "tr" | "en") => [
@@ -149,6 +150,7 @@ export default function TopBar() {
           )}
           {user && <NotificationBell />}
           {user && <GameBadge />}
+          {user && <StreakBadge />}
           <Button variant="ghost" size="sm" onClick={() => setLang(lang === "tr" ? "en" : "tr")} className="font-mono text-xs uppercase">
             {lang}
           </Button>
