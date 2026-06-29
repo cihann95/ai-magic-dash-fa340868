@@ -333,7 +333,7 @@ function SettingsInner() {
                 {ledger.map((entry) => (
                   <TableRow key={entry.id}>
                     <TableCell className="text-xs">{new Date(entry.created_at).toLocaleDateString(lang === "tr" ? "tr-TR" : "en-US", { day: "2-digit", month: "2-digit", year: "2-digit" })}</TableCell>
-                    <TableCell className={entry.amount >= 0 ? "text-green-500 font-medium" : "text-red-500 font-medium"}>
+                    <TableCell className={entry.amount >= 0 ? "text-bull font-medium" : "text-bear font-medium"}>
                       {entry.amount >= 0 ? "+" : ""}${entry.amount.toFixed(2)}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground max-w-[160px] truncate">{entry.reason || "—"}</TableCell>

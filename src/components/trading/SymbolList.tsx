@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import BullBearIcon from "@/components/ui/BullBearIcon";
 
 interface Props {
   active: SymbolDef;
@@ -25,7 +26,14 @@ export default function SymbolList({ active, onSelect }: Props) {
   const [cat, setCat] = useState<AssetClass | "all">("all");
   const [watch, setWatch] = useState<Set<string>>(new Set());
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [pricesLoading, setPricesLoading] = useState(true);
   const livePrices = useLivePrices(SYMBOLS.map((s) => s.symbol));
+
+  useEffect(() => {
+    // Wait for initial prices to load
+    const timer = setTimeout(() => setPricesLoading(false), 1500);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -110,6 +118,8 @@ export default function SymbolList({ active, onSelect }: Props) {
           const isActive = active.symbol === s.symbol;
           const watched = watch.has(s.symbol);
           const flashClass = getFlashClass(s.symbol, price);
+          const showSkeleton = pricesLoading && price === null;
+          
           return (
             <button key={s.symbol} onClick={() => onSelect(s)} role="option" aria-selected={isActive}
               className={cn(
@@ -137,13 +147,26 @@ export default function SymbolList({ active, onSelect }: Props) {
                 <div className="text-xs text-muted-foreground truncate">{s.name}</div>
               </div>
               <div className="text-right shrink-0">
-                <div className={cn("font-price text-sm font-semibold", flashClass)}>{formatPrice(price)}</div>
-                {change !== null ? (
-                  <div className={cn("text-xs font-price", change >= 0 ? "text-up" : "text-down")}>
-                    {change >= 0 ? "+" : ""}{change.toFixed(2)}%
-                  </div>
+                {showSkeleton ? (
+                  <>
+                    <div className="h-4 w-16 bg-muted animate-pulse rounded" />
+                    <div className="h-3 w-12 bg-muted animate-pulse rounded mt-1" />
+                  </>
                 ) : (
-                  <div className="text-xs font-price text-muted-foreground">—</div>
+                  <>
+                    <div className={cn("font-price text-sm font-semibold", flashClass)}>{formatPrice(price)}</div>
+                    {change !== null ? (
+                      <div className={cn("text-xs font-price flex items-center justify-end gap-0.5", change >= 0 ? "text-up" : "text-down")}>
+                        <BullBearIcon type={change >= 0 ? "bull" : "bear"} size="xs" />
+                        {change >= 0 ? "+" : ""}{change.toFixed(2)}%
+                      </div>
+                    ) : (
+                      <div className="text-xs font-price text-muted-foreground flex items-center justify-end gap-0.5">
+                        <BullBearIcon type="neutral" size="xs" />
+                        —
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
               <button onClick={(e) => toggleWatch(s, e)} className="ml-1 text-muted-foreground hover:text-primary transition-colors p-1">

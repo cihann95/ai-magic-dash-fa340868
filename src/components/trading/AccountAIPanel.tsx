@@ -53,10 +53,9 @@ function SignalCard({ title, content, symbol, loading }: { title: string; conten
     >
       <div className="flex items-center justify-between gap-2">
         <h4 className="font-semibold text-sm truncate">{title}</h4>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <Badge variant="outline" className="text-[10px]">AI</Badge>
-          {symbol && <Badge variant="secondary" className="text-[10px]">{symbol}</Badge>}
-        </div>
+        {symbol && (
+          <Badge variant="secondary" className="text-[10px]">{symbol}</Badge>
+        )}
       </div>
       <div className="prose prose-sm dark:prose-invert max-w-none">
         <ReactMarkdown>{content}</ReactMarkdown>
@@ -158,6 +157,8 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
     try {
       const result = await callEdgeFunction<AiAnalyzeResponse>("ai-analyze", { symbol: symbol.symbol, asset_class: symbol.asset_class, language: lang });
       if (result?.error) throw new Error(result.error);
+      // Artificial delay to simulate human analyst thinking time
+      await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 800));
       setAnalysis(result.analysis);
     } catch (e) {
       if (!isEdgeError(e)) {
@@ -171,6 +172,8 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
     try {
       const result = await callEdgeFunction<AiStrategyResponse>("ai-strategy", { language: lang, symbol: symbol.symbol });
       if (result?.error) throw new Error(result.error);
+      // Artificial delay to simulate human analyst thinking time
+      await new Promise(resolve => setTimeout(resolve, 1200 + Math.random() * 1000));
       setStrategy(result.suggestion);
     } catch (e) {
       if (!isEdgeError(e)) {
@@ -369,7 +372,7 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
                     </div>
                   </motion.div>
                 ) : (
-                  <SignalCard key={i} title="AI Assistant" content={m.content || "…"} loading={false} />
+                  <SignalCard key={i} title={lang === "tr" ? "Piyasa Analisti" : "Market Analyst"} content={m.content || "…"} loading={false} />
                 )
               ))}
               {streaming && <TypingDots />}

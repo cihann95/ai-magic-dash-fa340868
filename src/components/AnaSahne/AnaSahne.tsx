@@ -160,8 +160,8 @@ function SectionHeader({ viewers, symbol, entryFee }: SectionHeaderProps) {
   const tr = t(lang);
   return (
     <div className="flex items-center gap-3 flex-wrap">
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-red-600/15 px-3 py-1 text-xs font-semibold text-red-500">
-        <span className="size-1.5 rounded-full bg-red-500 animate-pulse" />
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-danger/15 px-3 py-1 text-xs font-semibold text-danger">
+        <span className="size-1.5 rounded-full bg-danger animate-pulse" />
         {tr.live_now}
       </span>
 

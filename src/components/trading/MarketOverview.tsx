@@ -4,6 +4,7 @@ import { SymbolDef, formatPrice } from "@/lib/symbols";
 import { useApp } from "@/contexts/AppContext";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import BullBearIcon from "@/components/ui/BullBearIcon";
 import { TrendingUp, TrendingDown, BarChart3, Activity } from "lucide-react";
 
 interface Props {
@@ -69,7 +70,10 @@ export default function MarketOverview({ symbol }: Props) {
           <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
             {stat.label}
           </span>
-          <span className={cn("font-price text-sm font-semibold", stat.color)}>
+          <span className={cn("font-price text-sm font-semibold inline-flex items-center gap-0.5", stat.color)}>
+            {stat.label === (lang === "tr" ? "Değişim" : "Change") && (
+              <BullBearIcon type={isPositive ? "bull" : change !== null ? "bear" : "neutral"} size="xs" />
+            )}
             {stat.value}
           </span>
         </div>

@@ -56,7 +56,7 @@ export default function Index() {
         {hasFeature('ana-sahne') && <AnaSahneSection />}
         <section className="px-6 py-20 md:py-32 max-w-5xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 text-xs font-medium px-3 py-1 rounded-full bg-primary/15 text-primary mb-6 animate-fade-in">
-            <Brain className="size-3" /> {lang === "tr" ? "AI destekli işlem" : "AI-powered trading"}
+            <Brain className="size-3" /> {lang === "tr" ? "Akıllı işlem platformu" : "Smart trading platform"}
           </div>
           <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-4 animate-fade-in">
             {tr.hero_title.split(" ").slice(0, -1).join(" ")} <span className="text-gradient">{tr.hero_title.split(" ").slice(-1)}</span>
@@ -74,7 +74,7 @@ export default function Index() {
           <div className="grid sm:grid-cols-3 gap-4 mt-20">
             {[
               { icon: BarChart3, t: lang === "tr" ? "Gerçek Zamanlı Grafikler" : "Real-time Charts", d: lang === "tr" ? "TradingView ile profesyonel teknik analiz" : "Pro charting with TradingView" },
-              { icon: Brain, t: lang === "tr" ? "AI Analiz" : "AI Analysis", d: lang === "tr" ? "Sembol başına AL/SAT/BEKLE sinyalleri" : "BUY/SELL/HOLD signals per symbol" },
+              { icon: Brain, t: lang === "tr" ? "Akıllı Analiz" : "Smart Analysis", d: lang === "tr" ? "Sembol başına AL/SAT/BEKLE sinyalleri" : "BUY/SELL/HOLD signals per symbol" },
               { icon: Globe, t: lang === "tr" ? "Tüm Piyasalar" : "All Markets", d: lang === "tr" ? "Kripto, hisse, forex, emtia, endeks, ETF" : "Crypto, stocks, FX, commodities, indices, ETFs" },
             ].map((f, i) => (
               <div key={i} className="p-6 rounded-2xl glass border border-border/40 text-left">

@@ -3,7 +3,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { motion } from "framer-motion";
-import confetti from "canvas-confetti";
 import { Loader2, X } from "lucide-react";
 import AppShell from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
@@ -82,14 +81,16 @@ export default function BlitzRoomPage() {
     if (won) {
       blitzSfx.win();
       vibrate([60, 40, 60, 40, 120]);
-      // Konfeti — sol ve sağ kenardan
+      // Konfeti — sol ve sağ kenardan (lazy load)
       const duration = 1500;
       const end = Date.now() + duration;
-      (function frame() {
-        confetti({ particleCount: 5, angle: 60, spread: 65, origin: { x: 0, y: 0.7 }, colors: ["#fbbf24", "#22c55e", "#3b82f6"] });
-        confetti({ particleCount: 5, angle: 120, spread: 65, origin: { x: 1, y: 0.7 }, colors: ["#fbbf24", "#22c55e", "#3b82f6"] });
-        if (Date.now() < end) requestAnimationFrame(frame);
-      })();
+      import("canvas-confetti").then(({ default: confetti }) => {
+        (function frame() {
+          confetti({ particleCount: 5, angle: 60, spread: 65, origin: { x: 0, y: 0.7 }, colors: ["#fbbf24", "#22c55e", "#3b82f6"] });
+          confetti({ particleCount: 5, angle: 120, spread: 65, origin: { x: 1, y: 0.7 }, colors: ["#fbbf24", "#22c55e", "#3b82f6"] });
+          if (Date.now() < end) requestAnimationFrame(frame);
+        })();
+      });
     } else if (tie) {
       blitzSfx.close();
     } else {

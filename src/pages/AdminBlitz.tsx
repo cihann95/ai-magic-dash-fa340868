@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Loader2, Wallet, TrendingUp, ShieldAlert, Search, Check, CalendarDays, RefreshCw } from "lucide-react";
-import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { format, subDays, startOfDay, endOfDay, parseISO } from "date-fns";
 import { tr } from "date-fns/locale";
+
+const AdminLineChart = lazy(() => import("@/components/AdminLineChart"));
+const AdminPieChart = lazy(() => import("@/components/AdminPieChart"));
 import AppShell from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -430,15 +432,9 @@ export default function AdminBlitz() {
           </div>
           <div className="h-64">
             {lineChartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={lineChartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" fontSize={11} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} />
-                  <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
-                  <Line type="monotone" dataKey="gelir" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
-                </LineChart>
-              </ResponsiveContainer>
+              <Suspense fallback={<div className="h-full flex items-center justify-center"><Loader2 className="size-6 animate-spin" /></div>}>
+                <AdminLineChart data={lineChartData} />
+              </Suspense>
             ) : (
               <div className="h-full flex items-center justify-center text-sm text-muted-foreground">Henüz veri yok</div>
             )}
@@ -451,24 +447,9 @@ export default function AdminBlitz() {
             <h2 className="text-sm font-semibold mb-3">Sembol Bazlı Gelir</h2>
             <div className="h-56">
               {symbolData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={symbolData}
-                      dataKey="total"
-                      nameKey="key"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      label={({ key, percent }) => `${key} ${(percent * 100).toFixed(0)}%`}
-                    >
-                      {symbolData.map((_, i) => (
-                        <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(v: number) => `$${v.toFixed(2)}`} />
-                  </PieChart>
-                </ResponsiveContainer>
+                <Suspense fallback={<div className="h-full flex items-center justify-center"><Loader2 className="size-6 animate-spin" /></div>}>
+                  <AdminPieChart data={symbolData} colors={PIE_COLORS} />
+                </Suspense>
               ) : (
                 <div className="h-full flex items-center justify-center text-sm text-muted-foreground">Veri yok</div>
               )}
@@ -479,24 +460,9 @@ export default function AdminBlitz() {
             <h2 className="text-sm font-semibold mb-3">Kaynak Bazlı Gelir</h2>
             <div className="h-56">
               {sourceData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={sourceData}
-                      dataKey="total"
-                      nameKey="key"
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      label={({ key, percent }) => `${key} ${(percent * 100).toFixed(0)}%`}
-                    >
-                      {sourceData.map((_, i) => (
-                        <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(v: number) => `$${v.toFixed(2)}`} />
-                  </PieChart>
-                </ResponsiveContainer>
+                <Suspense fallback={<div className="h-full flex items-center justify-center"><Loader2 className="size-6 animate-spin" /></div>}>
+                  <AdminPieChart data={sourceData} colors={PIE_COLORS} />
+                </Suspense>
               ) : (
                 <div className="h-full flex items-center justify-center text-sm text-muted-foreground">Veri yok</div>
               )}
@@ -640,7 +606,7 @@ export default function AdminBlitz() {
                   <TableRow key={r.id}>
                     <TableCell className="text-xs">{new Date(r.created_at).toLocaleString("tr-TR")}</TableCell>
                     <TableCell className="text-sm">{r.target_name ?? r.user_id.slice(0, 8)}</TableCell>
-                    <TableCell className={`text-right font-bold tabular-nums ${r.amount >= 0 ? "text-green-500" : "text-red-500"}`}>
+                    <TableCell className={`text-right font-bold tabular-nums ${r.amount >= 0 ? "text-bull" : "text-bear"}`}>
                       {r.amount >= 0 ? "+" : ""}${Number(r.amount).toFixed(2)}
                     </TableCell>
                     <TableCell className="text-xs">{r.reason ?? "—"}</TableCell>

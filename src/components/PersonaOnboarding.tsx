@@ -167,6 +167,7 @@ export default function PersonaOnboarding() {
                 className={cn(
                   "w-full text-left flex items-center gap-3 p-3.5 rounded-xl border-2 transition-all",
                   "hover:border-primary/60 hover:bg-accent/40",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                   isSel ? "border-primary bg-primary/10" : "border-border/40"
                 )}
               >

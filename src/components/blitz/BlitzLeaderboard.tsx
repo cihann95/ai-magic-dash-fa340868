@@ -63,7 +63,7 @@ export function BlitzLeaderboard({
                   transition={{ duration: 0.25 }}
                   className={cn(
                     "text-sm font-bold tabular-nums",
-                    pnl > 0 ? "text-green-500" : pnl < 0 ? "text-red-500" : "text-muted-foreground",
+                    pnl > 0 ? "text-bull" : pnl < 0 ? "text-bear" : "text-muted-foreground",
                   )}
                 >
                   {pnl >= 0 ? "+" : ""}

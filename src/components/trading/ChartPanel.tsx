@@ -7,11 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { useApp } from "@/contexts/AppContext";
 import { t } from "@/lib/i18n";
-import { TrendingDown, TrendingUp, Loader2, Clock } from "lucide-react";
+import { TrendingDown, TrendingUp, Loader2, Clock, ChevronDown, ChevronUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { callEdgeFunction } from "@/lib/edge-error";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import BullBearIcon from "@/components/ui/BullBearIcon";
 import OrderTicket from "./OrderTicket";
 import AlertsPanel from "./AlertsPanel";
 import { celebrateAchievements } from "@/lib/achievements";
@@ -59,6 +60,7 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
   const [timeframe, setTimeframe] = useState<string>("1h");
   const [volume24h, setVolume24h] = useState<number | null>(null);
   const [chartReady, setChartReady] = useState(false);
+  const [actionExpanded, setActionExpanded] = useState(false);
   const lp = useLivePrice(symbol.symbol);
   const price = lp?.price ?? null;
   const stale = isStale(lp?.updated_at);
@@ -236,10 +238,11 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
               )}
             </div>
             {change !== null ? (
-              <div className={cn("text-xs font-mono", change >= 0 ? "text-bull" : "text-bear")}>
+              <div className={cn("text-xs font-mono flex items-center justify-end gap-0.5", change >= 0 ? "text-bull" : "text-bear")}>
+                <BullBearIcon type={change >= 0 ? "bull" : "bear"} size="xs" />
                 {change >= 0 ? "+" : ""}{change.toFixed(2)}%
               </div>
-            ) : <div className="text-xs font-mono text-muted-foreground">—</div>}
+            ) : <div className="text-xs font-mono text-muted-foreground flex items-center justify-end gap-0.5"><BullBearIcon type="neutral" size="xs" />—</div>}
           </div>
         </div>
 
@@ -263,13 +266,13 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
             </span>
           </div>
           {/* Timeframe row */}
-          <div className="flex items-center gap-1 px-3 h-8 border-t border-border/20">
+          <div className="flex items-center gap-1 px-3 min-h-[48px] border-t border-border/20">
             {(["1m","5m","15m","1h","4h","1D"] as const).map(tf => (
               <button
                 key={tf}
                 onClick={() => setTimeframe(tf)}
                 className={cn(
-                  "px-2 py-0.5 text-xs rounded transition-colors duration-panel",
+                  "min-h-[48px] px-3 text-xs rounded transition-colors duration-panel",
                   timeframe === tf
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:text-foreground"
@@ -324,7 +327,7 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
         </TabsContent>
       </Tabs>
 
-      {/* Bottom Action Bar */}
+      {/* Bottom Action Bar — mobile: collapsed detail, prominent Buy/Sell */}
       <div className="p-3 border-t border-border/40 bg-card/50 space-y-2">
         {noPrice && (
           <div className="text-[11px] text-muted-foreground text-center flex items-center justify-center gap-1.5">
@@ -346,92 +349,21 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
             <span className="text-[11px] text-muted-foreground">{tr.pnl}</span>
             <span className={cn(
               "text-[11px] font-medium tabular-nums",
-              symbolPnl >= 0 ? "text-green-400" : "text-red-400"
+              symbolPnl >= 0 ? "text-bull" : "text-bear"
             )}>
               {fmtPnl(symbolPnl)}
             </span>
           </div>
         </div>
 
-        {/* Row 2: Position Size Slider */}
-        <div className="px-3 pb-1">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[11px] text-muted-foreground">{lang === "tr" ? "Pozisyon Büyüklüğü" : "Position Size"}</span>
-            <span className="text-[11px] font-medium tabular-nums text-foreground">
-              {pct > 0 ? `${pct}%` : "—"}
-            </span>
-          </div>
-          <Slider
-            min={0}
-            max={100}
-            step={1}
-            value={[pct]}
-            onValueChange={(v) => {
-              const val = v[0];
-              setPct(val);
-              if (val === 0) {
-                setQty("0");
-              } else if (price && price > 0 && demoBalance) {
-                const rawQty = (demoBalance * val / 100) / price;
-                setQty(parseFloat(rawQty.toFixed(4)).toString());
-              }
-            }}
-            disabled={tradeDisabled || !demoBalance || !price}
-            className="w-full"
-          />
-        </div>
-
-        {/* Row 3: Quantity + Price Inputs */}
-        <div className="px-3 pb-1 grid grid-cols-2 gap-2">
-          <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
-              {tr.quantity}
-            </label>
-            <div className="relative">
-              <Input
-                type="number"
-                min={0}
-                step={0.0001}
-                value={qty}
-                onChange={(e) => handleQtyChange(e.target.value)}
-                className="h-8 text-sm pr-10 tabular-nums bg-secondary/40 border-border/50 focus:border-blue-600/60"
-              />
-              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground pointer-events-none">
-                {symbol.symbol.replace('USD', '')}
-              </span>
-            </div>
-          </div>
-          <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
-              {lang === "tr" ? "Piyasa Fiyatı" : "Market Price"}
-            </label>
-            <Input
-              type="text"
-              readOnly
-              value={price != null ? formatPrice(price) : "—"}
-              className="h-8 text-sm tabular-nums bg-secondary/20 border-border/30 text-muted-foreground cursor-default"
-            />
-          </div>
-        </div>
-
-        {/* Row 4: Total Amount */}
-        <div className="px-3 pb-2 flex items-center justify-between">
-          <span className="text-[11px] text-muted-foreground">{lang === "tr" ? "Toplam Tutar" : "Total Amount"}</span>
-          <span className="text-[11px] font-medium tabular-nums text-foreground">
-            ≈ {(parseFloat(qty || "0") * (price ?? 0)).toLocaleString('en-US', {
-              style: 'currency', currency: 'USD', minimumFractionDigits: 2
-            })}
-          </span>
-        </div>
-
-        {/* Row 5: Sell / Buy Buttons */}
-        <div className="px-3 pb-3 grid grid-cols-2 gap-2">
+        {/* Sell / Buy Buttons — always prominent */}
+        <div className="px-3 grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={() => requestTrade('sell')}
             disabled={tradeDisabled || parseFloat(qty || "0") <= 0}
             className={cn(
-              "h-11 rounded-md text-sm font-medium transition-all duration-150 border",
+              "min-h-[48px] rounded-md text-sm font-medium transition-all duration-150 border",
               "bg-red-950/60 border-red-900/50 text-red-400",
               "hover:bg-red-900/70 hover:border-red-800/60",
               "active:scale-[0.98]",
@@ -447,7 +379,7 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
             onClick={() => requestTrade('buy')}
             disabled={tradeDisabled || parseFloat(qty || "0") <= 0}
             className={cn(
-              "h-11 rounded-md text-sm font-medium transition-all duration-150 border",
+              "min-h-[48px] rounded-md text-sm font-medium transition-all duration-150 border",
               "bg-green-950/60 border-green-900/50 text-green-400",
               "hover:bg-green-900/70 hover:border-green-800/60",
               "active:scale-[0.98]",
@@ -460,7 +392,95 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
           </button>
         </div>
 
-        {/* Row 6: Price Footnote */}
+        {/* Collapsible detail section (mobile) / always visible (desktop) */}
+        <div className="px-3">
+          <button
+            type="button"
+            onClick={() => setActionExpanded(v => !v)}
+            className="flex items-center justify-between w-full min-h-[48px] text-xs text-muted-foreground hover:text-foreground transition-colors md:hidden"
+          >
+            <span>{lang === "tr" ? "Pozisyon Detayı" : "Position Detail"} — {pct > 0 ? `${pct}%` : qty} {symbol.symbol}</span>
+            {actionExpanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+          </button>
+        </div>
+
+        <div className={cn(
+          "space-y-2 overflow-hidden transition-all",
+          actionExpanded ? "max-h-[500px]" : "max-h-0 md:max-h-[500px]"
+        )}>
+          {/* Position Size Slider */}
+          <div className="px-3 pb-1">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] text-muted-foreground">{lang === "tr" ? "Pozisyon Büyüklüğü" : "Position Size"}</span>
+              <span className="text-[11px] font-medium tabular-nums text-foreground">
+                {pct > 0 ? `${pct}%` : "—"}
+              </span>
+            </div>
+            <Slider
+              min={0}
+              max={100}
+              step={1}
+              value={[pct]}
+              onValueChange={(v) => {
+                const val = v[0];
+                setPct(val);
+                if (val === 0) {
+                  setQty("0");
+                } else if (price && price > 0 && demoBalance) {
+                  const rawQty = (demoBalance * val / 100) / price;
+                  setQty(parseFloat(rawQty.toFixed(4)).toString());
+                }
+              }}
+              disabled={tradeDisabled || !demoBalance || !price}
+              className="w-full"
+            />
+          </div>
+
+          {/* Quantity + Price Inputs */}
+          <div className="px-3 pb-1 grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <label className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
+                {tr.quantity}
+              </label>
+              <div className="relative">
+                <Input
+                  type="number"
+                  min={0}
+                  step={0.0001}
+                  value={qty}
+                  onChange={(e) => handleQtyChange(e.target.value)}
+                  className="h-8 text-sm pr-10 tabular-nums bg-secondary/40 border-border/50 focus:border-blue-600/60"
+                />
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground pointer-events-none">
+                  {symbol.symbol.replace('USD', '')}
+                </span>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
+                {lang === "tr" ? "Piyasa Fiyatı" : "Market Price"}
+              </label>
+              <Input
+                type="text"
+                readOnly
+                value={price != null ? formatPrice(price) : "—"}
+                className="h-8 text-sm tabular-nums bg-secondary/20 border-border/30 text-muted-foreground cursor-default"
+              />
+            </div>
+          </div>
+
+          {/* Total Amount */}
+          <div className="px-3 pb-2 flex items-center justify-between">
+            <span className="text-[11px] text-muted-foreground">{lang === "tr" ? "Toplam Tutar" : "Total Amount"}</span>
+            <span className="text-[11px] font-medium tabular-nums text-foreground">
+              ≈ {(parseFloat(qty || "0") * (price ?? 0)).toLocaleString('en-US', {
+                style: 'currency', currency: 'USD', minimumFractionDigits: 2
+              })}
+            </span>
+          </div>
+        </div>
+
+        {/* Price Footnote */}
         <p className="text-center text-[10px] text-muted-foreground pb-2">
           @ {price != null ? formatPrice(price) : "—"}
         </p>

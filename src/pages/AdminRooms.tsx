@@ -409,7 +409,7 @@ export default function AdminRooms() {
                         <TableRow key={p.user_id}>
                           <TableCell className="font-mono text-xs">{p.user_id.slice(0, 8)}</TableCell>
                           <TableCell className="text-xs">{new Date(p.joined_at).toLocaleString("tr-TR")}</TableCell>
-                          <TableCell className={`text-right tabular-nums ${(p.final_pnl ?? 0) >= 0 ? "text-green-500" : "text-red-500"}`}>
+                          <TableCell className={`text-right tabular-nums ${(p.final_pnl ?? 0) >= 0 ? "text-bull" : "text-bear"}`}>
                             {p.final_pnl != null ? `$${Number(p.final_pnl).toFixed(2)}` : "—"}
                           </TableCell>
                           <TableCell className="text-right">{p.rank ?? "—"}</TableCell>

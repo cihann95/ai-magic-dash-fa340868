@@ -127,7 +127,7 @@ export default function OrderTicket({ symbol }: { symbol: SymbolDef }) {
             onClick={() => setSide("buy")}
             whileTap={{ scale: 0.97 }}
             disabled={submitting}
-            className={cn("h-9 rounded-md font-semibold text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed",
+            className={cn("h-9 rounded-md font-semibold text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
               side === "buy" ? "bg-up text-white" : "bg-surface-1 text-muted-foreground hover:text-foreground")}
           >
             {submitting && side === "buy" ? <Loader2 className="size-3 animate-spin mr-1 inline" /> : null}
@@ -137,7 +137,7 @@ export default function OrderTicket({ symbol }: { symbol: SymbolDef }) {
             onClick={() => setSide("sell")}
             whileTap={{ scale: 0.97 }}
             disabled={submitting}
-            className={cn("h-9 rounded-md font-semibold text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed",
+            className={cn("h-9 rounded-md font-semibold text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
               side === "sell" ? "bg-down text-white" : "bg-surface-1 text-muted-foreground hover:text-foreground")}
           >
             {submitting && side === "sell" ? <Loader2 className="size-3 animate-spin mr-1 inline" /> : null}

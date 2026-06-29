@@ -58,7 +58,7 @@ export function TradeActions({
         <div className="grid grid-cols-2 gap-3">
           <Button
             size="lg"
-            className="h-16 w-full bg-green-600 hover:bg-green-700 text-white text-lg font-bold min-h-[44px]"
+            className="h-16 w-full bg-bull hover:bg-bull/90 text-white text-lg font-bold min-h-[44px]"
             onClick={() => onOpenPosition("long")}
             disabled={submitting}
           >
@@ -66,7 +66,7 @@ export function TradeActions({
           </Button>
           <Button
             size="lg"
-            className="h-16 w-full bg-red-600 hover:bg-red-700 text-white text-lg font-bold min-h-[44px]"
+            className="h-16 w-full bg-bear hover:bg-bear/90 text-white text-lg font-bold min-h-[44px]"
             onClick={() => onOpenPosition("short")}
             disabled={submitting}
           >

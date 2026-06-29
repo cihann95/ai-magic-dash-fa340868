@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import AppShell from "@/components/AppShell";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useApp } from "@/contexts/AppContext";
@@ -10,10 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useLivePrices } from "@/hooks/useLivePrices";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAxis, YAxis } from "recharts";
 import { cn } from "@/lib/utils";
-import { Heart, EyeOff, Eye, TrendingUp } from "lucide-react";
+import { Heart, EyeOff, Eye, TrendingUp, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
+
+const PortfolioPieChart = lazy(() => import("@/components/PortfolioPieChart"));
+const PortfolioAreaChart = lazy(() => import("@/components/PortfolioAreaChart"));
 
 const COLORS = ["hsl(var(--primary))", "hsl(var(--bull))", "hsl(var(--primary-glow))", "hsl(var(--bear))", "hsl(var(--muted-foreground))"];
 
@@ -179,34 +181,18 @@ function PortfolioInner() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card className="p-5 glass border-border/40">
               <div className="text-sm font-semibold mb-3">{lang === "tr" ? "Kâr/Zarar Eğrisi" : "P&L Curve"}</div>
-              <ResponsiveContainer width="100%" height={240}>
-                <AreaChart data={pnlSeries}>
-                  <defs>
-                    <linearGradient id="pnlGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
-                      <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={11} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} />
-                  <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
-                  <Area type="monotone" dataKey="value" stroke="hsl(var(--primary))" fill="url(#pnlGrad)" strokeWidth={2} />
-                </AreaChart>
-              </ResponsiveContainer>
+              <Suspense fallback={<div className="h-[240px] flex items-center justify-center"><Loader2 className="size-6 animate-spin" /></div>}>
+                <PortfolioAreaChart data={pnlSeries} />
+              </Suspense>
             </Card>
             <Card className="p-5 glass border-border/40">
               <div className="text-sm font-semibold mb-3">{lang === "tr" ? "Varlık Dağılımı" : "Asset Allocation"}</div>
               {allocData.length === 0 ? (
                 <div className="text-xs text-muted-foreground text-center py-12">{tr.no_positions}</div>
               ) : (
-                <ResponsiveContainer width="100%" height={240}>
-                  <PieChart>
-                    <Pie data={allocData} dataKey="value" nameKey="name" outerRadius={80} innerRadius={50}>
-                      {allocData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                    </Pie>
-                    <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
-                  </PieChart>
-                </ResponsiveContainer>
+                <Suspense fallback={<div className="h-[240px] flex items-center justify-center"><Loader2 className="size-6 animate-spin" /></div>}>
+                  <PortfolioPieChart data={allocData} colors={COLORS} />
+                </Suspense>
               )}
             </Card>
           </div>

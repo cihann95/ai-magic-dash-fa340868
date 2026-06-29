@@ -37,8 +37,8 @@ export function PlayerCard({ username, side, pnl, pnlPct, isWinner, index }: Pla
         <span className="text-sm font-medium truncate max-w-[12ch]">{username}</span>
 
         {/* Side indicator */}
-        {side === "long" && <span className="text-green-500 text-xs font-bold shrink-0">↑</span>}
-        {side === "short" && <span className="text-red-500 text-xs font-bold shrink-0">↓</span>}
+        {side === "long" && <span className="text-bull text-xs font-bold shrink-0">↑</span>}
+        {side === "short" && <span className="text-bear text-xs font-bold shrink-0">↓</span>}
         {!side && <span className="text-muted-foreground text-xs shrink-0">—</span>}
       </div>
 
@@ -51,7 +51,7 @@ export function PlayerCard({ username, side, pnl, pnlPct, isWinner, index }: Pla
           transition={{ duration: 0.25 }}
           className={cn(
             "text-sm font-bold tabular-nums",
-            pnl > 0 ? "text-green-500" : pnl < 0 ? "text-red-500" : "text-muted-foreground",
+            pnl > 0 ? "text-bull" : pnl < 0 ? "text-bear" : "text-muted-foreground",
           )}
         >
           {pnl >= 0 ? "+" : ""}
@@ -63,9 +63,9 @@ export function PlayerCard({ username, side, pnl, pnlPct, isWinner, index }: Pla
           className={cn(
             "text-[10px] tabular-nums leading-none",
             pnlPct > 0
-              ? "text-green-500/70"
+              ? "text-bull/70"
               : pnlPct < 0
-                ? "text-red-500/70"
+                ? "text-bear/70"
                 : "text-muted-foreground/70",
           )}
         >

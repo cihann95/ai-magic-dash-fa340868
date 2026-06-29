@@ -22,10 +22,10 @@ export default function BottomNav() {
         {items.map(({ to, label, icon: Icon }) => (
           <NavLink key={to} to={to} end={to === "/"}
             className={({ isActive }) => cn(
-              "flex flex-col items-center justify-center gap-0.5 flex-1 h-full text-[10px] font-medium transition-colors",
+              "flex flex-col items-center justify-center gap-1 flex-1 min-h-[48px] text-xs font-medium transition-colors",
               isActive ? "text-primary" : "text-muted-foreground"
             )}>
-            <Icon className="size-5" />
+            <Icon className="size-6" />
             <span>{label}</span>
           </NavLink>
         ))}

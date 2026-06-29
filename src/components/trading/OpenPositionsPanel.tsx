@@ -15,6 +15,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import BullBearIcon from "@/components/ui/BullBearIcon";
 import { findSymbol, formatPrice, SymbolDef } from "@/lib/symbols";
 import { useLivePrices } from "@/hooks/useLivePrices";
 import { toast } from "@/hooks/use-toast";
@@ -343,8 +344,9 @@ export default function OpenPositionsPanel({ refreshKey, onTradeDone, onSelectSy
                           animate={{ y: 0, opacity: 1 }}
                           exit={{ y: (prevPnlRef.current[p.id] ?? 0) < (p.pnl ?? 0) ? 8 : -8, opacity: 0 }}
                           transition={{ duration: 0.3, type: "spring", stiffness: 320, damping: 26 }}
-                          className={cn("font-price text-sm font-semibold", (p.pnl ?? 0) >= 0 ? "text-up" : "text-down")}
+                          className={cn("font-price text-sm font-semibold flex items-center justify-end gap-0.5", (p.pnl ?? 0) >= 0 ? "text-up" : "text-down")}
                         >
+                          <BullBearIcon type={(p.pnl ?? 0) >= 0 ? "bull" : "bear"} size="xs" />
                           {(p.pnl ?? 0) >= 0 ? "+" : ""}{(p.pnl ?? 0).toFixed(2)}$
                         </motion.div>
                       </AnimatePresence>
