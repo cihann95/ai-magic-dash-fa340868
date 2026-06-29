@@ -20,7 +20,7 @@ describe("AIDisclaimer", () => {
 
   it("renders Turkish disclaimer when lang is tr", () => {
     renderWithProviders(<AIDisclaimer />, { lang: "tr" });
-    expect(screen.getByText(/AI çıktısı bilgilendirme/)).toBeInTheDocument();
+    expect(screen.getByText(/Bu analiz bilgilendirme amaçlıdır/)).toBeInTheDocument();
   });
 
   it("renders English disclaimer when lang is en", () => {
@@ -30,7 +30,7 @@ describe("AIDisclaimer", () => {
       return null;
     });
     renderWithProviders(<AIDisclaimer />);
-    expect(screen.getByText(/AI output is for informational/)).toBeInTheDocument();
+    expect(screen.getByText(/This analysis is for informational purposes/)).toBeInTheDocument();
   });
 
   it("renders info icon", () => {

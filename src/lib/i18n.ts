@@ -154,6 +154,7 @@ const translations = {
     copy_stopped: "Copy stopped",
     username_min: "Username must be at least 3 characters",
     push_disabled: "Push notifications disabled",
+    retry: "Retry",
     hero_title: "Smart Trading Panel",
     hero_sub: "Professional insights, real-time charts and a zero-setup demo trading environment.",
     get_started: "Get started",
