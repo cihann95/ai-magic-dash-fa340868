@@ -12,16 +12,16 @@ import { cn } from "@/lib/utils";
 const CATS: (AssetClass | "all")[] = ["all", "crypto", "stocks", "forex", "commodities", "indices", "etf"];
 
 function colorFor(pct: number): string {
-  // -10% → koyu bear, 0 → muted, +10% → koyu bull
+  // -10% → dark bear, 0 → muted, +10% → dark bull
   const clamped = Math.max(-10, Math.min(10, pct));
   const intensity = Math.abs(clamped) / 10; // 0..1
   if (clamped > 0.1) {
-    // bull: hsl(142, 76%, 36% to 26%)
-    const lightness = 36 - intensity * 12;
-    return `hsl(142, 76%, ${lightness}%)`;
+    // bull: mix black into base bull color
+    const pct = Math.round(intensity * 35);
+    return `color-mix(in srgb, hsl(var(--bull)), black ${pct}%)`;
   } else if (clamped < -0.1) {
-    const lightness = 50 - intensity * 16;
-    return `hsl(0, 84%, ${lightness}%)`;
+    const pct = Math.round(intensity * 45);
+    return `color-mix(in srgb, hsl(var(--bear)), black ${pct}%)`;
   }
   return `hsl(var(--muted))`;
 }
@@ -97,11 +97,11 @@ function HeatmapInner() {
         </div>
 
         <div className="flex items-center gap-4 text-xs text-muted-foreground pt-2">
-          <div className="flex items-center gap-1.5"><span className="size-3 rounded" style={{ backgroundColor: "hsl(142, 76%, 24%)" }} /> +10%</div>
-          <div className="flex items-center gap-1.5"><span className="size-3 rounded" style={{ backgroundColor: "hsl(142, 76%, 36%)" }} /> +0%</div>
+          <div className="flex items-center gap-1.5"><span className="size-3 rounded" style={{ backgroundColor: "color-mix(in srgb, hsl(var(--bull)), black 35%)" }} /> +10%</div>
+          <div className="flex items-center gap-1.5"><span className="size-3 rounded" style={{ backgroundColor: "hsl(var(--bull))" }} /> +0%</div>
           <div className="flex items-center gap-1.5"><span className="size-3 rounded bg-muted" /> 0%</div>
-          <div className="flex items-center gap-1.5"><span className="size-3 rounded" style={{ backgroundColor: "hsl(0, 84%, 50%)" }} /> -0%</div>
-          <div className="flex items-center gap-1.5"><span className="size-3 rounded" style={{ backgroundColor: "hsl(0, 84%, 34%)" }} /> -10%</div>
+          <div className="flex items-center gap-1.5"><span className="size-3 rounded" style={{ backgroundColor: "hsl(var(--bear))" }} /> -0%</div>
+          <div className="flex items-center gap-1.5"><span className="size-3 rounded" style={{ backgroundColor: "color-mix(in srgb, hsl(var(--bear)), black 45%)" }} /> -10%</div>
         </div>
       </div>
     </AppShell>

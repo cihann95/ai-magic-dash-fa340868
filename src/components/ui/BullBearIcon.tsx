@@ -21,7 +21,7 @@ export function BullBearIcon({ type, size = "sm", showArrow = true, className }:
   if (type === "bull") {
     const Icon: LucideIcon = TrendingUp;
     return (
-      <span className={cn("inline-flex items-center gap-1 text-bull", className)}>
+      <span className={cn("inline-flex items-center gap-1 text-bull", className)} role="img" aria-label={`${showArrow ? "bullish " : ""}trending up`}>
         {showArrow && <Icon className={iconSize} />}
         <span className={cn("font-bold", textSize)}>↑</span>
       </span>
@@ -31,7 +31,7 @@ export function BullBearIcon({ type, size = "sm", showArrow = true, className }:
   if (type === "bear") {
     const Icon: LucideIcon = TrendingDown;
     return (
-      <span className={cn("inline-flex items-center gap-1 text-bear", className)}>
+      <span className={cn("inline-flex items-center gap-1 text-bear", className)} role="img" aria-label={`${showArrow ? "bearish " : ""}trending down`}>
         {showArrow && <Icon className={iconSize} />}
         <span className={cn("font-bold", textSize)}>↓</span>
       </span>
@@ -39,9 +39,11 @@ export function BullBearIcon({ type, size = "sm", showArrow = true, className }:
   }
   
   return (
-    <span className={cn("inline-flex items-center gap-1 text-muted-foreground", className)}>
+    <span className={cn("inline-flex items-center gap-1 text-muted-foreground", className)} role="img" aria-label="flat">
       {showArrow && <Minus className={iconSize} />}
       <span className={cn("font-bold", textSize)}>—</span>
     </span>
   );
 }
+
+export default BullBearIcon;

@@ -35,7 +35,7 @@ const FinishedBanner: React.FC<FinishedBannerProps> = ({
     <div
       className={cn(
         "glass border-border/40 shadow-card rounded-lg p-8 text-center",
-        "transition-opacity duration-[3000ms] ease-in-out",
+        "transition-opacity duration-1000 ease-in-out",
         visible ? "opacity-100" : "opacity-0",
       )}
     >
