@@ -108,6 +108,42 @@ Deno.serve(async (req) => {
     const wins = closes.filter((t) => Number(t.pnl ?? 0) > 0).length;
     const winRate = Math.round((wins / closes.length) * 100);
 
+    // ── Social ranking ──
+    // Compare user's totalPnl and winRate against all users' trades in same period
+    let rankLine = "";
+    try {
+      const { data: allCloses } = await admin
+        .from("trades")
+        .select("user_id, pnl")
+        .eq("action", "close")
+        .gte("executed_at", since);
+      if (allCloses && allCloses.length > 10) {
+        // Group by user
+        const userPnlMap = new Map<string, number>();
+        for (const t of allCloses) {
+          const uid = t.user_id;
+          if (!uid) continue;
+          userPnlMap.set(uid, (userPnlMap.get(uid) ?? 0) + Number(t.pnl ?? 0));
+        }
+        const userEntries = Array.from(userPnlMap.entries());
+        userEntries.sort((a, b) => b[1] - a[1]);
+        const userRank = userEntries.findIndex(([uid]) => uid === user.id);
+        const totalUsers = userEntries.length;
+        if (userRank >= 0 && totalUsers > 1) {
+          const pct = Math.round(((totalUsers - userRank - 1) / (totalUsers - 1)) * 100);
+          const rankLabel =
+            pct >= 90 ? "🏆" : pct >= 75 ? "💪" : pct >= 50 ? "👍" : pct >= 25 ? "📈" : "💡";
+          if (lang === "tr") {
+            rankLine = `${rankLabel} Diğer traderların %${pct}'inden daha iyisin (sıralama ${userRank + 1}/${totalUsers}).`;
+          } else {
+            rankLine = `${rankLabel} You're outperforming ${pct}% of traders (rank ${userRank + 1}/${totalUsers}).`;
+          }
+        }
+      }
+    } catch (e) {
+      console.error("social rank calc failed", e);
+    }
+
     // Body
     const lines: string[] = [];
     if (lang === "tr") {
@@ -123,6 +159,7 @@ Deno.serve(async (req) => {
         lines.push(`💭 Çoğunlukla ${mTr[dominantMood[0]] ?? dominantMood[0]} hissettin.`);
       }
       if (avgAdherence !== null) lines.push(`📐 Plan uyumu: %${avgAdherence}`);
+      if (rankLine) lines.push(rankLine);
     } else {
       lines.push(`📊 You closed ${closes.length} trades this week · ${winRate}% win rate · ${totalPnl >= 0 ? "+" : ""}$${totalPnl.toFixed(2)}`);
       if (best && Number(best.pnl) > 0) lines.push(`🏆 Best: ${best.symbol} (+$${Number(best.pnl).toFixed(2)})`);
@@ -130,6 +167,7 @@ Deno.serve(async (req) => {
       if (bestIntent) lines.push(`🎯 Most profitable intent: "${bestIntent[0]}" (avg ${(bestIntent[1].pnl / bestIntent[1].count >= 0 ? "+" : "")}$${(bestIntent[1].pnl / bestIntent[1].count).toFixed(2)})`);
       if (dominantMood) lines.push(`💭 You felt mostly ${dominantMood[0]}.`);
       if (avgAdherence !== null) lines.push(`📐 Plan adherence: ${avgAdherence}%`);
+      if (rankLine) lines.push(rankLine);
     }
 
     const title = lang === "tr" ? "📅 Haftalık Ayna" : "📅 Weekly Mirror";
