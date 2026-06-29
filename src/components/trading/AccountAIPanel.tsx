@@ -297,7 +297,7 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
           <TabsContent value="analysis" className="flex-1 min-h-0 m-0 mt-3 p-3 pt-0 overflow-y-auto scrollbar-thin space-y-3 data-[state=active]:flex data-[state=active]:flex-col data-[state=inactive]:hidden">
             <Button variant="outline" size="sm" onClick={runAnalysis} disabled={loadingA} className="w-full">
               {loadingA ? <Loader2 className="size-4 animate-spin mr-1" /> : <Sparkles className="size-4 mr-1" />}
-              {loadingA ? tr.ai_loading : (lang === "tr" ? `${symbol.symbol} için analiz` : `Analyze ${symbol.symbol}`)}
+              {loadingA ? tr.analyzing : (lang === "tr" ? `${symbol.symbol} için analiz` : `Analyze ${symbol.symbol}`)}
             </Button>
             <SignalCard title={`AI Analysis — ${symbol.symbol}`} content={analysis ?? ""} symbol={symbol.symbol} loading={loadingA} />
             {analysis && <AIDisclaimer />}
@@ -322,7 +322,7 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
           <TabsContent value="news" className="flex-1 min-h-0 m-0 mt-3 p-3 pt-0 overflow-y-auto scrollbar-thin space-y-3 data-[state=active]:flex data-[state=active]:flex-col data-[state=inactive]:hidden">
             <Button variant="outline" size="sm" onClick={runNews} disabled={loadingN} className="w-full">
               {loadingN ? <Loader2 className="size-4 animate-spin mr-1" /> : <RefreshCw className="size-4 mr-1" />}
-              {loadingN ? tr.ai_loading : tr.refresh}
+              {loadingN ? tr.analyzing : tr.refresh}
             </Button>
             {loadingN && news.length === 0 && <TypingDots />}
             <div className="space-y-2">

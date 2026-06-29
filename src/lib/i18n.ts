@@ -23,7 +23,7 @@ const translations = {
     // panel
     balance: "Demo Bakiye", available: "Kullanılabilir", pnl: "Kâr / Zarar", open_positions: "Açık Pozisyonlar", no_positions: "Açık pozisyon yok",
     close: "Kapat", analysis: "Analiz", news: "Haberler", chat: "Sohbet",
-    ai_loading: "AI düşünüyor...", ask_anything: "Bir şey sor...",
+    analyzing: "Analiz ediliyor...", ask_anything: "Bir şey sor...",
     refresh: "Yenile", search_symbols: "Sembol ara...", change_24h: "24s",
     // auth
     email: "E-posta", password: "Şifre", display_name: "Görünen Ad", forgot_password: "Şifremi unuttum",
@@ -44,7 +44,6 @@ const translations = {
     trade_success_desc: "{side} {qty} {symbol} @ {price}",
     insufficient: "Yetersiz bakiye",
     achievement_unlocked: "Rozet kazandın!",
-    partial_close: "Kısmi Kapatıldı",
     close_success: "Kapatıldı",
     invalid_target: "Geçersiz hedef fiyat",
     order_placed: "Emir verildi",
@@ -121,7 +120,7 @@ const translations = {
     open_orders: "Open Orders", no_open_orders: "No open orders",
     balance: "Demo Balance", available: "Available", pnl: "P&L", open_positions: "Open Positions", no_positions: "No open positions",
     close: "Close", analysis: "Analysis", news: "News", chat: "Chat",
-    ai_loading: "AI thinking...", ask_anything: "Ask anything...",
+    analyzing: "Analyzing...", ask_anything: "Ask anything...",
     refresh: "Refresh", search_symbols: "Search symbols...", change_24h: "24h",
     email: "Email", password: "Password", display_name: "Display name", forgot_password: "Forgot password?",
     welcome_back: "Welcome back", create_account: "Create account", reset_password: "Reset password",
@@ -139,7 +138,6 @@ const translations = {
     trade_success_desc: "{side} {qty} {symbol} @ {price}",
     insufficient: "Insufficient balance",
     achievement_unlocked: "Achievement unlocked!",
-    partial_close: "Partial Close",
     close_success: "Closed",
     invalid_target: "Invalid target price",
     order_placed: "Order placed",

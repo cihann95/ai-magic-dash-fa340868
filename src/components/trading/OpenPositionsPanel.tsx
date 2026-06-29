@@ -267,7 +267,7 @@ export default function OpenPositionsPanel({ refreshKey, onTradeDone, onSelectSy
       <div className="flex-1 overflow-y-auto scrollbar-thin">
         {loading && positions.length === 0 ? (
           <div className="flex items-center justify-center py-10 text-xs text-muted-foreground">
-            <Loader2 className="size-4 animate-spin mr-2" /> {tr.ai_loading}
+            <Loader2 className="size-4 animate-spin mr-2" /> {tr.analyzing}
           </div>
         ) : sorted.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">

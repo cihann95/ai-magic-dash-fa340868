@@ -1,5 +1,6 @@
 // Realtime fiyat alarmı dinleyicisi - tetiklenen alarmları toast ile gösterir
 import { useEffect } from "react";
+import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useApp } from "@/contexts/AppContext";
@@ -14,7 +15,7 @@ export function useAlertNotifications() {
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "price_alerts", filter: `user_id=eq.${user.id}` },
-        (payload: any) => {
+        (payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => {
           const row = payload.new;
           if (row?.triggered) {
             // Browser notification

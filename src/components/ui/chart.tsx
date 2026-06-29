@@ -1,6 +1,7 @@
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
+import type { TooltipPayload, TooltipPayloadEntry, LegendPayload } from "recharts";
 
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: "", dark: ".dark" } as const;
@@ -93,11 +94,11 @@ const RechartsPrimitiveDynamic = React.lazy(() => import("recharts"));
 
 type ChartTooltipContentProps = React.ComponentProps<"div"> & {
   active?: boolean;
-  payload?: any[];
-  label?: any;
-  labelFormatter?: (value: any, payload: any[]) => React.ReactNode;
+  payload?: TooltipPayload;
+  label?: React.ReactNode;
+  labelFormatter?: (value: React.ReactNode, payload: TooltipPayload) => React.ReactNode;
   labelClassName?: string;
-  formatter?: (value: any, name: any, item: any, index: number, payload: any) => React.ReactNode;
+  formatter?: (value: unknown, name: unknown, item: TooltipPayloadEntry, index: number, payload: TooltipPayload) => React.ReactNode;
   color?: string;
   hideLabel?: boolean;
   hideIndicator?: boolean;
@@ -167,7 +168,7 @@ const ChartTooltipContent = React.forwardRef<HTMLDivElement, ChartTooltipContent
       >
         {!nestLabel ? tooltipLabel : null}
         <div className="grid gap-1.5">
-          {payload.map((item: any, index: number) => {
+          {payload.map((item: TooltipPayloadEntry, index: number) => {
             const key = `${nameKey || item.name || item.dataKey || "value"}`;
             const itemConfig = getPayloadConfigFromPayload(config, item, key);
             const indicatorColor = color || item.payload?.fill || item.color;
@@ -235,7 +236,7 @@ ChartTooltipContent.displayName = "ChartTooltip";
 const ChartLegend = RechartsPrimitiveDynamic.Legend;
 
 type ChartLegendContentProps = React.ComponentProps<"div"> & {
-  payload?: any[];
+  payload?: ReadonlyArray<LegendPayload>;
   verticalAlign?: "top" | "middle" | "bottom";
   hideIcon?: boolean;
   nameKey?: string;
@@ -254,7 +255,7 @@ const ChartLegendContent = React.forwardRef<HTMLDivElement, ChartLegendContentPr
         ref={ref}
         className={cn("flex items-center justify-center gap-4", verticalAlign === "top" ? "pb-3" : "pt-3", className)}
       >
-        {payload.map((item: any) => {
+        {payload.map((item: LegendPayload) => {
           const key = `${nameKey || item.dataKey || "value"}`;
           const itemConfig = getPayloadConfigFromPayload(config, item, key);
 
