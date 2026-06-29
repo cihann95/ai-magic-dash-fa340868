@@ -27,6 +27,7 @@ const Journal = lazy(() => import("./pages/Journal.tsx"));
 const Insights = lazy(() => import("./pages/Insights.tsx"));
 const Blitz = lazy(() => import("./pages/Blitz.tsx"));
 const BlitzRoom = lazy(() => import("./pages/BlitzRoom.tsx"));
+const TraderProfile = lazy(() => import("./pages/TraderProfile.tsx"));
 const AdminBlitz = lazy(() => import("./pages/AdminBlitz.tsx"));
 const AdminRooms = lazy(() => import("./pages/AdminRooms.tsx"));
 const AdminSettings = lazy(() => import("./pages/AdminSettings.tsx"));
@@ -67,6 +68,7 @@ const App = () => (
                 <Route path="/insights" element={<Insights />} />
                 <Route path="/blitz" element={<Blitz />} />
                 <Route path="/blitz/:roomId" element={<BlitzRoom />} />
+                <Route path="/trader/:username" element={<TraderProfile />} />
                 <Route path="/admin/blitz" element={<ProtectedRoute requiredRole="admin"><AdminBlitz /></ProtectedRoute>} />
                 <Route path="/admin/rooms" element={<ProtectedRoute requiredRole="admin"><AdminRooms /></ProtectedRoute>} />
                 <Route path="/admin/settings" element={<ProtectedRoute requiredRole="admin"><AdminSettings /></ProtectedRoute>} />

@@ -111,6 +111,33 @@ Deno.serve(async (req) => {
     // Strip the confidence tag from displayed content
     const displayContent = content.replace(/\[\s*(?:CONFIDENCE|GÜVEN):\s*\d+\s*\]\s*/i, "").trim();
 
+    // Extract signal type from analysis (BUY/SELL/HOLD or AL/SAT/BEKLE)
+    const signalMatch = content.match(/\*\*(?:Sinyal|Signal):\s*(AL|SAT|BEKLE|BUY|SELL|HOLD)\*\*/i);
+    const signalType = signalMatch ? signalMatch[1].toUpperCase() : "HOLD";
+    const predictedDirection = signalType === "BUY" || signalType === "AL" ? "up" :
+                              signalType === "SELL" || signalType === "SAT" ? "down" : "neutral";
+
+    // Record signal in history (fire-and-forget)
+    try {
+      const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      await admin.from("ai_signal_history").insert({
+        user_id: userId,
+        symbol,
+        signal_type: signalType,
+        predicted_direction: predictedDirection,
+        price_at_signal: ctx.currentPrice ?? 0,
+        confidence,
+        analysis_text: displayContent.slice(0, 500),
+      });
+    } catch { /* non-critical */ }
+
+    // Increment daily usage (fire-and-forget)
+    try {
+      const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      const today = new Date().toISOString().slice(0, 10);
+      await admin.rpc("increment_daily_ai_usage" as never, { p_user_id: userId, p_date: today } as never);
+    } catch { /* non-critical */ }
+
     console.error(JSON.stringify({event: "request", duration_ms: Date.now() - start}));
     return new Response(JSON.stringify({ analysis: displayContent, confidence }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

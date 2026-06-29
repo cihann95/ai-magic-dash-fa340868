@@ -14,8 +14,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
-import { Moon, Sun, RotateCcw, Bell, Download, Users, Wallet, Info } from "lucide-react";
+import { Moon, Sun, RotateCcw, Bell, Download, Users, Wallet, Info, Diamond, TrendingUp, Key, CheckCircle2, XCircle, RefreshCw, Loader2 } from "lucide-react";
 import { enablePushNotifications, disablePushNotifications } from "@/lib/pushSubscribe";
+import { getAllProviders, getBrokerConfig, saveBrokerConfig, clearBrokerConfig, getActiveExchangeId, setActiveExchangeId, onActiveExchangeChange } from "@/lib/exchange-provider";
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY ?? ""; // Server tarafından enjekte edilecek; boşsa push devre dışı
 
@@ -28,7 +29,7 @@ interface LedgerEntry {
 }
 
 function SettingsInner() {
-  const { user, lang, setLang, theme, setTheme, realBalance, realBalanceLocked } = useApp();
+  const { user, lang, setLang, theme, setTheme, realBalance, realBalanceLocked, subscription, subscriptionLoading } = useApp();
   const tr = t(lang);
   const [displayName, setDisplayName] = useState("");
   const [saving, setSaving] = useState(false);
@@ -36,6 +37,20 @@ function SettingsInner() {
   const [pushOn, setPushOn] = useState(false);
   const [installPrompt, setInstallPrompt] = useState<{ prompt(): Promise<{ outcome: string }>; userChoice: Promise<{ outcome: string }> } | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
+
+  // Broker state
+  const brokers = getAllProviders();
+  const [brokerExchange, setBrokerExchange] = useState(getActiveExchangeId());
+  const [brokerApiKey, setBrokerApiKey] = useState("");
+  const [brokerSecret, setBrokerSecret] = useState("");
+  const [brokerTesting, setBrokerTesting] = useState(false);
+  const [brokerTestResult, setBrokerTestResult] = useState<{ ok: boolean; error?: string } | null>(null);
+  useEffect(() => {
+    const cfg = getBrokerConfig(brokerExchange);
+    if (cfg) { setBrokerApiKey(cfg.apiKey); setBrokerSecret(cfg.secret); }
+    else { setBrokerApiKey(""); setBrokerSecret(""); }
+    setBrokerTestResult(null);
+  }, [brokerExchange]);
 
   const [ledger, setLedger] = useState<LedgerEntry[]>([]);
   const [ledgerLoading, setLedgerLoading] = useState(true);
@@ -259,9 +274,21 @@ function SettingsInner() {
 
         <Card className="p-6 glass border-border/40 space-y-4">
           <h2 className="font-semibold">{tr.theme} & {tr.language}</h2>
-          <div className="flex gap-3">
-            <Button variant={theme === "dark" ? "default" : "outline"} onClick={() => setTheme("dark")} className="flex-1"><Moon className="size-4" /> {tr.dark}</Button>
-            <Button variant={theme === "light" ? "default" : "outline"} onClick={() => setTheme("light")} className="flex-1"><Sun className="size-4" /> {tr.light}</Button>
+          <div className="flex gap-3 flex-wrap">
+            <Button variant={theme === "dark" ? "default" : "outline"} onClick={() => setTheme("dark")} className="flex-1 min-w-[80px]"><Moon className="size-4" /> {tr.dark}</Button>
+            <Button variant={theme === "light" ? "default" : "outline"} onClick={() => setTheme("light")} className="flex-1 min-w-[80px]"><Sun className="size-4" /> {tr.light}</Button>
+            {(subscription?.plan !== "free" || (subscription?.trial_ends_at && new Date(subscription.trial_ends_at) > new Date())) ? (
+              <Button variant={theme === "gold" ? "default" : "outline"} onClick={() => setTheme("gold")}
+                className="flex-1 min-w-[80px]"
+                style={theme === "gold" ? { background: "linear-gradient(135deg, #FFD700, #FFA500)", color: "#7c3a00" } : {}}
+              >
+                <Diamond className="size-4" /> Altın
+              </Button>
+            ) : (
+              <Button variant="outline" disabled className="flex-1 min-w-[80px] opacity-50">
+                <Diamond className="size-4" /> Altın
+              </Button>
+            )}
           </div>
           <div className="flex gap-3">
             <Button variant={lang === "tr" ? "default" : "outline"} onClick={() => setLang("tr")} className="flex-1">Türkçe</Button>
@@ -284,6 +311,16 @@ function SettingsInner() {
             <Button onClick={installApp} variant="outline" className="w-full">
               <Download className="size-4" /> {tr.install_app}
             </Button>
+          )}
+          {!installPrompt && /iPhone|iPad|iPod/.test(navigator.userAgent) && (
+            <div className="rounded-lg border border-border/40 bg-muted/30 p-3 text-xs text-muted-foreground space-y-1">
+              <p className="font-semibold text-foreground flex items-center gap-1.5">
+                <Download className="size-3.5" /> iOS: Add to Home Screen
+              </p>
+              <p>1. Tap the Share button <span className="font-mono">⎙</span> in Safari.</p>
+              <p>2. Scroll down and tap <strong>"Add to Home Screen"</strong>.</p>
+              <p>3. Tap <strong>"Add"</strong> in the top right.</p>
+            </div>
           )}
         </Card>
 
@@ -345,12 +382,190 @@ function SettingsInner() {
           )}
         </Card>
 
+        <Card className="p-6 glass border-border/40 space-y-4">
+          <h2 className="font-semibold flex items-center gap-2"><Key className="size-4" /> {lang === "tr" ? "Broker" : "Broker"}</h2>
+
+          {/* Exchange selector */}
+          <div className="space-y-2">
+            <Label>{lang === "tr" ? "Borsa" : "Exchange"}</Label>
+            <select
+              value={brokerExchange}
+              onChange={(e) => setBrokerExchange(e.target.value)}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {brokers.map((b) => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Connection status */}
+          {(() => {
+            const p = brokers.find((b) => b.id === brokerExchange);
+            const cfg = getBrokerConfig(brokerExchange);
+            return cfg || p?.isConnected() ? (
+              <div className="flex items-center gap-2 text-sm text-bull">
+                <CheckCircle2 className="size-4" />
+                <span>{lang === "tr" ? "Bağlı" : "Connected"}</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <XCircle className="size-4" />
+                <span>{lang === "tr" ? "Bağlı değil" : "Not connected"}</span>
+              </div>
+            );
+          })()}
+
+          {/* API Key & Secret inputs */}
+          <div className="space-y-2">
+            <Label>API Key</Label>
+            <Input
+              value={brokerApiKey}
+              onChange={(e) => setBrokerApiKey(e.target.value)}
+              placeholder={lang === "tr" ? "API anahtarı" : "API key"}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>API Secret</Label>
+            <Input
+              type="password"
+              value={brokerSecret}
+              onChange={(e) => setBrokerSecret(e.target.value)}
+              placeholder={lang === "tr" ? "Gizli anahtar" : "Secret"}
+            />
+          </div>
+
+          {/* Test + Save buttons */}
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              disabled={brokerTesting || !brokerApiKey || !brokerSecret}
+              onClick={async () => {
+                setBrokerTesting(true);
+                setBrokerTestResult(null);
+                const p = brokers.find((b) => b.id === brokerExchange);
+                if (p) {
+                  const result = await p.testConnection({ apiKey: brokerApiKey, secret: brokerSecret });
+                  setBrokerTestResult(result);
+                  if (result.ok) {
+                    toast({ title: lang === "tr" ? "Bağlantı başarılı" : "Connection successful" });
+                  } else {
+                    toast({ title: lang === "tr" ? "Bağlantı başarısız" : "Connection failed", description: result.error, variant: "destructive" });
+                  }
+                }
+                setBrokerTesting(false);
+              }}
+            >
+              {brokerTesting ? <Loader2 className="size-4 animate-spin mr-1" /> : <RefreshCw className="size-4 mr-1" />}
+              {lang === "tr" ? "Test Bağlantısı" : "Test Connection"}
+            </Button>
+
+            <Button
+              onClick={() => {
+                saveBrokerConfig(brokerExchange, brokerApiKey, brokerSecret);
+                setActiveExchangeId(brokerExchange);
+                toast({ title: lang === "tr" ? "Kaydedildi" : "Saved" });
+              }}
+              disabled={!brokerApiKey && !brokerSecret}
+            >
+              {tr.save}
+            </Button>
+
+            <Button
+              variant="destructive"
+              onClick={() => {
+                clearBrokerConfig(brokerExchange);
+                setBrokerApiKey("");
+                setBrokerSecret("");
+                setBrokerTestResult(null);
+                toast({ title: lang === "tr" ? "Temizlendi" : "Cleared" });
+              }}
+              disabled={!getBrokerConfig(brokerExchange)}
+            >
+              {lang === "tr" ? "Temizle" : "Clear"}
+            </Button>
+          </div>
+
+          {brokerTestResult && (
+            <div className={`text-sm flex items-center gap-1 ${brokerTestResult.ok ? "text-bull" : "text-bear"}`}>
+              {brokerTestResult.ok ? <CheckCircle2 className="size-4" /> : <XCircle className="size-4" />}
+              {brokerTestResult.ok
+                ? (lang === "tr" ? "Bağlantı başarılı" : "Connection successful")
+                : brokerTestResult.error}
+            </div>
+          )}
+        </Card>
+
         <Card className="p-6 glass border-border/40 space-y-3">
           <h2 className="font-semibold">{tr.reset_demo}</h2>
           <p className="text-sm text-muted-foreground">{tr.reset_demo_desc}</p>
           <Button variant="outline" onClick={resetDemo} disabled={resetting}>
             <RotateCcw className="size-4" /> {tr.reset_demo}
           </Button>
+        </Card>
+
+        {/* Premium Section */}
+        <Card className="p-6 glass border-border/40 space-y-4"
+          style={subscription && subscription.plan !== "free" ? { border: "1px solid hsl(45 100% 50% / 0.3)", boxShadow: "0 0 12px hsl(45 100% 50% / 0.15)" } : {}}
+        >
+          <h2 className="font-semibold flex items-center gap-2">
+            <Diamond className="size-4" style={{ color: "#FFD700" }} />
+            Premium
+          </h2>
+
+          {subscriptionLoading ? (
+            <Skeleton className="h-20 w-full" />
+          ) : (
+            <>
+              {/* Trial banner */}
+              {subscription && subscription.trial_ends_at && new Date(subscription.trial_ends_at) > new Date() && (
+                <div className="rounded-lg bg-gradient-to-r from-yellow-500/10 to-orange-500/10 border border-yellow-500/30 p-3 text-sm">
+                  <p className="font-semibold text-yellow-600 dark:text-yellow-400 flex items-center gap-1">
+                    <Diamond className="size-3.5" />
+                    {lang === "tr" ? "Deneme Süresi Devam Ediyor" : "Trial Period Active"}
+                  </p>
+                  <p className="text-muted-foreground mt-1">
+                    {lang === "tr"
+                      ? `${Math.ceil((new Date(subscription.trial_ends_at).getTime() - Date.now()) / 86400000)} gün kaldı`
+                      : `${Math.ceil((new Date(subscription.trial_ends_at).getTime() - Date.now()) / 86400000)} days remaining`}
+                  </p>
+                </div>
+              )}
+
+              {/* Plan comparison */}
+              <div className="grid grid-cols-3 gap-3">
+                {(["free", "pro", "elite"] as const).map((plan) => {
+                  const isCurrent = subscription?.plan === plan;
+                  const isPremium = plan !== "free";
+                  return (
+                    <div key={plan} className={`rounded-lg p-3 text-center ${isCurrent ? "ring-2 ring-primary/50 bg-accent/30" : "bg-muted/30"}`}
+                      style={isCurrent && isPremium ? { ring: "2px solid hsl(45 100% 50% / 0.5)", background: "linear-gradient(135deg, hsl(45 100% 50% / 0.08), hsl(35 100% 55% / 0.05))" } : {}}
+                    >
+                      <p className="text-sm font-bold capitalize">{plan}</p>
+                      {plan === "free" && <p className="text-[10px] text-muted-foreground mt-1">{lang === "tr" ? "5 analiz/gün" : "5 analysis/day"}</p>}
+                      {plan === "pro" && <p className="text-[10px] text-muted-foreground mt-1">{lang === "tr" ? "Sınırsız analiz + Altın tema" : "Unlimited analysis + Gold theme"}</p>}
+                      {plan === "elite" && <p className="text-[10px] text-muted-foreground mt-1">{lang === "tr" ? "Her şey dahil + API" : "Everything + API"}</p>}
+                      {isCurrent && (
+                        <p className="text-[10px] font-bold text-primary mt-1">
+                          {lang === "tr" ? "Aktif" : "Active"}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Upgrade CTA for free users */}
+              {(!subscription || subscription.plan === "free") && (
+                <Button className="w-full"
+                  style={{ background: "linear-gradient(135deg, #FFD700, #FFA500)", color: "#7c3a00" }}
+                >
+                  <TrendingUp className="size-4" />
+                  {lang === "tr" ? "Premium'a Yükselt" : "Upgrade to Premium"}
+                </Button>
+              )}
+            </>
+          )}
         </Card>
       </main>
     </AppShell>

@@ -26,6 +26,7 @@ export interface AIContext {
     pnl: number;
     executedAt: string;
   }>;
+  riskTolerance?: string;
 }
 
 export async function buildAIContext(
@@ -106,12 +107,25 @@ export async function buildAIContext(
       .eq("user_id", userId)
       .order("executed_at", { ascending: false })
       .limit(5);
-    context.recentTrades = (data ?? []).map((t) => ({
+    context.recentTrades = (data ?? []).map((t: any) => ({
       symbol: t.symbol,
       side: t.side,
       pnl: t.pnl,
       executedAt: t.executed_at,
     }));
+  } catch { /* partial context */ }
+
+  // Trader persona — independent try/catch
+  try {
+    const { data } = await sb
+      .from("profiles")
+      .select("trader_persona")
+      .eq("id", userId)
+      .single();
+    if (data?.trader_persona && typeof data.trader_persona === "object") {
+      const p = data.trader_persona as Record<string, unknown>;
+      if (p.risk_tolerance) context.riskTolerance = String(p.risk_tolerance);
+    }
   } catch { /* partial context */ }
 
   return context;
@@ -136,6 +150,21 @@ export function formatContextForPrompt(ctx: AIContext): string {
     `Bakiye: $${ctx.accountBalance.toFixed(2)}`,
     `Toplam PnL: $${ctx.totalPnl.toFixed(2)}`
   );
+
+  if (ctx.riskTolerance) {
+    const riskLabel =
+      ctx.riskTolerance === "conservative" ? "Dikkatli (Conservative)"
+      : ctx.riskTolerance === "aggressive" ? "Agresif (Aggressive)"
+      : "Dengeli (Moderate)";
+    lines.push(`\nRisk Toleransı: ${riskLabel}`);
+    const tone =
+      ctx.riskTolerance === "conservative"
+        ? "Kullanıcı düşük risk toleransına sahip — önerilerin temkinli ve sermaye koruma odaklı olmalı."
+        : ctx.riskTolerance === "aggressive"
+        ? "Kullanıcı yüksek risk toleransına sahip — öneriler agresif fırsatçı olabilir ama yine de risk yönetimini hatırlat."
+        : "Kullanıcı orta risk toleransına sahip — dengeli öneriler ver.";
+    lines.push(`\nAI Tonu: ${tone}`);
+  }
 
   if (ctx.openPositions.length > 0) {
     lines.push("\n### Açık Pozisyonlar");

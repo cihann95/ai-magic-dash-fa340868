@@ -40,6 +40,13 @@ vi.mock("lucide-react", () => ({
   Trophy: () => <svg data-testid="icon-trophy" />,
   Medal: () => <svg data-testid="icon-medal" />,
   Award: () => <svg data-testid="icon-award" />,
+  BadgeCheck: () => <svg data-testid="icon-badgecheck" />,
+  TrendingDown: () => <svg data-testid="icon-trendingdown" />,
+  Activity: () => <svg data-testid="icon-activity" />,
+  AlertCircle: () => <svg data-testid="icon-alertcircle" />,
+  RefreshCw: () => <svg data-testid="icon-refreshcw" />,
+  UserCircle: () => <svg data-testid="icon-usercircle" />,
+  Settings: () => <svg data-testid="icon-settings" />,
 }));
 
 describe("Leaderboard", () => {
@@ -52,6 +59,7 @@ describe("Leaderboard", () => {
       chain.select = vi.fn().mockReturnValue(chain);
       chain.eq = vi.fn().mockReturnValue(chain);
       chain.maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
+      chain.single = vi.fn().mockResolvedValue({ data: null, error: null });
       chain.upsert = vi.fn().mockResolvedValue({ data: null, error: null });
       chain.update = vi.fn().mockReturnValue(chain);
       return chain;
@@ -107,6 +115,7 @@ describe("Leaderboard", () => {
       chain.select = vi.fn().mockReturnValue(chain);
       chain.eq = vi.fn().mockReturnValue(chain);
       chain.maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
+      chain.single = vi.fn().mockResolvedValue({ data: null, error: null });
       chain.upsert = vi.fn().mockResolvedValue({ data: null, error: null });
       return chain;
     });

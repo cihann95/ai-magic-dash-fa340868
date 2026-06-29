@@ -33,7 +33,7 @@ const translations = {
     // settings
     profile: "Profil", language: "Dil", theme: "Tema", dark: "Koyu", light: "Açık",
     reset_demo: "Demo Bakiyesini Sıfırla", reset_demo_desc: "Bakiyenizi $100,000'a sıfırlar ve tüm pozisyonları kapatır.",
-    broker: "Broker (yakında)", broker_desc: "Gerçek broker entegrasyonu (Alpaca) için API anahtarlarınızı buraya gireceksiniz.",
+    broker: "Broker", broker_desc: "API anahtarlarınızı buraya girerek gerçek borsa entegrasyonunu etkinleştirin.",
     save: "Kaydet",
     public_profile: "Herkese Açık Profil", username: "Kullanıcı Adı", bio: "Hakkında",
     activate_public: "Liderlik tablosuna katıl",
@@ -128,7 +128,7 @@ const translations = {
     have_account: "Have an account?", no_account: "No account?",
     profile: "Profile", language: "Language", theme: "Theme", dark: "Dark", light: "Light",
     reset_demo: "Reset Demo Balance", reset_demo_desc: "Resets your balance to $100,000 and closes all positions.",
-    broker: "Broker (soon)", broker_desc: "API keys for real broker (Alpaca) integration go here.",
+    broker: "Broker", broker_desc: "Enter your API keys to enable real exchange integration.",
     save: "Save",
     public_profile: "Public Profile", username: "Username", bio: "Bio",
     activate_public: "Join leaderboard",

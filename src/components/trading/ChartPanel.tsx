@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import TradingViewChart from "@/components/TradingViewChart";
 import { SymbolDef, isMarketOpen, formatPrice, isStale } from "@/lib/symbols";
 import { useLivePrice } from "@/hooks/useLivePrices";
+import ExchangeSelector from "./ExchangeSelector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
@@ -215,6 +216,7 @@ export default function ChartPanel({ symbol, onTradeDone }: Props) {
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="font-bold text-lg truncate">{symbol.symbol}</h2>
+                <ExchangeSelector />
                 <span className={cn("text-[10px] uppercase tracking-wide font-semibold px-1.5 py-0.5 rounded", open ? "bg-bull/15 text-bull" : "bg-muted text-muted-foreground")}>
                   {open ? tr.market_open : tr.market_closed}
                 </span>

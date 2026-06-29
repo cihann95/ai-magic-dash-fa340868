@@ -4,6 +4,8 @@ import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import type { Lang } from "@/lib/i18n";
 
+export type Theme = "dark" | "light" | "gold";
+
 interface AppContextValue {
   user: User | null;
   session: Session | null;
@@ -16,12 +18,27 @@ interface AppContextValue {
   isAdmin: boolean;
   lang: Lang;
   setLang: (l: Lang) => void;
-  theme: "dark" | "light";
-  setTheme: (t: "dark" | "light") => void;
+  theme: Theme;
+  setTheme: (t: Theme) => void;
   signOut: () => Promise<void>;
+  subscription: SubscriptionData | null;
+  subscriptionLoading: boolean;
+}
+
+export interface SubscriptionData {
+  plan: "free" | "pro" | "elite";
+  trial_ends_at: string | null;
+  current_period_ends_at: string | null;
+  stripe_subscription_id: string | null;
 }
 
 const AppContext = createContext<AppContextValue | undefined>(undefined);
+
+function applyThemeClass(theme: Theme) {
+  const root = document.documentElement;
+  root.classList.remove("dark", "light", "gold");
+  if (theme) root.classList.add(theme);
+}
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -36,15 +53,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [demoBalanceLocked, setDemoBalanceLocked] = useState(0);
   const [balanceLoaded, setBalanceLoaded] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [theme, setThemeState] = useState<"dark" | "light">(
-    (localStorage.getItem("theme") as "dark" | "light") || "dark"
+  const [theme, setThemeState] = useState<Theme>(
+    (localStorage.getItem("theme") as Theme) || "dark"
   );
+  const [subscriptionLoading, setSubscriptionLoading] = useState(false);
+  const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
 
+  // Load balance + admin
   useEffect(() => {
     if (!user) {
       setRealBalance(0); setRealBalanceLocked(0);
       setDemoBalance(0); setDemoBalanceLocked(0);
       setIsAdmin(false); setBalanceLoaded(false);
+      setSubscription(null);
       return;
     }
     supabase.from("profiles").select("real_balance, real_balance_locked, demo_balance, demo_balance_locked").eq("id", user.id).maybeSingle()
@@ -59,8 +80,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
       });
     supabase.rpc("has_role", { _user_id: user.id, _role: "admin" })
       .then(({ data }) => setIsAdmin(data === true));
+
+    // Load subscription
+    setSubscriptionLoading(true);
+    (async () => {
+      try {
+        const { data } = await supabase.from("subscriptions" as any).select("*").eq("user_id" as any, user.id).single();
+        if (data) setSubscription(data as SubscriptionData | null);
+      } catch {
+        // subscription table may not exist yet
+      }
+      setSubscriptionLoading(false);
+    })();
   }, [user]);
 
+  // Live subscription changes
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase.channel(`subscription_${user.id}`)
+      .on("postgres_changes" as never,
+        { event: "*", schema: "public", table: "subscriptions" as any, filter: `user_id=eq.${user.id}` } as never,
+        (payload: { new: Record<string, unknown> }) => {
+          setSubscription(payload.new as unknown as SubscriptionData);
+        },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [user]);
+
+  // Live balance
   useEffect(() => {
     if (!user) return;
     const ch = supabase.channel(`profile_balance_${user.id}`)
@@ -86,8 +134,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Theme class management
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", theme === "dark");
+    applyThemeClass(theme);
     localStorage.setItem("theme", theme);
   }, [theme]);
 
@@ -107,6 +156,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       lang, setLang: setLangState,
       theme, setTheme: setThemeState,
       signOut,
+      subscription, subscriptionLoading,
     }}>
       {children}
     </AppContext.Provider>

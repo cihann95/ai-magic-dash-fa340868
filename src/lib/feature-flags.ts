@@ -1,21 +1,9 @@
 /**
- * Feature Flag System
+ * Feature Flag & Subscription System
  *
- * Centralized, typed feature flag management for client-side features.
- * All flags default to `false` for safety — a feature is only active when its
- * environment variable is explicitly set to `"true"`.
- *
- * ── Adding a new flag ────────────────────────────────────────────────────
- *
- * 1. Add the flag name (kebab-case) to the `FeatureFlag` union type below.
- * 2. Add a corresponding boolean property to the `FeatureFlags` interface.
- * 3. Add the env-var check in `hasFeature()` and the property in `getFeatureFlags()`.
- * 4. Set the env var as `VITE_YOUR_FLAG_ENABLED=true` in `.env` / `.env.example`.
- *
- *    Example:
- *      FeatureFlag:        'my-new-feature'
- *      Env var:            VITE_MY_NEW_FEATURE_ENABLED
- *      Vite type decl:     readonly VITE_MY_NEW_FEATURE_ENABLED?: string;
+ * Environment-based flags (kebab-case) + runtime subscription-powered flags.
+ * All flags default to `false` or `0` for safety — a feature is only active
+ * when the corresponding flag says so.
  *
  * ═══════════════════════════════════════════════════════════════════════════
  */
@@ -24,22 +12,30 @@
 // Types
 // ---------------------------------------------------------------------------
 
-/** All known feature flags — add new flags here (kebab-case). */
+/** Known env-var feature flags (kebab-case). */
 export type FeatureFlag = "ana-sahne";
 
-/** Boolean map of every flag — one property per flag (camelCase). */
+/** All env flags + computed subscription flags. */
 export interface FeatureFlags {
   anaSahne: boolean;
+  isPremium: boolean;
+  isTrial: boolean;
+  trialDaysLeft: number;
+  maxDailyAnalysis: number;
+  allowedThemes: string[];
+}
+
+export interface SubscriptionInfo {
+  plan: "free" | "pro" | "elite";
+  trialEndsAt: string | null;
+  currentPeriodEndsAt: string | null;
+  stripeSubscriptionId: string | null;
 }
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-/**
- * Convert a kebab-case flag name to the corresponding `VITE_*_ENABLED` env-var
- * key.  E.g. `"ana-sahne"` → `"VITE_ANA_SAHNE_ENABLED"`.
- */
 function toEnvKey(name: FeatureFlag): string {
   const screaming = name.replace(/-/g, "_").toUpperCase();
   return `VITE_${screaming}_ENABLED`;
@@ -49,35 +45,44 @@ function toEnvKey(name: FeatureFlag): string {
 // Public API
 // ---------------------------------------------------------------------------
 
-/**
- * Check whether a single feature flag is enabled.
- *
- * @param name – The kebab-case flag identifier (e.g. `'ana-sahne'`).
- * @returns `true` when the corresponding `VITE_*_ENABLED` env var is exactly
- *          the string `"true"`.  Returns `false` for any other value or when
- *          the env var is not set at all (safe default).
- *
- * @example
- *   if (hasFeature('ana-sahne')) {
- *     // render Ana Sahne section
- *   }
- */
 export function hasFeature(name: FeatureFlag): boolean {
   return import.meta.env[toEnvKey(name)] === "true";
 }
 
-/**
- * Get the state of **all** known feature flags at once.
- *
- * @returns A `FeatureFlags` object where every property is `true` when the
- *          corresponding env var is `"true"`, or `false` otherwise.
- *
- * @example
- *   const flags = getFeatureFlags();
- *   if (flags.anaSahne) { ... }
- */
 export function getFeatureFlags(): FeatureFlags {
   return {
     anaSahne: hasFeature("ana-sahne"),
+    isPremium: false,
+    isTrial: false,
+    trialDaysLeft: 0,
+    maxDailyAnalysis: 5,
+    allowedThemes: ["dark", "light"],
+  };
+}
+
+/** Compute feature flags from subscription data. */
+export function computeSubscriptionFlags(
+  sub: SubscriptionInfo | null,
+): Pick<FeatureFlags, "isPremium" | "isTrial" | "trialDaysLeft" | "maxDailyAnalysis" | "allowedThemes"> {
+  if (!sub || sub.plan === "free") {
+    const trialEnd = sub?.trialEndsAt ? new Date(sub.trialEndsAt) : null;
+    const now = new Date();
+    const isTrial = trialEnd !== null && trialEnd > now;
+    const trialDaysLeft = isTrial ? Math.max(0, Math.ceil((trialEnd!.getTime() - now.getTime()) / 86400000)) : 0;
+    return {
+      isPremium: false,
+      isTrial,
+      trialDaysLeft,
+      maxDailyAnalysis: isTrial ? 9999 : 5,
+      allowedThemes: ["dark", "light"],
+    };
+  }
+
+  return {
+    isPremium: true,
+    isTrial: false,
+    trialDaysLeft: 0,
+    maxDailyAnalysis: 9999,
+    allowedThemes: ["dark", "light", "gold"],
   };
 }

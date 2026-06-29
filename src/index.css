@@ -111,6 +111,58 @@
     --transition-panel: 200ms ease;
   }
 
+  /* Premium Gold Theme — only for premium members */
+  .gold {
+    --background: 45 30% 6%;
+    --foreground: 45 20% 90%;
+    --card: 45 25% 10%;
+    --card-foreground: 45 20% 90%;
+    --popover: 45 25% 10%;
+    --popover-foreground: 45 20% 90%;
+    --primary: 45 100% 50%;
+    --primary-foreground: 45 30% 6%;
+    --primary-glow: 45 100% 60%;
+    --secondary: 45 18% 14%;
+    --secondary-foreground: 45 20% 90%;
+    --muted: 45 18% 14%;
+    --muted-foreground: 45 10% 60%;
+    --accent: 45 18% 16%;
+    --accent-foreground: 45 20% 90%;
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --bull: 142 60% 48%;
+    --bull-foreground: 0 0% 100%;
+    --bear: 0 72% 55%;
+    --bear-foreground: 0 0% 100%;
+    --border: 45 18% 18%;
+    --input: 45 18% 16%;
+    --ring: 45 100% 50%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(45 100% 50%), hsl(35 100% 55%));
+    --gradient-bull: linear-gradient(135deg, hsl(142 60% 48%), hsl(160 70% 43%));
+    --gradient-bear: linear-gradient(135deg, hsl(0 72% 55%), hsl(340 70% 50%));
+    --gradient-surface: linear-gradient(180deg, hsl(45 25% 12% / 0.8), hsl(45 30% 8% / 0.6));
+    --gradient-mesh:
+      radial-gradient(at 15% 10%, hsl(45 100% 50% / 0.12), transparent 50%),
+      radial-gradient(at 85% 90%, hsl(35 100% 55% / 0.10), transparent 50%);
+    --shadow-glow: 0 0 60px hsl(45 100% 50% / 0.30);
+    --shadow-elegant: 0 20px 60px -20px hsl(0 0% 0% / 0.6);
+    --shadow-card: 0 1px 0 hsl(45 100% 60% / 0.06) inset, 0 8px 32px hsl(0 0% 0% / 0.4);
+
+    --color-up: var(--bull);
+    --color-down: var(--bear);
+    --color-neutral: 45 10% 50%;
+    --success: 142 60% 48%;
+    --warning: 38 92% 55%;
+    --danger: 0 72% 55%;
+    --color-surface-1: 45 15% 12%;
+    --color-surface-2: 45 15% 10%;
+    --color-surface-3: 45 15% 8%;
+    --color-border-subtle: 45 10% 20%;
+    --transition-tick: 120ms ease-out;
+    --transition-panel: 200ms ease;
+  }
+
   .terminal {
     --background: 220 30% 7%;
     --foreground: 210 20% 82%;
@@ -199,6 +251,12 @@
   .scrollbar-thin::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 3px; }
   .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
   .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+
+  /* Gold premium border utility */
+  .gold-border {
+    border: 1px solid hsl(45 100% 50% / 0.3);
+    box-shadow: 0 0 12px hsl(45 100% 50% / 0.15);
+  }
 
   /* Typography hierarchy — fintech visual system */
   .text-primary-strong { color: hsl(var(--foreground)); }

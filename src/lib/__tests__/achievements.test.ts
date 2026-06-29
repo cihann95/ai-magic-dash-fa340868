@@ -17,6 +17,11 @@ vi.mock("@/hooks/use-toast", () => ({
   toast: vi.fn(),
 }));
 
+// canvas-confetti not implemented in jsdom
+vi.mock("canvas-confetti", () => ({
+  default: vi.fn(),
+}));
+
 describe("achievements", () => {
   beforeEach(() => {
     vi.clearAllMocks();

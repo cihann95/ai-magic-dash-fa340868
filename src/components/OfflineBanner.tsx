@@ -1,12 +1,22 @@
 import { useState, useEffect } from "react";
-import { WifiOff } from "lucide-react";
+import { WifiOff, Wifi, Database } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function OfflineBanner() {
   const [isOnline, setIsOnline] = useState(true);
   const [show, setShow] = useState(false);
+  const [cacheCount, setCacheCount] = useState(0);
 
   useEffect(() => {
+    const updateCacheInfo = () => {
+      try {
+        const count = Object.keys(localStorage).filter((k) => k.startsWith("lumen_offline_")).length;
+        setCacheCount(count);
+      } catch {
+        setCacheCount(0);
+      }
+    };
+
     const handleOnline = () => {
       setIsOnline(true);
       setTimeout(() => setShow(false), 2000);
@@ -20,13 +30,16 @@ export default function OfflineBanner() {
     // Initial check
     setIsOnline(navigator.onLine);
     setShow(!navigator.onLine);
+    updateCacheInfo();
 
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
+    window.addEventListener("storage", updateCacheInfo);
 
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
+      window.removeEventListener("storage", updateCacheInfo);
     };
   }, []);
 
@@ -44,12 +57,18 @@ export default function OfflineBanner() {
       aria-live="assertive"
     >
       <div className="flex items-center justify-center gap-2">
-        {!isOnline && <WifiOff className="size-4" />}
+        {isOnline ? <Wifi className="size-4" /> : <WifiOff className="size-4" />}
         <span>
           {isOnline
             ? "Back online"
-            : "No internet connection - working in offline mode"}
+            : "No internet connection — working offline"}
         </span>
+        {!isOnline && cacheCount > 0 && (
+          <span className="flex items-center gap-1 text-yellow-200 text-xs">
+            <Database className="size-3" />
+            {cacheCount} cached
+          </span>
+        )}
       </div>
     </div>
   );

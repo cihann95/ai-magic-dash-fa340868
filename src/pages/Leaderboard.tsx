@@ -1,5 +1,6 @@
 import AppShell from "@/components/AppShell";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import VerifiedBadge from "@/components/VerifiedBadge";
 import { useApp } from "@/contexts/AppContext";
 import { supabase } from "@/integrations/supabase/client";
 import { t } from "@/lib/i18n";
@@ -7,11 +8,21 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Trophy, Medal, Award, AlertCircle, RefreshCw } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Trophy, Medal, Award, AlertCircle, RefreshCw, TrendingDown, Activity } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
+import { Link } from "react-router-dom";
+
+type Period = "weekly" | "monthly" | "all";
+
+const periodLabel = (lang: string): Record<Period, string> => ({
+  weekly: lang === "tr" ? "Haftalık" : "Weekly",
+  monthly: lang === "tr" ? "Aylık" : "Monthly",
+  all: lang === "tr" ? "Tüm Zamanlar" : "All Time",
+});
 
 function LeaderboardInner() {
   const { user, lang } = useApp();
@@ -21,6 +32,7 @@ function LeaderboardInner() {
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [period, setPeriod] = useState<Period>("all");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -38,6 +50,7 @@ function LeaderboardInner() {
     }
     setLoading(false);
   }, [user]);
+
   useEffect(() => { load(); }, [load]);
 
   const join = async () => {
@@ -73,10 +86,21 @@ function LeaderboardInner() {
         )}
         {pp?.is_active && (
           <Card className="p-3 glass border-border/40 flex items-center justify-between">
-            <div className="text-xs">@{pp.username} <span className="text-muted-foreground">— {tr.active}</span></div>
+            <div className="text-xs flex items-center gap-1">
+              @{pp.username} {pp.verified && <VerifiedBadge size="sm" />}
+              <span className="text-muted-foreground">— {tr.active}</span>
+            </div>
             <Button size="sm" variant="ghost" onClick={leave}>{tr.cancel}</Button>
           </Card>
         )}
+
+        <Tabs value={period} onValueChange={(v) => setPeriod(v as Period)} className="w-full">
+          <TabsList className="grid grid-cols-3 max-w-xs">
+            {(["weekly", "monthly", "all"] as Period[]).map((p) => (
+              <TabsTrigger key={p} value={p}>{periodLabel(lang)[p]}</TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
 
         <Card className="glass border-border/40 overflow-hidden">
           {loading ? (
@@ -108,11 +132,21 @@ function LeaderboardInner() {
                   <TableHead>{tr.level}</TableHead>
                   <TableHead className="text-right">{tr.pnl}</TableHead>
                   <TableHead className="text-right">{tr.win_rate}</TableHead>
+                  <TableHead className="text-right">
+                    <span className="flex items-center gap-1 justify-end">
+                      <TrendingDown className="size-3" /> Max DD
+                    </span>
+                  </TableHead>
+                  <TableHead className="text-right">
+                    <span className="flex items-center gap-1 justify-end">
+                      <Activity className="size-3" /> Sharpe
+                    </span>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {rows.length === 0 ? (
-                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">—</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">—</TableCell></TableRow>
                 ) : rows.map((r, i) => (
                   <TableRow key={r.user_id} className={cn(user?.id === r.user_id && "bg-primary/5")}>
                     <TableCell>
@@ -120,12 +154,23 @@ function LeaderboardInner() {
                        i === 1 ? <Medal className="size-4 text-gray-400" /> :
                        i === 2 ? <Award className="size-4 text-orange-500" /> : <span className="text-xs text-muted-foreground">{i + 1}</span>}
                     </TableCell>
-                    <TableCell className="font-semibold">@{r.username}</TableCell>
+                    <TableCell className="font-semibold">
+                      <Link to={`/trader/${r.username}`} className="hover:underline flex items-center gap-1">
+                        @{r.username}
+                        {r.verified && <VerifiedBadge size="sm" />}
+                      </Link>
+                    </TableCell>
                     <TableCell><span className="font-mono text-xs px-2 py-0.5 rounded bg-primary/15 text-primary">Lv {r.level}</span></TableCell>
                     <TableCell className={cn("text-right font-mono font-semibold", Number(r.total_pnl) >= 0 ? "text-bull" : "text-bear")}>
                       {Number(r.total_pnl) >= 0 ? "+" : ""}${Number(r.total_pnl).toFixed(2)}
                     </TableCell>
                     <TableCell className="text-right font-mono">{r.win_rate}%</TableCell>
+                    <TableCell className="text-right font-mono text-muted-foreground">
+                      {r.max_drawdown != null ? `${Number(r.max_drawdown).toFixed(1)}%` : "—"}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-muted-foreground">
+                      {r.sharpe_ratio != null ? Number(r.sharpe_ratio).toFixed(2) : "—"}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

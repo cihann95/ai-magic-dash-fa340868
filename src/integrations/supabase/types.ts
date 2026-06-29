@@ -717,6 +717,8 @@ export type Database = {
           updated_at: string
           user_id: string
           username: string
+          verified: boolean
+          verified_at: string | null
         }
         Insert: {
           bio?: string | null
@@ -728,6 +730,8 @@ export type Database = {
           updated_at?: string
           user_id: string
           username: string
+          verified?: boolean
+          verified_at?: string | null
         }
         Update: {
           bio?: string | null
@@ -739,6 +743,8 @@ export type Database = {
           updated_at?: string
           user_id?: string
           username?: string
+          verified?: boolean
+          verified_at?: string | null
         }
         Relationships: []
       }
@@ -966,8 +972,10 @@ export type Database = {
           last_active_date: string | null
           level: number
           longest_streak: number
+          max_drawdown: number
           onboarding_completed: boolean
           profitable_trades: number
+          sharpe_ratio: number
           total_pnl: number
           total_trades: number
           updated_at: string
@@ -982,8 +990,10 @@ export type Database = {
           last_active_date?: string | null
           level?: number
           longest_streak?: number
+          max_drawdown?: number
           onboarding_completed?: boolean
           profitable_trades?: number
+          sharpe_ratio?: number
           total_pnl?: number
           total_trades?: number
           updated_at?: string
@@ -998,8 +1008,10 @@ export type Database = {
           last_active_date?: string | null
           level?: number
           longest_streak?: number
+          max_drawdown?: number
           onboarding_completed?: boolean
           profitable_trades?: number
+          sharpe_ratio?: number
           total_pnl?: number
           total_trades?: number
           updated_at?: string
@@ -1081,6 +1093,9 @@ export type Database = {
           username: string
           win_rate: number
           xp: number
+          verified: boolean
+          max_drawdown: number | null
+          sharpe_ratio: number | null
         }[]
       }
       grant_achievement: {

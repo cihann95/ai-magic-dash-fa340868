@@ -53,7 +53,15 @@ vi.mock("lucide-react", () => ({
   Download: () => <svg data-testid="icon-download" />,
   Users: () => <svg data-testid="icon-users" />,
   Wallet: () => <svg data-testid="icon-wallet" />,
+  Diamond: () => <svg data-testid="icon-diamond" />,
   Info: () => <svg data-testid="icon-info" />,
+  Check: () => <svg data-testid="icon-check" />,
+  Key: () => <svg data-testid="icon-key" />,
+  CheckCircle2: () => <svg data-testid="icon-checkcircle2" />,
+  XCircle: () => <svg data-testid="icon-xcircle" />,
+  RefreshCw: () => <svg data-testid="icon-refreshcw" />,
+  Loader2: () => <svg data-testid="icon-loader2" />,
+  TrendingUp: () => <svg data-testid="icon-trendingup" />,
 }));
 
 vi.mock("@/lib/pushSubscribe", () => ({

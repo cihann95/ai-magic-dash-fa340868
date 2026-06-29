@@ -13,6 +13,7 @@ import { useState } from "react";
 import GameBadge from "./GameBadge";
 import StreakBadge from "./StreakBadge";
 import NotificationBell from "./NotificationBell";
+import PremiumBadge from "./PremiumBadge";
 
 const primaryItems = (lang: "tr" | "en") => [
   { to: "/", label: t(lang).markets, icon: LineChart },
@@ -32,7 +33,7 @@ const moreItems = (lang: "tr" | "en") => [
 ];
 
 export default function TopBar() {
-  const { user, lang, setLang, theme, setTheme, signOut, isAdmin } = useApp();
+  const { user, lang, setLang, theme, setTheme, signOut, isAdmin, subscription } = useApp();
   const navigate = useNavigate();
   const loc = useLocation();
   const tr = t(lang);
@@ -151,6 +152,7 @@ export default function TopBar() {
           {user && <NotificationBell />}
           {user && <GameBadge />}
           {user && <StreakBadge />}
+          {user && <PremiumBadge />}
           <Button variant="ghost" size="sm" onClick={() => setLang(lang === "tr" ? "en" : "tr")} className="font-mono text-xs uppercase">
             {lang}
           </Button>
@@ -160,8 +162,11 @@ export default function TopBar() {
           {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full gradient-primary text-primary-foreground font-semibold">
+                <Button variant="ghost" size="icon" className="rounded-full gradient-primary text-primary-foreground font-semibold relative">
                   {(user.email?.[0] || "U").toUpperCase()}
+                  {subscription && subscription.plan !== "free" && (
+                    <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-yellow-400 animate-pulse" />
+                  )}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">

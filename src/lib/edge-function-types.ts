@@ -12,6 +12,41 @@ export interface AiAnalyzeResponse {
   error?: string;
 }
 
+export interface WhatIfSimResponse {
+  symbol: string;
+  entry_price: number;
+  side: string;
+  amount: number;
+  scenario: {
+    direction: string;
+    projected_price_1h: number;
+    projected_change_pct: number;
+    pnl: number;
+    pnl_pct: number;
+  };
+  opposite_scenario: {
+    projected_price_1h: number;
+    pnl: number;
+    pnl_pct: number;
+  };
+  note: string;
+  error?: string;
+}
+
+export interface SignalAccuracyResponse {
+  accuracy_pct: number;
+  total_signals: number;
+  correct_signals: number;
+  recent_signals: Array<{
+    signal_type: string;
+    was_correct: boolean | null;
+    price_at_signal: number;
+    price_after_24h: number | null;
+    created_at: string;
+    confidence: number;
+  }>;
+}
+
 export interface AiStrategyResponse {
   suggestion: string;
   error?: string;

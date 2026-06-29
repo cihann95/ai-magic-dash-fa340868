@@ -1,8 +1,7 @@
 import { ReactNode } from "react";
 import TopBar from "./TopBar";
 import BottomNav from "./BottomNav";
-import OnboardingTour from "./OnboardingTour";
-import PersonaOnboarding from "./PersonaOnboarding";
+import UnifiedOnboarding from "./UnifiedOnboarding";
 import CommandPalette from "./CommandPalette";
 import ShortcutsHelp from "./ShortcutsHelp";
 import { useAlertNotifications } from "@/hooks/useAlertNotifications";
@@ -18,8 +17,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
       <TopBar />
       <main className="max-w-[1800px] mx-auto">{children}</main>
       <BottomNav />
-      <OnboardingTour />
-      <PersonaOnboarding />
+      <UnifiedOnboarding />
       <CommandPalette />
       <ShortcutsHelp />
     </div>

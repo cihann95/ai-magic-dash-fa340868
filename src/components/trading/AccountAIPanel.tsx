@@ -8,8 +8,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Slider } from "@/components/ui/slider";
 import { motion } from "framer-motion";
-import { Loader2, RefreshCw, Send, Sparkles, Brain } from "lucide-react";
+import { Loader2, RefreshCw, Send, Sparkles, Brain, TrendingUp, TrendingDown, Diamond } from "lucide-react";
 import { SymbolDef } from "@/lib/symbols";
 import AIDisclaimer from "@/components/AIDisclaimer";
 import SignalCard from "@/components/trading/SignalCard";
@@ -17,7 +18,7 @@ import { useLivePrices } from "@/hooks/useLivePrices";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
-import type { AiAnalyzeResponse, AiStrategyResponse, DailyBriefResponse, NewsFeedResponse } from "../../lib/edge-function-types";
+import type { AiAnalyzeResponse, AiStrategyResponse, DailyBriefResponse, NewsFeedResponse, WhatIfSimResponse } from "../../lib/edge-function-types";
 interface Props { symbol: SymbolDef; refreshKey: number; onTradeDone: () => void; }
 
 interface Position {
@@ -43,7 +44,7 @@ function TypingDots() {
 }
 
 export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTradeDone }: Props) {
-  const { lang, user } = useApp();
+  const { lang, user, subscription } = useApp();
   const tr = t(lang);
   const [balance, setBalance] = useState(0);
   const [locked, setLocked] = useState(0);
@@ -67,6 +68,35 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
   const [streaming, setStreaming] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("analysis");
+
+  // What-If Simulator
+  const [whatIfAmount, setWhatIfAmount] = useState(1000);
+  const [whatIfSide, setWhatIfSide] = useState<"long" | "short">("long");
+  const [whatIfResult, setWhatIfResult] = useState<WhatIfSimResponse | null>(null);
+  const [loadingWhatIf, setLoadingWhatIf] = useState(false);
+
+  // Daily usage tracking
+  const [dailyCount, setDailyCount] = useState(0);
+  const DAILY_LIMIT = 5;
+  const maxDaily = subscription?.plan !== "free" ? 9999 : (subscription?.trial_ends_at && new Date(subscription.trial_ends_at) > new Date() ? 9999 : DAILY_LIMIT);
+  const usageLeft = Math.max(0, maxDaily - dailyCount);
+  const usageLimited = maxDaily <= DAILY_LIMIT && dailyCount >= DAILY_LIMIT;
+
+  const loadDailyUsage = async () => {
+    if (!user) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const { data } = await supabase
+      .from("ai_daily_usage" as any)
+      .select("count")
+      .eq("user_id" as any, user.id)
+      .eq("usage_date" as any, today)
+      .maybeSingle();
+    if (data) setDailyCount(Number(data.count));
+    else setDailyCount(0);
+  };
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { loadDailyUsage(); }, [user]);
 
   const livePrices = useLivePrices(positions.map((p) => p.symbol));
 
@@ -135,6 +165,14 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
   const totalChange = initial > 0 ? ((totalEquity - initial) / initial) * 100 : 0;
 
   const runAnalysis = async () => {
+    if (usageLimited) {
+      toast({
+        title: lang === "tr" ? "Günlük analiz limiti doldu" : "Daily analysis limit reached",
+        description: lang === "tr" ? "Premium'a yükselterek sınırsız analize sahip olun." : "Upgrade to Premium for unlimited analysis.",
+        variant: "destructive",
+      });
+      return;
+    }
     setLoadingA(true); setAnalysis(""); setAnalysisConfidence(null); setAnalysisReasoning(null);
     try {
       const result = await callEdgeFunction<AiAnalyzeResponse>("ai-analyze", { symbol: symbol.symbol, asset_class: symbol.asset_class, language: lang });
@@ -266,6 +304,24 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
     } finally { setStreaming(false); }
   };
 
+  const runWhatIf = async () => {
+    setLoadingWhatIf(true);
+    setWhatIfResult(null);
+    try {
+      const result = await callEdgeFunction<WhatIfSimResponse>("what-if-sim", {
+        symbol: symbol.symbol,
+        amount: whatIfAmount,
+        side: whatIfSide,
+      });
+      if (result?.error) throw new Error(result.error);
+      setWhatIfResult(result);
+    } catch (e) {
+      if (!isEdgeError(e)) {
+        toast({ title: tr.error, description: e instanceof Error ? e.message : "Unknown", variant: "destructive" });
+      }
+    } finally { setLoadingWhatIf(false); }
+  };
+
   return (
     <div className="flex flex-col h-full gap-3">
       <Card className="p-4 glass border-border/40 shadow-card shrink-0">
@@ -290,19 +346,25 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
 
       <Card className="flex-1 min-h-0 flex flex-col glass border-border/40 shadow-card overflow-hidden">
         <Tabs defaultValue="analysis" value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 min-h-0">
-          <TabsList className="grid grid-cols-5 m-3 mb-0 shrink-0 relative">
+          <TabsList className="grid grid-cols-6 m-3 mb-0 shrink-0 relative">
             <TabsTrigger value="analysis" className="text-xs transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"><Sparkles className="size-3 mr-0.5" />{tr.analysis}</TabsTrigger>
             <TabsTrigger value="brief" className="text-xs transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">📊</TabsTrigger>
             <TabsTrigger value="strategy" className="text-xs transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"><Brain className="size-3" /></TabsTrigger>
             <TabsTrigger value="news" className="text-xs transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">{tr.news}</TabsTrigger>
+            <TabsTrigger value="whatif" className="text-xs transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"><TrendingUp className="size-3" /></TabsTrigger>
             <TabsTrigger value="chat" className="text-xs transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm">{tr.chat}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="analysis" className="flex-1 min-h-0 m-0 mt-3 p-3 pt-0 overflow-y-auto scrollbar-thin space-y-3 data-[state=active]:flex data-[state=active]:flex-col data-[state=inactive]:hidden">
-            <Button variant="outline" size="sm" onClick={runAnalysis} disabled={loadingA || frictionCountdown > 0} className="w-full">
-              {loadingA ? <Loader2 className="size-4 animate-spin mr-1" /> : <Sparkles className="size-4 mr-1" />}
-              {loadingA ? tr.analyzing : frictionCountdown > 0 ? (`${lang === "tr" ? "Analiz ediliyor" : "Analyzing"}... (${frictionCountdown}sn)`) : (lang === "tr" ? `${symbol.symbol} için analiz` : `Analyze ${symbol.symbol}`)}
-            </Button>
+            <div className="flex items-center justify-between">
+              <Button variant="outline" size="sm" onClick={runAnalysis} disabled={loadingA || frictionCountdown > 0 || usageLimited} className="flex-1">
+                {loadingA ? <Loader2 className="size-4 animate-spin mr-1" /> : usageLimited ? <Diamond className="size-4 mr-1" /> : <Sparkles className="size-4 mr-1" />}
+                {loadingA ? tr.analyzing : frictionCountdown > 0 ? (`${lang === "tr" ? "Analiz ediliyor" : "Analyzing"}... (${frictionCountdown}sn)`) : usageLimited ? (lang === "tr" ? "Limit doldu" : "Limit reached") : (lang === "tr" ? `${symbol.symbol} için analiz` : `Analyze ${symbol.symbol}`)}
+              </Button>
+              <span className={`text-[10px] font-mono ml-2 whitespace-nowrap ${usageLeft <= 1 ? "text-destructive" : "text-muted-foreground"}`}>
+                {usageLeft}/{maxDaily >= 9999 ? "∞" : maxDaily}
+              </span>
+            </div>
             <SignalCard title={`AI Analysis — ${symbol.symbol}`} content={analysis ?? ""} symbol={symbol.symbol} loading={loadingA} confidence={analysisConfidence} reasoning={analysisReasoning} />
             {analysis && <AIDisclaimer />}
           </TabsContent>
@@ -354,6 +416,97 @@ export default function AccountAIPanel({ symbol, refreshKey, onTradeDone: _onTra
               ))}
               {news.length === 0 && !loadingN && (
                 <div className="text-xs text-muted-foreground text-center py-8">{lang === "tr" ? "Yenile butonuna tıklayın" : "Click refresh to load"}</div>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="whatif" className="flex-1 min-h-0 m-0 mt-3 p-3 pt-0 overflow-y-auto scrollbar-thin space-y-3 data-[state=active]:flex data-[state=active]:flex-col data-[state=inactive]:hidden">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant={whatIfSide === "long" ? "default" : "outline"}
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => setWhatIfSide("long")}
+                >
+                  <TrendingUp className="size-3 mr-1 text-green-400" />
+                  Long
+                </Button>
+                <Button
+                  variant={whatIfSide === "short" ? "default" : "outline"}
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => setWhatIfSide("short")}
+                >
+                  <TrendingDown className="size-3 mr-1 text-red-400" />
+                  Short
+                </Button>
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs text-muted-foreground">Miktar / Amount ($)</span>
+                  <span className="text-xs font-mono font-bold">${whatIfAmount.toLocaleString()}</span>
+                </div>
+                <Input
+                  type="number"
+                  value={whatIfAmount}
+                  onChange={(e) => setWhatIfAmount(Number(e.target.value) || 0)}
+                  min={10}
+                  max={1000000}
+                  className="mb-2"
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={runWhatIf}
+                disabled={loadingWhatIf || whatIfAmount <= 0}
+                className="w-full"
+              >
+                {loadingWhatIf ? <Loader2 className="size-4 animate-spin mr-1" /> : <TrendingUp className="size-4 mr-1" />}
+                {lang === "tr" ? "Peki ya... Simüle Et" : "What If... Simulate"}
+              </Button>
+
+              {whatIfResult && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="rounded-lg border border-border-subtle bg-surface-1 p-4 space-y-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-semibold text-sm">
+                      {lang === "tr" ? "Simülasyon" : "Simulation"} — {symbol.symbol}
+                    </h4>
+                    <Badge variant="secondary" className="text-[10px]">
+                      ${whatIfAmount.toLocaleString()} {whatIfSide === "long" ? "Long" : "Short"}
+                    </Badge>
+                  </div>
+                  <div className={cn("text-lg font-price font-bold", whatIfResult.scenario.pnl >= 0 ? "text-bull" : "text-bear")}>
+                    {whatIfResult.scenario.pnl >= 0 ? "+" : ""}${whatIfResult.scenario.pnl.toFixed(2)}
+                    <span className="text-sm ml-1">
+                      ({whatIfResult.scenario.pnl_pct >= 0 ? "+" : ""}{whatIfResult.scenario.pnl_pct.toFixed(2)}%)
+                    </span>
+                  </div>
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <div className="flex justify-between">
+                      <span>{lang === "tr" ? "Giriş fiyatı" : "Entry price"}</span>
+                      <span className="font-mono">${whatIfResult.entry_price.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>{lang === "tr" ? "Tahmini fiyat (1s)" : "Est. price (1h)"}</span>
+                      <span className="font-mono">${whatIfResult.scenario.projected_price_1h.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>{lang === "tr" ? "Değişim" : "Change"}</span>
+                      <span className={cn("font-mono", whatIfResult.scenario.projected_change_pct >= 0 ? "text-bull" : "text-bear")}>
+                        {whatIfResult.scenario.projected_change_pct >= 0 ? "+" : ""}{whatIfResult.scenario.projected_change_pct}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-[10px] text-muted-foreground italic border-t border-border/40 pt-2">
+                    {whatIfResult.note}
+                  </div>
+                </motion.div>
               )}
             </div>
           </TabsContent>

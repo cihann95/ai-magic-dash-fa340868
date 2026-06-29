@@ -11,8 +11,9 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useLivePrices } from "@/hooks/useLivePrices";
 import { cn } from "@/lib/utils";
-import { Heart, EyeOff, Eye, TrendingUp, Loader2 } from "lucide-react";
+import { Heart, EyeOff, Eye, TrendingUp, Loader2, WifiOff } from "lucide-react";
 import { Link } from "react-router-dom";
+import { cacheSet, cacheGet, getOfflineKeys } from "@/lib/offlineCache";
 
 const PortfolioPieChart = lazy(() => import("@/components/PortfolioPieChart"));
 const PortfolioAreaChart = lazy(() => import("@/components/PortfolioAreaChart"));
@@ -30,17 +31,39 @@ function PortfolioInner() {
 
   useEffect(() => {
     if (!user) return;
+    const isOffline = !navigator.onLine;
     Promise.all([
       supabase.from("positions").select("*").eq("user_id", user.id),
       supabase.from("trades").select("*").eq("user_id", user.id).order("executed_at"),
       supabase.from("profiles").select("demo_balance, initial_balance, preferred_view").eq("id", user.id).maybeSingle(),
     ]).then(([p, t, pr]) => {
-      setPositions(p.data || []);
-      setTrades(t.data || []);
+      const positionsData = p.data || [];
+      const tradesData = t.data || [];
+      // Cache for offline use
+      cacheSet(`positions_${user.id}`, positionsData);
+      cacheSet(`trades_${user.id}`, tradesData);
+      if (pr.data) {
+        cacheSet(`profile_${user.id}`, pr.data);
+      }
+      setPositions(positionsData);
+      setTrades(tradesData);
       if (pr.data) {
         setBalance(Number(pr.data.demo_balance));
         setInitial(Number(pr.data.initial_balance));
         setHealthMode(pr.data.preferred_view === "health");
+      }
+    }).catch((err) => {
+      console.warn('Portfolio fetch failed, trying cache', err);
+      // Fallback to cache
+      const cp = cacheGet<Database["public"]["Tables"]["positions"]["Row"][]>(`positions_${user.id}`);
+      const ct = cacheGet<Database["public"]["Tables"]["trades"]["Row"][]>(`trades_${user.id}`);
+      const cpr = cacheGet<{ demo_balance: number; initial_balance: number; preferred_view: string | null }>(`profile_${user.id}`);
+      if (cp) setPositions(cp.data);
+      if (ct) setTrades(ct.data);
+      if (cpr) {
+        setBalance(Number(cpr.data.demo_balance));
+        setInitial(Number(cpr.data.initial_balance));
+        setHealthMode(cpr.data.preferred_view === "health");
       }
     });
   }, [user]);
@@ -98,6 +121,15 @@ function PortfolioInner() {
             <Switch id="health-mode" checked={healthMode} onCheckedChange={toggleHealthMode} />
           </div>
         </div>
+
+        {!navigator.onLine && (
+          <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-yellow-600/20 border border-yellow-600/40 text-sm">
+            <WifiOff className="size-4 shrink-0 text-yellow-600" />
+            <span className="text-yellow-600 dark:text-yellow-400 font-medium">
+              {lang === "tr" ? "Çevrimdışı mod — önbellekteki veriler gösteriliyor" : "Offline mode — showing cached data"}
+            </span>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className="p-5 glass border-border/40">

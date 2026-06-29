@@ -9,6 +9,7 @@ const mockSupabaseClient = vi.hoisted(() => ({
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
     order: vi.fn().mockReturnThis(),
+    maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
     single: vi.fn().mockResolvedValue({ data: null, error: null }),
   })),
   auth: {
@@ -54,6 +55,10 @@ vi.mock("lucide-react", () => ({
   EyeOff: (_props: Record<string, unknown>) => <svg data-testid="icon-eyeoff" />,
   Eye: (_props: Record<string, unknown>) => <svg data-testid="icon-eye" />,
   TrendingUp: (_props: Record<string, unknown>) => <svg data-testid="icon-trending-up" />,
+  Info: (_props: Record<string, unknown>) => <svg data-testid="icon-info" />,
+  Database: (_props: Record<string, unknown>) => <svg data-testid="icon-database" />,
+  Loader2: (_props: Record<string, unknown>) => <svg data-testid="icon-loader2" />,
+  WifiOff: (_props: Record<string, unknown>) => <svg data-testid="icon-wifioff" />,
 }));
 
 // ── Mock recharts ──
@@ -106,6 +111,8 @@ describe("Portfolio", () => {
       const chain: Record<string, unknown> = {};
       chain.select = vi.fn().mockReturnValue(chain);
       chain.eq = vi.fn().mockReturnValue(chain);
+      chain.maybeSingle = vi.fn().mockResolvedValue({ data: null, error: null });
+      chain.single = vi.fn().mockResolvedValue({ data: null, error: null });
       return chain;
     });
   });
